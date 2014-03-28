@@ -1,0 +1,2 @@
+DO NOT include *.o files in the repo! This can easily be avoided by running 'make clean' before making edits.
+DO NOT make commits which throw warnings or errors.
