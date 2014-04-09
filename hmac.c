@@ -1,55 +1,58 @@
 #include "util.h"
 #include "hmac.h"
+#include "sable_tpm.h"
 
-void do_xor(unsigned char * in1, unsigned char * in2, unsigned char* out,unsigned char size){
-   for(int i=0;i<size;i++)
+void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size){
+   for(UINT32 i=0;i<size;i++)
       out[i]=in1[i]^in2[i];
 }
 
-void pad(unsigned char * in, unsigned char val, unsigned char insize, unsigned char outsize){
-
-   memset(in+insize,val,outsize-insize);
-
+void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize){
+    memset(in + insize, val, outsize-insize);
 }
 
-void hmac(
-        struct Context *ctx, 
-        BYTE *key, 
-        BYTE keysize, 
-        BYTE *text, 
-        BYTE textsize)
+void
+hmac_init(struct HContext *hctx, BYTE *key, UINT32 key_size)
 {
-   BYTE buf[1024];
-   BYTE ipad[64];
-   BYTE opad[64];
-   memcpy(buf,key,keysize);
+    BYTE ipad[HMAC_BLOCK_SIZE];
 
-   //pad the key with 0s
-   pad(buf,0,keysize,64);
+    memset(hctx->key, 0, HMAC_BLOCK_SIZE);
+    memset(ipad, 0x36, HMAC_BLOCK_SIZE);
 
-   //generate ipad and opad
-   pad(ipad,0x36,0,64);
-   pad(opad,0x5c,0,64);
+    if (key_size <= HMAC_BLOCK_SIZE)
+        memcpy(hctx->key, key, key_size);
+    else
+    {
+        sha1_init(&hctx->ctx);   
+        sha1(&hctx->ctx, key, key_size);
+        sha1_finish(&hctx->ctx);
+        memcpy(hctx->key, hctx->ctx.hash, TCG_HASH_SIZE);
+    }
 
-   //xor ipad with the key
-   do_xor(buf,ipad,buf,64);
+    do_xor(ipad, hctx->key, ipad, HMAC_BLOCK_SIZE);
 
-   memcpy(buf+64, text, textsize);
+    sha1_init(&hctx->ctx);
+    sha1(&hctx->ctx, ipad, HMAC_BLOCK_SIZE);
+}
 
-   sha1_init(ctx);   
-   sha1(ctx,buf,64+textsize);
-   sha1_finish(ctx);
+void hmac(struct HContext *hctx, BYTE *text, BYTE textsize)
+{
+    sha1(&hctx->ctx, text, textsize);
+}
 
-   memcpy(buf,key,keysize);
-   
-   pad(buf,0,keysize,64);
+void hmac_finish(struct HContext *hctx)
+{
+    BYTE opad[HMAC_BLOCK_SIZE];
+    BYTE hash[TCG_HASH_SIZE];
 
-   do_xor(buf,opad,buf,64);
+    sha1_finish(&hctx->ctx);
 
-   memcpy(buf+64, ctx->hash,20);   
- 
-   sha1_init(ctx);
-   sha1(ctx,buf,64+20);
-   sha1_finish(ctx);
+    memset(opad, 0x5c, HMAC_BLOCK_SIZE);
+    do_xor(opad, hctx->key, opad, HMAC_BLOCK_SIZE);
+    memcpy(hash, hctx->ctx.hash, TCG_HASH_SIZE);
 
+    sha1_init(&hctx->ctx);
+    sha1(&hctx->ctx, opad, HMAC_BLOCK_SIZE);
+    sha1(&hctx->ctx, hash, TCG_HASH_SIZE);
+    sha1_finish(&hctx->ctx);
 }

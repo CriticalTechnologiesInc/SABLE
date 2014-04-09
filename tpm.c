@@ -61,17 +61,18 @@ int TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
 }
 
 int TPM_Unseal(
-        unsigned char * buffer, 
-        unsigned char * inData, 
-        unsigned char * secretData,
-        unsigned long secretDataBufSize,
-        unsigned long *secretDataSize,
-        SessionCtx * sctxParent, 
-        SessionCtx * sctxEntity)
+        BYTE *buffer, 
+        BYTE *inData, 
+        BYTE *secretData,
+        UINT32 secretDataBufSize,
+        UINT32 *secretDataSize,
+        SessionCtx *sctxParent, 
+        SessionCtx *sctxEntity)
 {
     int guard=0;
     unsigned char outbuffer[TCG_BUFFER_SIZE];
     struct Context ctx;
+    struct HContext hctx;
     stTPM_UNSEAL * unseal = (stTPM_UNSEAL *) outbuffer;
     unsigned long sealInfoSize = ntohl(*((unsigned long *)(inData+4)));
     unsigned long encDataSize= ntohl(*((unsigned long *)(inData+8+sealInfoSize)));
@@ -114,8 +115,10 @@ int TPM_Unseal(
 
     unsigned char authDataParent[20];
     memset(authDataParent,0,20);
-    hmac(&ctx,authDataParent,20,buffer,offset);
-    memcpy((unsigned char *)&endbufParent->pubAuth,ctx.hash,20);
+    hmac_init(&hctx, authDataParent, 20);
+    hmac(&hctx, buffer, offset);
+    hmac_finish(&hctx);
+    memcpy((unsigned char *)&endbufParent->pubAuth,hctx.ctx.hash,20);
 
     offset=20;
     memcpy(buffer+offset,(unsigned char *)&sctxEntity->nonceEven,20);
@@ -127,8 +130,10 @@ int TPM_Unseal(
 
     unsigned char authDataEntity[20];
     memset(authDataEntity,0,20);
-    hmac(&ctx,authDataEntity,20,buffer,offset);
-    memcpy((unsigned char *)&endbufEntity->pubAuth,ctx.hash,20);
+    hmac_init(&hctx, authDataEntity, 20);
+    hmac(&hctx, buffer, offset);
+    hmac_finish(&hctx);
+    memcpy((unsigned char *)&endbufEntity->pubAuth,hctx.ctx.hash,20);
 
     ERROR(108,guard!=0,"BUFFER OVERFLOW DETECED");
     int res = tis_transmit(outbuffer, sizeof(stTPM_UNSEAL)+inDataSize+2*sizeof(SessionEnd), outbuffer, 500);
@@ -179,6 +184,7 @@ int TPM_NV_DefineSpace(
     int res;
     UINT32 sha_offset = 0, hmac_offset = 0, tpm_offset_out = 0;
     struct Context ctx;
+    struct HContext hctx;
 
     // declare data structures
     TPM_NV_ATTRIBUTES perm;
@@ -242,8 +248,10 @@ int TPM_NV_DefineSpace(
     HMAC_COPY_TO(&se.nonceOdd.nonce, sizeof(TPM_NONCE));
     HMAC_COPY_TO(&se.continueAuthSession, sizeof(TPM_BOOL));
 
-    hmac(&ctx, sctx->sharedSecret, TCG_HASH_SIZE, hmac_buf, hmac_offset);
-    memcpy(&se.pubAuth, ctx.hash, TCG_HASH_SIZE);
+    hmac_init(&hctx, sctx->sharedSecret, TCG_HASH_SIZE);
+    hmac(&hctx, hmac_buf, hmac_offset);
+    hmac_finish(&hctx);
+    memcpy(&se.pubAuth, hctx.ctx.hash, TCG_HASH_SIZE);
     
     // package the entire command into a bytestream
     SABLE_TPM_COPY_TO(&com, sizeof(stTPM_NV_DEFINESPACE));
@@ -262,6 +270,7 @@ int TPM_NV_DefineSpace(
 
 int TPM_NV_ReadValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, UINT32 dataBufferSize, SessionCtx *sctx){
 struct Context ctx;
+struct HContext hctx;
 unsigned char outbuffer[TCG_BUFFER_SIZE];
 stTPM_NV_WRITEVALUE * buf = (stTPM_NV_WRITEVALUE*) outbuffer;
 buf->tag=ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
@@ -302,8 +311,10 @@ offset+=1;
 
 unsigned char authData[20];
 memset(authData,0,20);
-hmac(&ctx,authData,20,buffer,offset);
-memcpy((unsigned char *)&endbuf->pubAuth,ctx.hash,20);
+hmac_init(&hctx, authData, 20);
+hmac(&hctx,buffer,offset);
+hmac_finish(&hctx);
+memcpy((unsigned char *)&endbuf->pubAuth,hctx.ctx.hash,20);
 
 unsigned long receivedDataSize;
 int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+sizeof(SessionEnd), outbuffer, 600);
@@ -326,6 +337,7 @@ int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+sizeof(SessionEnd)
 
 int TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx){
 struct Context ctx;
+struct HContext hctx;
 unsigned char outbuffer[TCG_BUFFER_SIZE];
 stTPM_NV_WRITEVALUE * buf = (stTPM_NV_WRITEVALUE*) outbuffer;
 buf->tag=ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
@@ -369,8 +381,10 @@ offset+=1;
 
 unsigned char authData[20];
 memset(authData,0,20);
-hmac(&ctx,authData,20,buffer,offset);
-memcpy((unsigned char *)&endbuf->pubAuth,ctx.hash,20);
+hmac_init(&hctx,authData,20);
+hmac(&hctx,buffer,offset);
+hmac_finish(&hctx);
+memcpy((unsigned char *)&endbuf->pubAuth,hctx.ctx.hash,20);
 
 int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+dataSize+sizeof(SessionEnd), outbuffer, 600);
     if(res>=0){
@@ -439,6 +453,7 @@ int TPM_Seal(
 {
     int res;
     struct Context ctx;
+    struct HContext hctx;
     sdTPM_PCR_INFO_LONG info;
     SessionEnd se;
     stTPM_SEAL com;
@@ -494,8 +509,10 @@ int TPM_Seal(
     HMAC_COPY_TO(&se.nonceOdd.nonce, sizeof(TPM_NONCE));
     HMAC_COPY_TO(&se.continueAuthSession, sizeof(TPM_BOOL));
 
-    hmac(&ctx, sctx->sharedSecret, TCG_HASH_SIZE, hmac_buf, hmac_offset);
-    memcpy(&se.pubAuth, ctx.hash, TCG_HASH_SIZE);
+    hmac_init(&hctx, sctx->sharedSecret, TCG_HASH_SIZE);
+    hmac(&hctx, hmac_buf, hmac_offset);
+    hmac_finish(&hctx);
+    memcpy(&se.pubAuth, hctx.ctx.hash, TCG_HASH_SIZE);
 
     // package the entire command into a bytestream
     SABLE_TPM_COPY_TO(&com, sizeof(stTPM_SEAL));
@@ -615,7 +632,7 @@ TPM_Extend(
 int TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 entityValue, SessionCtx * sctx){
     int res;
     UINT32 tpm_offset_out = 0;
-    struct Context ctx;
+    struct HContext hctx;
     TPM_OSAP com;
     TPM_NONCE nonceOddOSAP;
 
@@ -642,8 +659,10 @@ int TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 e
         TPM_COPY_FROM((unsigned char *)&sctx->nonceEven,4,20);
         TPM_COPY_FROM(hmac_buffer,24,20);
         memcpy(hmac_buffer+20,nonceOddOSAP.nonce,20);
-        hmac(&ctx,usageAuth,20,hmac_buffer,40);
-        memcpy((unsigned char *)&sctx->sharedSecret,ctx.hash,20);
+        hmac_init(&hctx,usageAuth,20);
+        hmac(&hctx,hmac_buffer,40);
+        hmac_finish(&hctx);
+        memcpy((unsigned char *)&sctx->sharedSecret,hctx.ctx.hash,20);
     }
 
     return res;

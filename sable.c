@@ -117,7 +117,7 @@ void unsealPassphrase()
     unsigned char usageAuthSRK[20];
     unsigned char sealedData[400];
     unsigned char unsealedData[100];
-    unsigned long unsealedDataSize;
+    UINT32 unsealedDataSize;
     memset((unsigned char *)&sctx,0,sizeof(SessionCtx));
     memset(usageAuthSRK,0,20);
 
@@ -408,7 +408,7 @@ int oslo(struct mbi *mbi)
 
       CHECK4(24,(res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD)), "TPM_PcrRead failed", res);
       show_hash("PCR[17]: ",dig.digest);
-      wait(10000);
+      wait(1000);
 
       if(config==1){
 	out_string("\nSealing passphrase ");
@@ -417,7 +417,7 @@ int oslo(struct mbi *mbi)
 	for(i=0;i<20;i++)
 		out_hex(*(pcr10+i),7);
 	out_string("\n");
-	wait(10000);
+	wait(1000);
 
       	configure(passPhrase,lenPassphrase);
 	out_string("\n The following message should be displayed at every boot:\n");
@@ -438,6 +438,3 @@ int oslo(struct mbi *mbi)
   ERROR(27, start_module(mbi), "start module failed");
   return 28;
 }
-
-
-

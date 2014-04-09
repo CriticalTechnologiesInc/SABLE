@@ -287,7 +287,7 @@ int TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
 int TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 entityValue, SessionCtx * sctx);
 int TPM_Startup_Clear(unsigned char buffer[TCG_BUFFER_SIZE]);
 int TPM_Extend (BYTE *in_buffer, TPM_PCRINDEX pcr_index, TPM_DIGEST *hash);
-int TPM_Unseal( BYTE *buffer, BYTE *inData, BYTE *secretData, unsigned long secretDataBufSize, unsigned long *secretDataSize, SessionCtx * sctxParent, SessionCtx * sctxEntity);
+int TPM_Unseal( BYTE *buffer, BYTE *inData, BYTE *secretData, UINT32 secretDataBufSize, UINT32 *secretDataSize, SessionCtx * sctxParent, SessionCtx * sctxEntity);
 int TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE * data, UINT32 dataSize, BYTE *stored_data, SessionCtx * sctx);
 int TPM_GetCapability_Pcrs(unsigned char buffer[TCG_BUFFER_SIZE], unsigned int *pcrs);
 void dump_pcrs(unsigned char *buffer);

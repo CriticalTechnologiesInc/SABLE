@@ -1,8 +1,15 @@
 #include "sha.h"
 
-void do_xor(unsigned char * in1, unsigned char * in2, unsigned char* out,unsigned char size);
+#define HMAC_BLOCK_SIZE  64
 
-void pad(unsigned char * in, unsigned char val, unsigned char insize, unsigned char outsize);
+struct HContext
+{
+  struct Context ctx;
+  BYTE key[HMAC_BLOCK_SIZE];
+};
 
-void hmac(struct Context *ctx, unsigned char *key, unsigned char keysize, unsigned char * text, unsigned char textsize);
-
+void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size);
+void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize);
+void hmac_init(struct HContext *hctx, BYTE *key, UINT32 key_size);
+void hmac(struct HContext *hctx, BYTE *text, BYTE textsize);
+void hmac_finish(struct HContext *hctx);
