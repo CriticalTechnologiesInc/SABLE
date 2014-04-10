@@ -61,7 +61,7 @@ int TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
 }
 
 int TPM_Unseal(
-        BYTE *buffer, 
+        BYTE *in_buffer, 
         BYTE *inData, 
         BYTE *secretData,
         UINT32 secretDataBufSize,
@@ -69,83 +69,73 @@ int TPM_Unseal(
         SessionCtx *sctxParent, 
         SessionCtx *sctxEntity)
 {
-    int guard=0;
-    unsigned char outbuffer[TCG_BUFFER_SIZE];
+    int res;
     struct Context ctx;
     struct HContext hctx;
-    stTPM_UNSEAL * unseal = (stTPM_UNSEAL *) outbuffer;
-    unsigned long sealInfoSize = ntohl(*((unsigned long *)(inData+4)));
-    unsigned long encDataSize= ntohl(*((unsigned long *)(inData+8+sealInfoSize)));
-    unsigned long inDataSize=12+sealInfoSize+encDataSize;
+    stTPM_UNSEAL com;
+    SessionEnd endBufParent, endBufEntity;
 
-    unseal->tag=ntohs(TPM_TAG_RQU_AUTH2_COMMAND);
-    unseal->paramSize=ntohl(sizeof(stTPM_UNSEAL)+inDataSize+2*sizeof(SessionEnd));
-    unseal->ordinal=ntohl(TPM_ORD_Unseal);
-    unseal->parentHandle=ntohl(TPM_KH_SRK);
-    memcpy(outbuffer+sizeof(stTPM_UNSEAL),inData,inDataSize);
+    UINT32 sealInfoSize = ntohl(*((UINT32 *)(inData+4)));
+    UINT32 encDataSize= ntohl(*((UINT32 *)(inData+8+sealInfoSize)));
+    UINT32 inDataSize=12+sealInfoSize+encDataSize;
 
-    SessionEnd * endbufParent = (SessionEnd *)(outbuffer+sizeof(stTPM_UNSEAL)+inDataSize);
-    endbufParent->authHandle = sctxParent->authHandle;
-    memcpy((unsigned char *)&endbufParent->nonceOdd, (unsigned char *)&sctxParent->nonceOdd,20);
-    endbufParent->continueAuthSession=0;
+    UINT32 tpm_offset_out = 0; 
+    int paramSize = sizeof(stTPM_UNSEAL) + inDataSize + 2*sizeof(SessionEnd);
+    BYTE out_buffer[paramSize];
 
-    SessionEnd * endbufEntity= (SessionEnd *)(outbuffer+sizeof(stTPM_UNSEAL)+inDataSize+sizeof(SessionEnd));
-    endbufEntity->authHandle = sctxEntity->authHandle;
-    memcpy((unsigned char *)&endbufEntity->nonceOdd, (unsigned char *)&sctxEntity->nonceOdd,20);
-    endbufEntity->continueAuthSession=0;
+    com.tag = ntohs(TPM_TAG_RQU_AUTH2_COMMAND);
+    com.paramSize = ntohl(paramSize);
+    com.ordinal = ntohl(TPM_ORD_Unseal);
+    com.parentHandle = ntohl(TPM_KH_SRK);
 
-    unsigned long offset=0;
-    memcpy(buffer+offset,(unsigned char *)&unseal->ordinal,4);
-    offset+=4;
-    memcpy(buffer+offset,outbuffer+sizeof(stTPM_UNSEAL),inDataSize);
-    offset+=inDataSize;
+    endBufParent.authHandle = sctxParent->authHandle;
+    endBufParent.nonceOdd = sctxParent->nonceOdd;
+    endBufParent.continueAuthSession = FALSE;
+    memset(endBufParent.pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
+
     sha1_init(&ctx);
-    sha1(&ctx,buffer,offset);
+    sha1(&ctx, (BYTE *)&com.ordinal, sizeof(TPM_COMMAND_CODE));
+    sha1(&ctx, inData, inDataSize);
     sha1_finish(&ctx);
 
-    offset=0;
-    memcpy(buffer+offset,ctx.hash,20);
-    offset+=20;
-    memcpy(buffer+offset,(unsigned char *)&sctxParent->nonceEven,20);
-    offset+=20;
-    memcpy(buffer+offset,(unsigned char *)&endbufParent->nonceOdd,20);
-    offset+=20;
-    memcpy(buffer+offset,(unsigned char *)&endbufParent->continueAuthSession,1);
-    offset+=1;
-
-    unsigned char authDataParent[20];
-    memset(authDataParent,0,20);
-    hmac_init(&hctx, authDataParent, 20);
-    hmac(&hctx, buffer, offset);
+    hmac_init(&hctx, endBufParent.pubAuth.authdata, sizeof(TPM_AUTHDATA));
+    hmac(&hctx, ctx.hash, TCG_HASH_SIZE);
+    hmac(&hctx, sctxParent->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(&hctx, endBufParent.nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(&hctx, &endBufParent.continueAuthSession, sizeof(TPM_BOOL));
     hmac_finish(&hctx);
-    memcpy((unsigned char *)&endbufParent->pubAuth,hctx.ctx.hash,20);
 
-    offset=20;
-    memcpy(buffer+offset,(unsigned char *)&sctxEntity->nonceEven,20);
-    offset+=20;
-    memcpy(buffer+offset,(unsigned char *)&endbufEntity->nonceOdd,20);
-    offset+=20;
-    memcpy(buffer+offset,(unsigned char *)&endbufEntity->continueAuthSession,1);
-    offset+=1;
+    memcpy(&endBufParent.pubAuth, hctx.ctx.hash, sizeof(TPM_AUTHDATA));
 
-    unsigned char authDataEntity[20];
-    memset(authDataEntity,0,20);
-    hmac_init(&hctx, authDataEntity, 20);
-    hmac(&hctx, buffer, offset);
+    endBufEntity.authHandle = sctxEntity->authHandle;
+    endBufEntity.nonceOdd = sctxEntity->nonceOdd;
+    endBufEntity.continueAuthSession = FALSE;
+    memset(endBufEntity.pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
+
+    hmac_init(&hctx, endBufEntity.pubAuth.authdata, sizeof(TPM_AUTHDATA));
+    hmac(&hctx, ctx.hash, TCG_HASH_SIZE);
+    hmac(&hctx, sctxEntity->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(&hctx, endBufEntity.nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(&hctx, &endBufEntity.continueAuthSession, sizeof(TPM_BOOL));
     hmac_finish(&hctx);
-    memcpy((unsigned char *)&endbufEntity->pubAuth,hctx.ctx.hash,20);
 
-    ERROR(108,guard!=0,"BUFFER OVERFLOW DETECED");
-    int res = tis_transmit(outbuffer, sizeof(stTPM_UNSEAL)+inDataSize+2*sizeof(SessionEnd), outbuffer, 500);
+    memcpy(&endBufEntity.pubAuth, hctx.ctx.hash, sizeof(TPM_AUTHDATA));
+
+    SABLE_TPM_COPY_TO(&com, sizeof(stTPM_UNSEAL));
+    SABLE_TPM_COPY_TO(inData, inDataSize);
+    SABLE_TPM_COPY_TO(&endBufParent, sizeof(SessionEnd));
+    SABLE_TPM_COPY_TO(&endBufEntity, sizeof(SessionEnd));
+
+    TPM_TRANSMIT();
     ERROR(108,res<0,"failed to send/receive data to/from the TPM");
-    res=(int) ntohl(*((unsigned int *) (outbuffer+6)));
+    res=(int) ntohl(*((unsigned int *) (in_buffer+6)));
     CHECK4(108,res!=0,"Unseal unsuccessful",res);
     if(res==0){
-        *secretDataSize=ntohl(*((unsigned long*)(outbuffer+10)));
+        *secretDataSize=ntohl(*((unsigned long*)(in_buffer+10)));
         //this check is necessary to prevent a buffer overflow
         ERROR(108,*secretDataSize>secretDataBufSize,"secret data too big for buffer");
 
-        memcpy((unsigned char *)secretData,outbuffer+14,*secretDataSize);
+        memcpy((unsigned char *)secretData,in_buffer+14,*secretDataSize);
     }
       
     return res;
