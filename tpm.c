@@ -17,24 +17,26 @@
 #include "util.h"
 #include "hmac.h"
 
-void encAuth_gen(
+// out = xor(authData, sha1(sharedSecret ++ nonceEven))
+void 
+encAuth_gen(
         TPM_AUTHDATA *auth, 
         BYTE *sharedSecret, 
         TPM_NONCE *nonceEven, 
         TPM_ENCAUTH *encAuth)
 {
-    // out = xor(authData, sha1(sharedSecret ++ nonceEven))
-    BYTE buffer[40];
-    struct Context ctx;
-    memcpy(buffer, sharedSecret, 20);
-    memcpy(buffer+20, nonceEven->nonce, 20);
+    struct SHA1_Context ctx;
+
     sha1_init(&ctx);
-    sha1(&ctx, buffer, 40);
+    sha1(&ctx, sharedSecret, TCG_HASH_SIZE);
+    sha1(&ctx, nonceEven->nonce, sizeof(TPM_NONCE));
     sha1_finish(&ctx);
-    do_xor(auth->authdata, ctx.hash, encAuth->authdata, 20);
+
+    do_xor(auth->authdata, ctx.hash, encAuth->authdata, TCG_HASH_SIZE);
 }
 
-int TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
+TPM_RESULT 
+TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
     int res;
     TPM_COMMAND com;
     UINT32 tpm_offset_out = 0;
@@ -49,12 +51,12 @@ int TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
     SABLE_TPM_COPY_TO(&com, paramSize);
     TPM_TRANSMIT();
 
-    if (res >= 0)
+    if ((int)res >= 0)
     {
-        res=(int) ntohl(*((unsigned int *) (in_buffer+6)));
-        TPM_COPY_FROM((unsigned char *)&sctx->authHandle,0,4);
-        TPM_COPY_FROM((unsigned char *)&sctx->nonceEven,4,20);
-        TPM_GetRandom(in_buffer,(unsigned char *)&sctx->nonceOdd,20);
+        res = (TPM_RESULT) ntohl(*(in_buffer+6));
+        TPM_COPY_FROM((BYTE *)&sctx->authHandle,0,4);
+        TPM_COPY_FROM((BYTE *)&sctx->nonceEven,4,20);
+        TPM_GetRandom(in_buffer, sctx->nonceOdd.nonce, sizeof(TPM_NONCE));
     }
 
     return res;
@@ -70,8 +72,8 @@ int TPM_Unseal(
         SessionCtx *sctxEntity)
 {
     int res;
-    struct Context ctx;
-    struct HContext hctx;
+    struct SHA1_Context ctx;
+    struct HMAC_Context hctx;
     stTPM_UNSEAL com;
     SessionEnd endBufParent, endBufEntity;
 
@@ -80,7 +82,7 @@ int TPM_Unseal(
     UINT32 inDataSize=12+sealInfoSize+encDataSize;
 
     UINT32 tpm_offset_out = 0; 
-    int paramSize = sizeof(stTPM_UNSEAL) + inDataSize + 2*sizeof(SessionEnd);
+    UINT32 paramSize = sizeof(stTPM_UNSEAL) + inDataSize + 2*sizeof(SessionEnd);
     BYTE out_buffer[paramSize];
 
     com.tag = ntohs(TPM_TAG_RQU_AUTH2_COMMAND);
@@ -149,13 +151,13 @@ getTPM_PCR_INFO_SHORT(
         sdTPM_PCR_INFO_SHORT *info, 
         sdTPM_PCR_SELECTION select)
 {
-    struct Context ctx;
+    struct SHA1_Context ctx;
     sdTPM_PCR_COMPOSITE comp;
 
+    comp.select = select;
+    comp.valueSize = ntohl(2 * sizeof(TPM_COMPOSITE_HASH));
     TPM_PcrRead(buffer, &comp.hash1, SLB_PCR_ORD);
     TPM_PcrRead(buffer, &comp.hash2, MODULE_PCR_ORD);
-    comp.select = select;
-    comp.valueSize = ntohl(2 * TCG_HASH_SIZE);
 
     info->pcrSelection = select;
     info->localityAtRelease = TPM_LOC_ONE | TPM_LOC_TWO | TPM_LOC_THREE;
@@ -163,7 +165,7 @@ getTPM_PCR_INFO_SHORT(
     sha1_init(&ctx);
     sha1(&ctx, (BYTE *)&comp, sizeof(sdTPM_PCR_COMPOSITE));
     sha1_finish(&ctx);
-    memcpy(info->digestAtRelease.digest, ctx.hash, TCG_HASH_SIZE);
+    memcpy(info->digestAtRelease.digest, ctx.hash, sizeof(TPM_DIGEST));
 }
 
 int TPM_NV_DefineSpace(
@@ -172,9 +174,9 @@ int TPM_NV_DefineSpace(
         SessionCtx *sctx)
 {
     int res;
-    UINT32 sha_offset = 0, hmac_offset = 0, tpm_offset_out = 0;
-    struct Context ctx;
-    struct HContext hctx;
+    UINT32 tpm_offset_out = 0;
+    struct SHA1_Context ctx;
+    struct HMAC_Context hctx;
 
     // declare data structures
     TPM_NV_ATTRIBUTES perm;
@@ -189,11 +191,7 @@ int TPM_NV_DefineSpace(
 
     // designate buffers
     UINT32 paramSize = sizeof(stTPM_NV_DEFINESPACE) + sizeof(SessionEnd);
-    UINT32 sha_size = sizeof(TPM_COMMAND_CODE) + sizeof(sdTPM_NV_DATA_PUBLIC) + sizeof(TPM_ENCAUTH);
-    UINT32 hmac_size = TCG_HASH_SIZE + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + sizeof(TPM_BOOL);
     BYTE out_buffer[paramSize];
-    BYTE sha_buf[sha_size];
-    BYTE hmac_buf[hmac_size];
 
     // populate the data structures
     perm.tag = ntohs(TPM_TAG_NV_ATTRIBUTES);
@@ -221,26 +219,23 @@ int TPM_NV_DefineSpace(
     com.pubInfo = pub;
     com.encAuth = encAuth;
 
-    SHA_COPY_TO(&com.ordinal, sizeof(TPM_COMMAND_CODE));
-    SHA_COPY_TO(&com.pubInfo, sizeof(sdTPM_NV_DATA_PUBLIC));
-    SHA_COPY_TO(&com.encAuth, sizeof(TPM_ENCAUTH));
-
     sha1_init(&ctx);
-    sha1(&ctx, sha_buf, sha_size);
+    sha1(&ctx, (BYTE *)&com.ordinal, sizeof(TPM_COMMAND_CODE));
+    sha1(&ctx, (BYTE *)&com.pubInfo, sizeof(sdTPM_NV_DATA_PUBLIC));
+    sha1(&ctx, (BYTE *)&com.encAuth, sizeof(TPM_ENCAUTH));
     sha1_finish(&ctx);
 
     se.authHandle = sctx->authHandle;
-    CHECK4(108,(res=TPM_GetRandom(in_buffer,(BYTE *)&se.nonceOdd,TCG_HASH_SIZE)),"could not get random num from TPM", res);
+    CHECK4(108,(res=TPM_GetRandom(in_buffer,se.nonceOdd.nonce,TCG_HASH_SIZE)),"could not get random num from TPM", res);
     se.continueAuthSession = FALSE;
 
-    HMAC_COPY_TO(&ctx.hash, TCG_HASH_SIZE);
-    HMAC_COPY_TO(&sctx->nonceEven.nonce, sizeof(TPM_NONCE));
-    HMAC_COPY_TO(&se.nonceOdd.nonce, sizeof(TPM_NONCE));
-    HMAC_COPY_TO(&se.continueAuthSession, sizeof(TPM_BOOL));
-
     hmac_init(&hctx, sctx->sharedSecret, TCG_HASH_SIZE);
-    hmac(&hctx, hmac_buf, hmac_offset);
+    hmac(&hctx, ctx.hash, TCG_HASH_SIZE);
+    hmac(&hctx, sctx->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(&hctx, se.nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(&hctx, &se.continueAuthSession, sizeof(TPM_BOOL));
     hmac_finish(&hctx);
+
     memcpy(&se.pubAuth, hctx.ctx.hash, TCG_HASH_SIZE);
     
     // package the entire command into a bytestream
@@ -259,8 +254,8 @@ int TPM_NV_DefineSpace(
 }
 
 int TPM_NV_ReadValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, UINT32 dataBufferSize, SessionCtx *sctx){
-struct Context ctx;
-struct HContext hctx;
+struct SHA1_Context ctx;
+struct HMAC_Context hctx;
 unsigned char outbuffer[TCG_BUFFER_SIZE];
 stTPM_NV_WRITEVALUE * buf = (stTPM_NV_WRITEVALUE*) outbuffer;
 buf->tag=ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
@@ -326,8 +321,8 @@ int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+sizeof(SessionEnd)
 
 
 int TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx){
-struct Context ctx;
-struct HContext hctx;
+struct SHA1_Context ctx;
+struct HMAC_Context hctx;
 unsigned char outbuffer[TCG_BUFFER_SIZE];
 stTPM_NV_WRITEVALUE * buf = (stTPM_NV_WRITEVALUE*) outbuffer;
 buf->tag=ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
@@ -411,7 +406,7 @@ getTPM_PCR_INFO_LONG(
         sdTPM_PCR_INFO_LONG *info, 
         sdTPM_PCR_SELECTION select)
 {
-    struct Context ctx;
+    struct SHA1_Context ctx;
     sdTPM_PCR_COMPOSITE comp;
 
     comp.select = select;
@@ -442,8 +437,8 @@ int TPM_Seal(
         SessionCtx *sctx)
 {
     int res;
-    struct Context ctx;
-    struct HContext hctx;
+    struct SHA1_Context ctx;
+    struct HMAC_Context hctx;
     sdTPM_PCR_INFO_LONG info;
     SessionEnd se;
     stTPM_SEAL com;
@@ -622,7 +617,7 @@ TPM_Extend(
 int TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 entityValue, SessionCtx * sctx){
     int res;
     UINT32 tpm_offset_out = 0;
-    struct HContext hctx;
+    struct HMAC_Context hctx;
     TPM_OSAP com;
     TPM_NONCE nonceOddOSAP;
 

@@ -171,7 +171,7 @@ out_string("\nWe are about to print the secret passphrase. After we print, we wi
  */
 static
 int
-mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassphrase, struct Context *ctx, TPM_DIGEST *dig)
+mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassphrase, struct SHA1_Context *ctx, TPM_DIGEST *dig)
 {
   unsigned res;
 
@@ -383,7 +383,7 @@ void hello(void)
 /* int oslo(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
 int oslo(struct mbi *mbi)
 {
-  struct Context ctx;
+  struct SHA1_Context ctx;
   TPM_DIGEST dig;
 
   revert_skinit();

@@ -283,7 +283,7 @@ int TPM_NV_ReadValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, UINT32 dataB
 int TPM_NV_DefineSpace(BYTE *buffer, sdTPM_PCR_SELECTION select, SessionCtx *sctx);
 int TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex);
 int TPM_GetRandom(BYTE *in_buffer, BYTE *dest, UINT32 size);
-int TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
+TPM_RESULT TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
 int TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 entityValue, SessionCtx * sctx);
 int TPM_Startup_Clear(unsigned char buffer[TCG_BUFFER_SIZE]);
 int TPM_Extend (BYTE *in_buffer, TPM_PCRINDEX pcr_index, TPM_DIGEST *hash);

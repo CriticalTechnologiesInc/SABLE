@@ -16,7 +16,7 @@
 
 #include "platform.h"
 
-struct Context
+struct SHA1_Context
 {
   UINT32 index;
   UINT32 blocks;
@@ -24,6 +24,6 @@ struct Context
   BYTE hash[20];
 };
 
-void sha1_init(struct Context *ctx);
-void sha1(struct Context *ctx, unsigned char* value, unsigned count);
-void sha1_finish(struct Context *ctx);
+void sha1_init(struct SHA1_Context *ctx);
+void sha1(struct SHA1_Context *ctx, unsigned char* value, unsigned count);
+void sha1_finish(struct SHA1_Context *ctx);

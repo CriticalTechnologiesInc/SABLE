@@ -12,7 +12,7 @@ void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize){
 }
 
 void
-hmac_init(struct HContext *hctx, BYTE *key, UINT32 key_size)
+hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size)
 {
     BYTE ipad[HMAC_BLOCK_SIZE];
 
@@ -35,12 +35,12 @@ hmac_init(struct HContext *hctx, BYTE *key, UINT32 key_size)
     sha1(&hctx->ctx, ipad, HMAC_BLOCK_SIZE);
 }
 
-void hmac(struct HContext *hctx, BYTE *text, BYTE textsize)
+void hmac(struct HMAC_Context *hctx, BYTE *text, BYTE textsize)
 {
     sha1(&hctx->ctx, text, textsize);
 }
 
-void hmac_finish(struct HContext *hctx)
+void hmac_finish(struct HMAC_Context *hctx)
 {
     BYTE opad[HMAC_BLOCK_SIZE];
     BYTE hash[TCG_HASH_SIZE];

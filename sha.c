@@ -46,7 +46,7 @@ unsigned int get_w(unsigned char * value, unsigned int round)
  */
 static
 void
-process_block(struct Context *ctx)
+process_block(struct SHA1_Context *ctx)
 {
   unsigned int i;
   unsigned int X[6];
@@ -85,7 +85,7 @@ process_block(struct Context *ctx)
  * @param ctx    - store immediate values like unprocessed bytes and the overall length
  */
 void
-sha1_init(struct Context *ctx)
+sha1_init(struct SHA1_Context *ctx)
 {
   unsigned int *hash = (unsigned int *) ctx->hash;
 
@@ -107,7 +107,7 @@ sha1_init(struct Context *ctx)
  * @param count  - the number of characters in value
  */
 void
-sha1(struct Context *ctx, unsigned char* value, unsigned count)
+sha1(struct SHA1_Context *ctx, unsigned char* value, unsigned count)
 {
   for (; count+ctx->index >= 64; count -= 64-ctx->index, value += 64-ctx->index, ctx->index = 0)
     {
@@ -126,7 +126,7 @@ sha1(struct Context *ctx, unsigned char* value, unsigned count)
  * Finish the operation. The output is available in ctx->hash.
  */
 void
-sha1_finish(struct Context *ctx)
+sha1_finish(struct SHA1_Context *ctx)
 {
   ctx->buffer[ctx->index]=0x80;
   for (unsigned i=ctx->index+1; i<64; i++)
