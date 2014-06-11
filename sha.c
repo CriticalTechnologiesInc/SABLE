@@ -87,16 +87,14 @@ process_block(struct SHA1_Context *ctx)
 void
 sha1_init(struct SHA1_Context *ctx)
 {
-  unsigned int *hash = (unsigned int *) ctx->hash;
-
   ctx->index = 0;
   ctx->blocks = 0;
 
-  hash[0] = 0x01234567;
-  hash[1] = 0x89ABCDEF;
-  hash[2] = 0xFEDCBA98;
-  hash[3] = 0x76543210;
-  hash[4] = 0xf0e1d2c3;
+  ((UINT32 *)ctx->hash)[0] = 0x01234567;
+  ((UINT32 *)ctx->hash)[1] = 0x89ABCDEF;
+  ((UINT32 *)ctx->hash)[2] = 0xFEDCBA98;
+  ((UINT32 *)ctx->hash)[3] = 0x76543210;
+  ((UINT32 *)ctx->hash)[4] = 0xf0e1d2c3;
 }
 
 /**
