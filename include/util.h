@@ -111,6 +111,15 @@ void hex_dump(unsigned char *bytestring, unsigned len);
 void out_hex(unsigned int value, unsigned int bitlen);
 
 /**
+ * lowlevel keyboard functions
+ */
+unsigned char readByte();
+unsigned char processByte();
+unsigned char waitKey();
+byte keyhit();
+unsigned char translate(unsigned char scancode); 
+
+/**
  * every message with out_description is prefixed with message_label
  */
 extern const char const * message_label;
