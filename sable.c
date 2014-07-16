@@ -84,11 +84,6 @@ void configure(unsigned char * passPhrase, unsigned long lenPassphrase)
     out_string("\n");
     wait(5000);
 
-    res=TPM_Flush(&sctx);
-    out_string("Flush return value: ");
-    out_hex(res,31);
-    out_string("\n");
-
 
     res=TPM_Start_OIAP(buffer,&sctx);
     out_string("\nOIAP return value: ");
@@ -99,11 +94,6 @@ void configure(unsigned char * passPhrase, unsigned long lenPassphrase)
     out_hex(res,31);
     out_string("\n");
     wait(5000);
-
-    res=TPM_Flush(&sctx);
-    out_string("Flush return value: ");
-    out_hex(res,31);
-    out_string("\n");
 
 }
 
@@ -130,11 +120,6 @@ void unsealPassphrase()
     out_hex(res,31);
     out_string("\n");
 
-    res=TPM_Flush(&sctx);
-    out_string("Flush return value: ");
-    out_hex(res,31);
-    out_string("\n");
-
     res=TPM_Start_OIAP(buffer,&sctxParent);
     out_string("\nOIAP Parent return value: ");
     out_hex(res,31);
@@ -147,17 +132,6 @@ void unsealPassphrase()
     out_string("\nUnseal return value: ");
     out_hex(res,31);
     ERROR(108,res!=0,"Unseal failed");
-
-    
-    res=TPM_Flush(&sctxParent);
-    out_string("Flush return value: ");
-    out_hex(res,31);
-    out_string("\n");
-
-    res=TPM_Flush(&sctxEntity);
-    out_string("Flush return value: ");
-    out_hex(res,31);
-    out_string("\n");
 
 out_string("\nWe are about to print the secret passphrase. After we print, we will wait 30 seconds before booting into the next module. If the passphrase is not correct, please turn off your system before the next module boots and use a Live CD to check the files which have been corrupted.\nPassphrase: ");
     out_string((char *)unsealedData);
@@ -413,16 +387,15 @@ int oslo(struct mbi *mbi)
 	out_string("\n");
 	wait(1000);
 
-      	configure(passPhrase,lenPassphrase);
-	out_string("\n The following message should be displayed at every boot:\n");
-	unsealPassphrase();
-        ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
+    configure(passPhrase,lenPassphrase);
+    ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
 	out_string("\nConfiguration complete. Rebooting now...\n");
-	wait(10000);
+	wait(5000);
 	reboot();
-      }else{ 
-	unsealPassphrase();
-      }
+    }
+    else{ 
+	  unsealPassphrase();
+    }
         ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
 
   }
