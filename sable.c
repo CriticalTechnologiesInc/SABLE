@@ -186,8 +186,23 @@ mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhrase
 BYTE configmagic[20] = "SABLECONFIG";
 BYTE *passphraseptr;
 if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
-	out_info("config magic detected");
-	*config = 1;
+  out_info("config magic detected");
+  *config = 1;
+
+  int t = 0;
+  char c;
+  c = key_stroke_listener(); // for some reason, there's always an 'enter' char
+  while(t < passPhraseBufSize)
+  {
+      c = key_stroke_listener();
+      if (c == 0x0D) break;
+      if (c != 0) 
+      {
+          out_char(c);
+          passPhrase[t++] = c;
+      }
+  }
+  *lenPassPhrase = t;
 
 	//skip first line
   passphraseptr = (BYTE *)m->mod_start;
@@ -390,8 +405,9 @@ int oslo(struct mbi *mbi)
 
   int i;
   BYTE config=0;
-  BYTE passPhrase[50];
-  UINT32 lenPassphrase;
+  BYTE passPhrase[64];
+  memset(passPhrase, 0, 64);
+  UINT32 lenPassphrase = 0;
   BYTE pcr10[20];
 
   ERROR(20, !mbi, "no mbi in oslo()");
@@ -399,7 +415,7 @@ int oslo(struct mbi *mbi)
   if (tis_init(TIS_BASE))
     {
       ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
-      ERROR(22, mbi_calc_hash(mbi,&config,passPhrase,50,&lenPassphrase, &ctx,&dig),  "calc hash failed");
+      ERROR(22, mbi_calc_hash(mbi,&config,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
       show_hash("PCR[19]: ",dig.digest);
       memcpy(pcr10,ctx.hash,20);
 

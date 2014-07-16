@@ -244,238 +244,307 @@ out_info(const char *msg)
 /***************************************************************
  * Keyboard Input
  ***************************************************************/
+static int _scancode;
+static bool _shift, _capslock;
 
-unsigned char bData[16];
-unsigned char idx=0;
-unsigned char tmp=0; 
+static int _kkybrd_scancode_std [] = {
 
-volatile byte shiftSet = 0;
+	//! key			scancode
+	KEY_UNKNOWN,	//0
+	KEY_ESCAPE,		//1
+	KEY_1,			//2
+	KEY_2,			//3
+	KEY_3,			//4
+	KEY_4,			//5
+	KEY_5,			//6
+	KEY_6,			//7
+	KEY_7,			//8
+	KEY_8,			//9
+	KEY_9,			//0xa
+	KEY_0,			//0xb
+	KEY_MINUS,		//0xc
+	KEY_EQUAL,		//0xd
+	KEY_BACKSPACE,	//0xe
+	KEY_TAB,		//0xf
+	KEY_Q,			//0x10
+	KEY_W,			//0x11
+	KEY_E,			//0x12
+	KEY_R,			//0x13
+	KEY_T,			//0x14
+	KEY_Y,			//0x15
+	KEY_U,			//0x16
+	KEY_I,			//0x17
+	KEY_O,			//0x18
+	KEY_P,			//0x19
+	KEY_LEFTBRACKET,//0x1a
+	KEY_RIGHTBRACKET,//0x1b
+	KEY_RETURN,		//0x1c
+	KEY_LCTRL,		//0x1d
+	KEY_A,			//0x1e
+	KEY_S,			//0x1f
+	KEY_D,			//0x20
+	KEY_F,			//0x21
+	KEY_G,			//0x22
+	KEY_H,			//0x23
+	KEY_J,			//0x24
+	KEY_K,			//0x25
+	KEY_L,			//0x26
+	KEY_SEMICOLON,	//0x27
+	KEY_QUOTE,		//0x28
+	KEY_GRAVE,		//0x29
+	KEY_LSHIFT,		//0x2a
+	KEY_BACKSLASH,	//0x2b
+	KEY_Z,			//0x2c
+	KEY_X,			//0x2d
+	KEY_C,			//0x2e
+	KEY_V,			//0x2f
+	KEY_B,			//0x30
+	KEY_N,			//0x31
+	KEY_M,			//0x32
+	KEY_COMMA,		//0x33
+	KEY_DOT,		//0x34
+	KEY_SLASH,		//0x35
+	KEY_RSHIFT,		//0x36
+	KEY_KP_ASTERISK,//0x37
+	KEY_RALT,		//0x38
+	KEY_SPACE,		//0x39
+	KEY_CAPSLOCK,	//0x3a
+	KEY_F1,			//0x3b
+	KEY_F2,			//0x3c
+	KEY_F3,			//0x3d
+	KEY_F4,			//0x3e
+	KEY_F5,			//0x3f
+	KEY_F6,			//0x40
+	KEY_F7,			//0x41
+	KEY_F8,			//0x42
+	KEY_F9,			//0x43
+	KEY_F10,		//0x44
+	KEY_KP_NUMLOCK,	//0x45
+	KEY_SCROLLLOCK,	//0x46
+	KEY_HOME,		//0x47
+	KEY_KP_8,		//0x48	//keypad up arrow
+	KEY_PAGEUP,		//0x49
+	KEY_KP_2,		//0x50	//keypad down arrow
+	KEY_KP_3,		//0x51	//keypad page down
+	KEY_KP_0,		//0x52	//keypad insert key
+	KEY_KP_DECIMAL,	//0x53	//keypad delete key
+	KEY_UNKNOWN,	//0x54
+	KEY_UNKNOWN,	//0x55
+	KEY_UNKNOWN,	//0x56
+	KEY_F11,		//0x57
+	KEY_F12			//0x58
+};
 
-char kbBuffer[16];
-char kbPos = 0;
-char kbSize = 0;
-char capsSet = 0;
-volatile byte extFlag = 0;
-volatile byte relFlag = 0;
-volatile byte key=0; 
+//! invalid scan code. Used to indicate the last scan code is not to be reused
+const int INVALID_SCANCODE = 0;
 
-
-char keyhit()
-{
-  return kbSize != 0;
+//! read status from keyboard controller
+unsigned char kybrd_ctrl_read_status() {
+    return inb(KYBRD_CTRL_STATS_REG);
 }
 
-unsigned char waitKey()
-{
-  unsigned char k = 0;
-  while(kbSize == 0);
-  k = kbBuffer[(kbPos - kbSize)&0x0F];
-  kbSize--;
-  return k;
-} 
+//! send command byte to keyboard controller
+void kybrd_ctrl_send_cmd(uint8_t cmd) {
+ 
+    //! wait for kkybrd controller input buffer to be clear
+    while (1)
+        if ( (kybrd_ctrl_read_status () & KYBRD_CTRL_STATS_MASK_IN_BUF) == 0)
+            break;
+ 
+    outb(KYBRD_CTRL_CMD_REG, cmd);
+}
 
-unsigned char readByte()
-{
-    int i=0, t=0;
-    idx=0;
-    tmp=0;
+//! read keyboard encoder buffer
+uint8_t kybrd_enc_read_buf () {
+    return inb(KYBRD_ENC_INPUT_BUF);
+}
+ 
+//! send command byte to keyboard encoder
+void kybrd_enc_send_cmd (uint8_t cmd) {
+ 
+    //! wait for kkybrd controller input buffer to be clear
+    while (!((kybrd_ctrl_read_status () & KYBRD_CTRL_STATS_MASK_IN_BUF) == 0)) {}
+ 
+    //! send command byte to kybrd encoder
+    outb(KYBRD_ENC_CMD_REG, cmd);
+}
 
-    i=0;
-    goto dataread;
-   // while(INPUT(CLOCK) != 0);   // Wait for a keypress
-            t=0;
-       while(INPUT(CLOCK) != 0 && t<255)   // Wait for clock, time out if needed
-       {
-           delay_us(1);
-           t++;
-       }
-    for(i=0; i<11; i++)
-    {
-        t=0;
-        while(INPUT(CLOCK) != 0 && t<255)   // Wait for clock, time out if needed
+//! sets leds
+void kkybrd_set_leds (bool num, bool caps, bool scroll) {
+
+	uint8_t data = 0;
+
+	//! set or clear the bit
+	data = (scroll) ? (data | 1) : (data & 1);
+	data = (num) ? (num | 2) : (num & 2);
+	data = (caps) ? (num | 4) : (num & 4);
+
+	//! send the command -- update keyboard Light Emetting Diods (LEDs)
+	kybrd_enc_send_cmd (KYBRD_ENC_CMD_SET_LED);
+	kybrd_enc_send_cmd (data);
+}
+
+//! convert key to an ascii character
+char kybrd_key_to_ascii (int code) {
+
+	uint8_t key = code;
+
+	//! insure key is an ascii character
+	if (isascii (key)) {
+
+		//! if shift key is down or caps lock is on, make the key uppercase
+		if (_shift || _capslock)
+			if (key >= 'a' && key <= 'z')
+				key -= 32;
+
+		if (_shift && !_capslock)
         {
-            delay_us(1);
-            t++;
-        }
-        dataread:
-
-        bData[idx]=INPUT(DATA);
-        idx++;
-        if(idx==9)
-        {
-            for(idx=1; idx<9; idx++)
-                if(bData[idx]!=0)
-                    tmp|=(1<<(idx-1));
-
-            return tmp;
-            idx=0;
-            tmp=0;
-        }
-     //   while(INPUT(CLOCK) == 0);
-        t=0;
-        while(INPUT(CLOCK) == 0 && t<255)   // Wait for clock, time out if needed
-        {
-            delay_us(1);
-            t++;
-        }
-
-    }
-} 
-
-static const unsigned char scantableAZ[]={
-0x1C, 0x32, 0x21, 0x23, 0x24, 0x2B, 0x34, 0x33, 0x43, 0x3B, 0x42, 0x4B, 0x3A, // A-Z
-0x31, 0x44, 0x4D, 0x15, 0x2D, 0x1B, 0x2C, 0x3C, 0x2A, 0x1D, 0x22, 0x35, 0x1A};
-
-
-// Normal numeric scancodes, starting with ',' .
-static const unsigned char scantable09n[]=
-{
-0x41, 0x4E, 0x49, 0x4A, // , - . /
-0x45, 0x16, 0x1E, 0x26, 0x25, 0x2E, 0x36, 0x3D, 0x3E, 0x46,     //Digits 0-9
-0x00, 0x4C, 0x00, 0x55 // 0 ; 0 =
-};
-
-// Shift scancodes, starting at '!'
-static const unsigned char scantable09s[]=
-{
-    0x16, 0x52, 0x26, 0x25, 0x2E, 0x3D, 0x00, 0x46, 0x45, 0x3E, 0x55
-};
-
-// Normal misc. scancode map. Scancode, ASCII value
-static const unsigned char scanmapn[]=
-{0x54, '[', 0x5B, ']', 0x0E, '`', 0x5D, '\\', 0x52, '\''};
-
-// Shifted misc. scancode map. Scancode, ASCII value
-static const unsigned char scanmaps[]=
-{0x1E, '@', 0x36, '^', 0x4E, '_', 0x54, '{', 0x5B, '}', 0x5D, '|',
-0x4C, ':', 0x41, '<', 0x49, '>', 0x4A, '?', 0x0E, '~'};
-
-
-// Scancode map independent of Shift
-static const unsigned char scanmapx[]=
-{0x29, ' ', 0x5A, '\r', 0x0D, '\t', 0x76, 27, 0x66, 0x08};
-
-// Extended scancode map
-static const unsigned char scanmape[]=
-{
-0x71, 0x7F
-}; 
-
-unsigned char translate(unsigned char scancode)
-{
-    int i=0;
-
-    if(extFlag == 0)
-    {
-        for(i=0; i<10; i+=2)
-            if(scanmapx[i] == scancode)
-                return scanmapx[i+1];
-
-        for(i=0; i<26; i++)
-            if(scantableAZ[i] == scancode)
-                if(shiftSet ^ capsSet)
-                    return i+65;
-                else
-                    return i+65 + 32;
-
-        if(shiftSet)
-        {
-            for(i=0; i<11; i++)
-                if(scantable09s[i] == scancode)
-                    return i+'!';
-
-            for(i=0; i<22; i+=2)
-                if(scanmaps[i] == scancode)
-                    return scanmaps[i+1];
-        } else
-        {
-            for(i=0; i<18; i++)
-                if(scantable09n[i] == scancode)
-                    return i+',';
-
-            for(i=0; i<10; i+=2)
-                if(scanmapn[i] == scancode)
-                    return scanmapn[i+1];
-        }
-    } else      // Extended keys
-    {
-        for(i=0; i<2; i+=2)
-            if(scanmape[i] == scancode)
-                return scanmape[i+1];
-    }
-    return '?';
-} 
-
-unsigned char processByte()
-{
-    unsigned char i, j;
-    i = readByte();
-
-    if(i == 0xF0)       //A key is being released
-    {
-        relFlag = 1;
-        return 0;
-    }
-
-    if(i == 0xE0)       // Extended key operation
-    {
-        extFlag = 1;
-        relFlag = 0;    //0xE0 always first in sequence, OK to clear this
-        return 0;
-    }
-
-    if(relFlag == 0)    // Pressing a key
-    {
-        if(extFlag == 0)    // Non-extended key pressed
-        {
-            if(i == 0x12 || i == 0x59)
+			if (key >= '0' && key <= '9')
             {
-                shiftSet = 1;
-                return 0;
+				switch (key) {
+
+					case '0':
+						key = KEY_RIGHTPARENTHESIS;
+						break;
+					case '1':
+						key = KEY_EXCLAMATION;
+						break;
+					case '2':
+						key = KEY_AT;
+						break;
+					case '3':
+						key = KEY_EXCLAMATION;
+						break;
+					case '4':
+						key = KEY_HASH;
+						break;
+					case '5':
+						key = KEY_PERCENT;
+						break;
+					case '6':
+						key = KEY_CARRET;
+						break;
+					case '7':
+						key = KEY_AMPERSAND;
+						break;
+					case '8':
+						key = KEY_ASTERISK;
+						break;
+					case '9':
+						key = KEY_LEFTPARENTHESIS;
+						break;
+				}
             }
+			else {
 
-            if(i == 0x58)
-            {
-                sendByte(0xED);
-                if(capsSet == 0)
-                {
-                    capsSet = 1;
-                    sendByte(0x04);
-                } else
-                {
-                    capsSet = 0;
-                    sendByte(0x00);
-                }
-                return 0;
-            }
+				switch (key) {
+					case KEY_COMMA:
+						key = KEY_LESS;
+						break;
 
+					case KEY_DOT:
+						key = KEY_GREATER;
+						break;
 
+					case KEY_SLASH:
+						key = KEY_QUESTION;
+						break;
+
+					case KEY_SEMICOLON:
+						key = KEY_COLON;
+						break;
+
+					case KEY_QUOTE:
+						key = KEY_QUOTEDOUBLE;
+						break;
+
+					case KEY_LEFTBRACKET :
+						key = KEY_LEFTCURL;
+						break;
+
+					case KEY_RIGHTBRACKET :
+						key = KEY_RIGHTCURL;
+						break;
+
+					case KEY_GRAVE:
+						key = KEY_TILDE;
+						break;
+
+					case KEY_MINUS:
+						key = KEY_UNDERSCORE;
+						break;
+
+					case KEY_PLUS:
+						key = KEY_EQUAL;
+						break;
+
+					case KEY_BACKSLASH:
+						key = KEY_BAR;
+						break;
+				}
+			}
         }
-        j = translate(i);
-        extFlag = 0;
-        return j; 
+
+		//! return the key
+		return key;
+	}
+
+	//! scan code != a valid ascii char so no convertion is possible
+	return 0;
+}
+
+char key_stroke_listener () {
+
+	int code = 0;
+
+	//! read scan code only if the kkybrd controller output buffer is full (scan code is in it)
+	while (!(kybrd_ctrl_read_status () & KYBRD_CTRL_STATS_MASK_OUT_BUF)) {}
+    //! read the scan code
+    code = (int) kybrd_enc_read_buf ();
+
+    //! test if this is a break code (Original XT Scan Code Set specific)
+    if (code & 0x80) {	//test bit 7
+        // out_description("Break code", code); DEBUG
+
+        //! covert the break code into its make code equivelant
+        code -= 0x80;
+
+        //! grab the key
+        int key = _kkybrd_scancode_std [code];
+
+        //! test if a special key has been released & set it
+        switch (key) {
+            case KEY_LSHIFT:
+            case KEY_RSHIFT:
+                _shift = false;
+                break;
+            default:
+                return kybrd_key_to_ascii(key);
+        }
     }
+    else {
+        //out_description("Make code", code); DEBUG
 
-    if(relFlag == 1)    //Releasing a key
-    {
-        relFlag = 0;    //If a flag was set but not handled, we wouldn't have gotten here
-        extFlag = 0;    //OK to clear this here
+        //! this is a make code - set the scan code
+        _scancode = code;
 
-        if(extFlag == 0)   // Releasing a nonextended key
-        {
-            if(i == 0x12 || i == 0x59)
-            {
-                shiftSet = 0;
-                return 0;
-            }
+        //! grab the key
+        int key = _kkybrd_scancode_std [code];
 
+        //! test if user is holding down any special keys & set it
+        switch (key) {
+
+            case KEY_LSHIFT:
+            case KEY_RSHIFT:
+                _shift = true;
+                break;
+
+            case KEY_CAPSLOCK:
+                _capslock = (_capslock) ? false : true;
+                kkybrd_set_leds (false, _capslock, false);
+                break;
         }
-//        } else              // Releasing an extended key
-//        {
-//            return 0;
-//        }
-
-//        return 0;
     }
     return 0;
-} 
+}
+

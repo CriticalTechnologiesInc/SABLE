@@ -43,10 +43,12 @@ SECTIONS
   } >high
   /* Code should be built with -fno-common, but if it's not, complain! */
 
+  /*
   ERRONEOUS :
   {
     *(COMMON)
   } >null
+  */
 
   .debug :
   {
