@@ -171,7 +171,7 @@ out_string("\nWe are about to print the secret passphrase. After we print, we wi
  */
 static
 int
-mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassphrase, struct SHA1_Context *ctx, TPM_DIGEST *dig)
+mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassPhrase, struct SHA1_Context *ctx, TPM_DIGEST *dig)
 {
   unsigned res;
 
@@ -184,41 +184,25 @@ mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhrase
 //if it does, then skip the module, make mbi->mods_addr point to this new module
 //set a flag that config file has been found
 BYTE configmagic[20] = "SABLECONFIG";
-BYTE *passphraseptr;
 if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
   out_info("config magic detected");
   *config = 1;
 
-  int t = 0;
+  out_string("Please enter the passphrase (64 char max): ");
+  unsigned int t = 0;
   char c;
   c = key_stroke_listener(); // for some reason, there's always an 'enter' char
   while(t < passPhraseBufSize)
   {
       c = key_stroke_listener();
-      if (c == 0x0D) break;
+      if (c == 0x0D) break; // user hit 'return'
       if (c != 0) 
       {
           out_char(c);
           passPhrase[t++] = c;
       }
   }
-  *lenPassPhrase = t;
-
-	//skip first line
-  passphraseptr = (BYTE *)m->mod_start;
-  ERROR(9, nextln(&passphraseptr, m->mod_end)==(UINT32)-1, "newline not found in rest of the module at magic config value");
-
-	//get length of the passphrase
-  BYTE *tmp = passphraseptr;
-  ERROR(9, (*lenPassphrase = nextln(&tmp, m->mod_end))==(UINT32)-1, "newline not found in rest of the module at passphrase");
-
-	//turn the passphrase into a string
-	*(passphraseptr+*lenPassphrase)=0;
-	(*lenPassphrase)++;
-
-	//copy passphrase into passphrase buffer
-  	ERROR(9, *lenPassphrase>passPhraseBufSize, "passphrase too big for buffer size");
-	memcpy(passPhrase,passphraseptr,*lenPassphrase);
+  *lenPassPhrase = t + 1;
 
 	//clear module for security reasons
 	memset((BYTE *)m->mod_start,0,m->mod_end-m->mod_start);
@@ -229,12 +213,6 @@ if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
 	mbi->mods_count--;
 	
 }
-
-/*out_string("\nfirst 20 bytes of first module contents: ");
-for(int i=0;i<20;i++)
-	out_hex(*(buf+i),7);
-out_string("\n");
-*/
 
   for (unsigned i=0; i < mbi->mods_count; i++, m++)
     {
