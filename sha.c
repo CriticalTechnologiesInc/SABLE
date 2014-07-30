@@ -38,7 +38,10 @@ unsigned int get_w(unsigned char * value, unsigned int round)
       return res;
     }
   else
-    return ntohl(w[round]);
+  {
+    w[round] = ntohl(w[round]);
+    return w[round];
+  }
 }
 
 
