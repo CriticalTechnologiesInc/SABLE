@@ -108,12 +108,12 @@ void out_unsigned(unsigned int value, int len, unsigned base, char flag);
 void out_string(const char *value);
 void hex_dump(unsigned char *bytestring, unsigned len);
 void out_hex(unsigned int value, unsigned int bitlen);
-unsigned char kybrd_ctrl_read_status();
+unsigned char kybrd_ctrl_read_status(void);
 
 /**
  * lowlevel keyboard functions
  */
-char key_stroke_listener();
+char key_stroke_listener(void);
 
 typedef char bool;
 #define true 1

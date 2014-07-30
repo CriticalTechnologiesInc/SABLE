@@ -282,12 +282,14 @@ typedef struct tdTPM_STRUCT_VER
     BYTE   revMinor;
 } TPM_STRUCT_VER;
 
+/*
 typedef struct tdTPM_VERSION_BYTE
 {
     // This needs to be made compiler-independent.
     int leastSigVer : 4; // least significant 4 bits
     int mostSigVer  : 4; // most significant 4 bits
 } TPM_VERSION_BYTE;
+*/
 
 typedef struct tdTPM_VERSION
 {
@@ -1127,7 +1129,7 @@ typedef struct tdTPM_AUDIT_EVENT_OUT
 //-------------------------------------------------------------------
 // Part 2, section 17: Ordinals
 
-#include <tpm_ordinal.h>
+#include "tpm_ordinal.h"
 
 //-------------------------------------------------------------------
 // Part 2, section 18: Context structures
@@ -1595,4 +1597,3 @@ typedef UINT32 TPM_SYM_MODE;
 #define TPM_SYM_MODE_CFB            (0x00000003)
 
 #endif // __TPM_H__
-

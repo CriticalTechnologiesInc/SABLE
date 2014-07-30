@@ -1,6 +1,7 @@
-#include "util.h"
-#include "hmac.h"
-#include "sable_tpm.h"
+#include "include/util.h"
+#include "include/hmac.h"
+#include "include/sable_tpm.h"
+#include "include/alloc.h"
 
 void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size){
    for(UINT32 i=0;i<size;i++)
@@ -14,10 +15,10 @@ void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize){
 void
 hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size)
 {
-    BYTE ipad[HMAC_BLOCK_SIZE];
+    HMAC_OPad *ipad = alloc(heap, sizeof(HMAC_OPad), 0);
 
     memset(hctx->key, 0, HMAC_BLOCK_SIZE);
-    memset(ipad, 0x36, HMAC_BLOCK_SIZE);
+    memset(ipad->pad, 0x36, HMAC_BLOCK_SIZE);
 
     if (key_size <= HMAC_BLOCK_SIZE)
         memcpy(hctx->key, key, key_size);
@@ -29,10 +30,10 @@ hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size)
         memcpy(hctx->key, hctx->ctx.hash, TCG_HASH_SIZE);
     }
 
-    do_xor(ipad, hctx->key, ipad, HMAC_BLOCK_SIZE);
+    do_xor(ipad->pad, hctx->key, ipad->pad, HMAC_BLOCK_SIZE);
 
     sha1_init(&hctx->ctx);
-    sha1(&hctx->ctx, ipad, HMAC_BLOCK_SIZE);
+    sha1(&hctx->ctx, ipad->pad, HMAC_BLOCK_SIZE);
 }
 
 void hmac(struct HMAC_Context *hctx, BYTE *text, BYTE textsize)
@@ -42,17 +43,17 @@ void hmac(struct HMAC_Context *hctx, BYTE *text, BYTE textsize)
 
 void hmac_finish(struct HMAC_Context *hctx)
 {
-    BYTE opad[HMAC_BLOCK_SIZE];
-    BYTE hash[TCG_HASH_SIZE];
+    HMAC_OPad *opad = alloc(heap, sizeof(HMAC_OPad), 0);
+    TPM_DIGEST *hash = alloc(heap, sizeof(TPM_DIGEST), 0);
 
     sha1_finish(&hctx->ctx);
 
-    memset(opad, 0x5c, HMAC_BLOCK_SIZE);
-    do_xor(opad, hctx->key, opad, HMAC_BLOCK_SIZE);
-    memcpy(hash, hctx->ctx.hash, TCG_HASH_SIZE);
+    memset(opad->pad, 0x5c, HMAC_BLOCK_SIZE);
+    do_xor(opad->pad, hctx->key, opad->pad, HMAC_BLOCK_SIZE);
+    memcpy(hash->digest, hctx->ctx.hash, TCG_HASH_SIZE);
 
     sha1_init(&hctx->ctx);
-    sha1(&hctx->ctx, opad, HMAC_BLOCK_SIZE);
-    sha1(&hctx->ctx, hash, TCG_HASH_SIZE);
+    sha1(&hctx->ctx, opad->pad, HMAC_BLOCK_SIZE);
+    sha1(&hctx->ctx, hash->digest, TCG_HASH_SIZE);
     sha1_finish(&hctx->ctx);
 }

@@ -21,6 +21,7 @@
 #include "mp.h"
 #include "dev.h"
 #include "sable.h"
+#include "alloc.h"
 
 static const char *version_string = "SABLE " VERSION "\n";
 const char * message_label = "SABLE:   ";
@@ -230,6 +231,11 @@ __main(struct mbi *mbi, unsigned flags)
 {
 
   unsigned char buffer[TCG_BUFFER_SIZE];
+
+  // initialize the heap
+  UINT32 heap_len = 0x00040000;
+  init_allocator();
+  add_mem_pool(heap, heap->head + sizeof(struct mem_node), heap_len);
 
   out_string(version_string);
   ERROR(10, !mbi || flags != MBI_MAGIC2, "not loaded via multiboot");

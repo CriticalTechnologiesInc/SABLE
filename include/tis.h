@@ -28,7 +28,7 @@ enum tis_init
 
 enum tis_mem_offsets
   {
-    TIS_BASE =  (int) 0xfed40000,
+    TIS_BASE =  (unsigned int) 0xfed40000,
     TPM_DID_VID_0 = 0xf00,
     TIS_LOCALITY_0 = 0x0000,
     TIS_LOCALITY_1 = 0x1000,
@@ -42,23 +42,23 @@ struct tis_id
 {
   int did_vid;
   unsigned char rid;
-} __attribute__((packed));
+};
 
 
 struct tis_mmap
 {
   unsigned char  access;
-  unsigned char  __dummy1[7];
+  unsigned char  dummy1[7];
   unsigned int   int_enable;
   unsigned char  int_vector;
-  unsigned char  __dummy2[3];
+  unsigned char  dummy2[3];
   unsigned int   int_status;
   unsigned int   intf_capability;
   unsigned char  sts_base;
   unsigned short sts_burst_count;
-  unsigned char  __dummy3[9];
+  unsigned char  dummy3[9];
   unsigned char  data_fifo;
-} __attribute__((packed));
+};
 
 
 enum tis_access_bits
