@@ -13,8 +13,8 @@
  */
 
 
-#include "sha.h"
-#include "util.h"
+#include "include/sha.h"
+#include "include/util.h"
 
 
 #define ROL(VALUE, COUNT) ((VALUE)<<COUNT | (VALUE)>>(32-COUNT))
@@ -31,13 +31,14 @@ unsigned int get_w(unsigned char * value, unsigned int round)
   unsigned int *w = (unsigned int *) value;
   if (round >= 16)
     {
-      res = w[16] = ROL(w[13] ^ w[8] ^ w[2] ^ w[0], 1);
+      w[16] = ROL(w[13] ^ w[8] ^ w[2] ^ w[0], 1);
+      res = w[16];
       for (unsigned i=0; i<16; i++)
 	w[i]=w[i+1];
       return res;
     }
   else
-    return w[round] = ntohl(w[round]);
+    return ntohl(w[round]);
 }
 
 
@@ -112,7 +113,7 @@ sha1(struct SHA1_Context *ctx, unsigned char* value, unsigned count)
       memcpy(ctx->buffer + ctx->index, value, 64 - ctx->index);
       process_block(ctx);
       ctx->blocks++;
-      ERROR(-20, ctx->blocks>=1<<23, "more than 512 MB to hash");
+      ERROR(-20, ctx->blocks>=1<<23, &string_literal);
     }
 
   memcpy(ctx->buffer + ctx->index, value, count);

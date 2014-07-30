@@ -17,12 +17,13 @@
 #include "asm.h"
 #include "platform.h"
 
+extern const char string_literal;
 
 #define MSR_EFER                       0xC0000080
 #define EFER_SVME                      1<<12
 
 #ifndef NDEBUG
-#define assert(X) {if (!(X)) { out_string("\nAssertion failed: '" #X  "'\n\n"); __exit(0xbadbbbad);}}
+#define assert(X) {if (!(X)) { out_string("\nAssertion failed: '" #X  "'\n\n"); exit(0xbadbbbad);}}
 #else
 #define assert(X)
 #endif
@@ -32,8 +33,6 @@
 /**
  * we want inlined stringops
  */
-#define memcpy(x,y,z) __builtin_memcpy(x,y,z)
-#define memset(x,y,z) __builtin_memset(x,y,z)
 #define strlen(x)     __builtin_strlen(x)
 
 #ifndef NDEBUG
@@ -46,7 +45,7 @@
     if (value)							\
       {								\
 	out_string(msg);					\
-	__exit(result);						\
+	exit(result);						\
       }								\
   }
 
@@ -55,7 +54,7 @@
 #define ERROR(result, value, msg)				\
   {								\
     if (value)							\
-      __exit(result);						\
+      exit(result);						\
   }
 #endif
 
@@ -330,11 +329,13 @@ void out_info(const char *msg);
 /**
  * Helper functions.
  */
+void memcpy(void *dest, const void *src, UINT32 len);
+void memset(void *s, BYTE c, UINT32 len) ;
 UINT32 bufcmp(BYTE *buf1, BYTE *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 UINT32 strnlen_oslo(BYTE *value, UINT32 size);
 void wait(int ms);
-void __exit(unsigned status) __attribute__((noreturn));
+void exit(unsigned status) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);
 void serial_init(void);

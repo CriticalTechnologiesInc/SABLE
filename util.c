@@ -13,9 +13,33 @@
  */
 
 
-#include <string.h>
-#include <stdarg.h>
-#include "util.h"
+#include "include/util.h"
+
+const char string_literal = 0;
+
+void
+memcpy(void *dest, const void *src, UINT32 len) 
+{
+    BYTE *dp = dest;
+    const BYTE *sp = src;
+    for (UINT32 i = 0; i < len; i++)
+    {
+        *dp = *sp;
+        dp++;
+        sp++;
+    }
+}
+
+void
+memset(void *s, BYTE c, UINT32 len) 
+{
+    BYTE *p = s;
+    for (UINT32 i = 0; i < len; i++)
+    {
+        *p = c;
+        p++;
+    }
+}
 
 /**
  * Swaps bytes in a short, like ntohl()
@@ -99,16 +123,18 @@ wait(int ms)
  * Print the exit status and reboot the machine.
  */
 void
-__exit(unsigned status)
+exit(unsigned status)
 {
   out_char('\n');
-  out_description("exit()", status);
+  //out_description("exit()", status);
+  out_description(&string_literal, status);
   for (unsigned i=0; i<1000;i++)
     {
       wait(1000);
       //out_char('.');
     }
-  out_string("-> OK, reboot now!\n");
+  //out_string("-> OK, reboot now!\n");
+  out_string(&string_literal);
   reboot();
 }
 
@@ -122,9 +148,12 @@ int
 check_cpuid()
 {
   int res;
-  CHECK3(-31,0x8000000A > cpuid_eax(0x80000000), "no ext cpuid");
-  CHECK3(-32,!(0x4   & cpuid_ecx(0x80000001)), "no SVM support");
-  CHECK3(-33,!(0x200 & cpuid_edx(0x80000001)), "no APIC support");
+  //CHECK3(-31,0x8000000A > cpuid_eax(0x80000000), "no ext cpuid");
+  CHECK3(-31,0x8000000A > cpuid_eax(0x80000000), &string_literal);
+  //CHECK3(-32,!(0x4   & cpuid_ecx(0x80000001)), "no SVM support");
+  CHECK3(-32,!(0x4   & cpuid_ecx(0x80000001)), &string_literal);
+  //CHECK3(-33,!(0x200 & cpuid_edx(0x80000001)), "no APIC support");
+  CHECK3(-33,!(0x200 & cpuid_edx(0x80000001)), &string_literal);
   res = cpuid_eax(0x8000000A) & 0xff;
   return res;
 }
@@ -140,7 +169,8 @@ enable_svm()
   unsigned long long value;
   value = rdmsr(MSR_EFER);
   wrmsr(MSR_EFER, value | EFER_SVME);
-  CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), "could not enable SVM");
+  //CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), "could not enable SVM");
+  CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), &string_literal);
   return 0;
 }
 
@@ -244,10 +274,10 @@ out_info(const char *msg)
 /***************************************************************
  * Keyboard Input
  ***************************************************************/
-static int _scancode;
-static bool _shift, _capslock;
+static int scancode;
+static bool shift, capslock;
 
-static int _kkybrd_scancode_std [] = {
+static int kkybrd_scancode_std [] = {
 
 	//! key			scancode
 	KEY_UNKNOWN,	//0
@@ -344,7 +374,7 @@ unsigned char kybrd_ctrl_read_status() {
 }
 
 //! send command byte to keyboard controller
-void kybrd_ctrl_send_cmd(uint8_t cmd) {
+void kybrd_ctrl_send_cmd(BYTE cmd) {
  
     //! wait for kkybrd controller input buffer to be clear
     while (1)
@@ -355,12 +385,12 @@ void kybrd_ctrl_send_cmd(uint8_t cmd) {
 }
 
 //! read keyboard encoder buffer
-uint8_t kybrd_enc_read_buf () {
+BYTE kybrd_enc_read_buf () {
     return inb(KYBRD_ENC_INPUT_BUF);
 }
  
 //! send command byte to keyboard encoder
-void kybrd_enc_send_cmd (uint8_t cmd) {
+void kybrd_enc_send_cmd (BYTE cmd) {
  
     //! wait for kkybrd controller input buffer to be clear
     while (!((kybrd_ctrl_read_status () & KYBRD_CTRL_STATS_MASK_IN_BUF) == 0)) {}
@@ -372,7 +402,7 @@ void kybrd_enc_send_cmd (uint8_t cmd) {
 //! sets leds
 void kkybrd_set_leds (bool num, bool caps, bool scroll) {
 
-	uint8_t data = 0;
+	BYTE data = 0;
 
 	//! set or clear the bit
 	data = (scroll) ? (data | 1) : (data & 1);
@@ -387,17 +417,17 @@ void kkybrd_set_leds (bool num, bool caps, bool scroll) {
 //! convert key to an ascii character
 char kybrd_key_to_ascii (int code) {
 
-	uint8_t key = code;
+	BYTE key = code;
 
 	//! insure key is an ascii character
 	if (isascii (key)) {
 
 		//! if shift key is down or caps lock is on, make the key uppercase
-		if (_shift || _capslock)
+		if (shift || capslock)
 			if (key >= 'a' && key <= 'z')
 				key -= 32;
 
-		if (_shift && !_capslock)
+		if (shift && !capslock)
         {
 			if (key >= '0' && key <= '9')
             {
@@ -510,13 +540,13 @@ char key_stroke_listener () {
         code -= 0x80;
 
         //! grab the key
-        int key = _kkybrd_scancode_std [code];
+        int key = kkybrd_scancode_std [code];
 
         //! test if a special key has been released & set it
         switch (key) {
             case KEY_LSHIFT:
             case KEY_RSHIFT:
-                _shift = false;
+                shift = false;
                 break;
             default:
                 return kybrd_key_to_ascii(key);
@@ -526,22 +556,22 @@ char key_stroke_listener () {
         //out_description("Make code", code); DEBUG
 
         //! this is a make code - set the scan code
-        _scancode = code;
+        scancode = code;
 
         //! grab the key
-        int key = _kkybrd_scancode_std [code];
+        int key = kkybrd_scancode_std [code];
 
         //! test if user is holding down any special keys & set it
         switch (key) {
 
             case KEY_LSHIFT:
             case KEY_RSHIFT:
-                _shift = true;
+                shift = true;
                 break;
 
             case KEY_CAPSLOCK:
-                _capslock = (_capslock) ? false : true;
-                kkybrd_set_leds (false, _capslock, false);
+                capslock = (capslock) ? false : true;
+                kkybrd_set_leds (false, capslock, false);
                 break;
         }
     }

@@ -59,7 +59,7 @@ SLB_FUNCTION __start
 	xchg    %eax,%edx
 	xchg    %ebx,%eax
 	pushl	%eax
-	pushl   $__exit
+	pushl   $exit
 	jmp     __main
 
 SLB_FUNCTION smp_init_start
@@ -107,25 +107,6 @@ SLB_FUNCTION reboot
 dummy_idt_desc:
 	.space 8
 
-
-SLB_FUNCTION memcpy
-	/* a size optimized memcpy function */
-	pusha
-	xchg %eax, %edi
-	xchg %edx, %esi
-	rep movsb
-	popa
-	ret
-
-
-SLB_FUNCTION memset
-	/* a size optimized memset function */
-	pusha
-	xchg %eax, %edx
-	mov  %edx, %edi
-	rep  stosb
-	popa
-	ret
 
 
 SLB_FUNCTION jmp_multiboot
