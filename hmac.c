@@ -34,6 +34,7 @@ hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size)
 
     sha1_init(&hctx->ctx);
     sha1(&hctx->ctx, ipad->pad, HMAC_BLOCK_SIZE);
+    dealloc(heap, ipad, sizeof(HMAC_IPad));
 }
 
 void hmac(struct HMAC_Context *hctx, BYTE *text, BYTE textsize)
@@ -56,4 +57,7 @@ void hmac_finish(struct HMAC_Context *hctx)
     sha1(&hctx->ctx, opad->pad, HMAC_BLOCK_SIZE);
     sha1(&hctx->ctx, hash->digest, TCG_HASH_SIZE);
     sha1_finish(&hctx->ctx);
+
+    dealloc(heap, opad, sizeof(HMAC_OPad));
+    dealloc(heap, hash, sizeof(TPM_DIGEST));
 }
