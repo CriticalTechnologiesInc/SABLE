@@ -13,8 +13,9 @@
  */
 
 
-#include "util.h"
-#include "dev.h"
+#include "include/alloc.h"
+#include "include/util.h"
+#include "include/dev.h"
 
 /**
  * Read a byte from the pci config space.
@@ -158,7 +159,11 @@ static
 unsigned char
 pci_dev_find_cap(unsigned addr, unsigned char id)
 {
+#ifdef EXEC
   CHECK3(-11, !(pci_read_long(addr+PCI_CONF_HDR_CMD) & 0x100000),"no capability list support");
+#else
+  CHECK3(-11, !(pci_read_long(addr+PCI_CONF_HDR_CMD) & 0x100000),&string_literal);
+#endif
   unsigned char cap_offset = pci_read_byte(addr+PCI_CONF_HDR_CAP);
   while (cap_offset)
     if (id == pci_read_byte(addr+cap_offset))
@@ -191,8 +196,8 @@ myprintf(char *fmt, char ch, unsigned high_base, unsigned base, unsigned high_si
 void
 pci_print_bars(unsigned addr, unsigned count)
 {
-  unsigned bars[6];
-  unsigned masks[6];
+  unsigned *bars = alloc(heap, 6, 0);
+  unsigned *masks = alloc(heap, 6, 0);
 
   //disable device
   short cmd = pci_read_word_aligned(addr + 0x4);
@@ -318,9 +323,21 @@ dev_get_addr()
   addr = pci_find_device(DEV_PCI_DEVICE_ID_OLD);
   if (!addr) addr = pci_find_device(DEV_PCI_DEVICE_ID_K10);
   if (!addr) addr = pci_find_device(DEV_PCI_DEVICE_ID_BLD);
+#ifdef EXEC
   CHECK3(-21, !addr, "device not found");
+#else
+  CHECK3(-21, !addr, &string_literal);
+#endif
+#ifdef EXEC
   CHECK3(-22, !(addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID)),"cap not found");
+#else
+  CHECK3(-22, !(addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID)),&string_literal);
+#endif
+#ifdef EXEC
   CHECK3(-23, 0xf != (pci_read_long(addr) & 0xf00ff),"invalid DEV_HDR");
+#else
+  CHECK3(-23, 0xf != (pci_read_long(addr) & 0xf00ff),&string_literal);
+#endif
   return addr;
 }
 
@@ -331,8 +348,16 @@ int
 disable_dev_protection()
 {
   unsigned addr;
+#ifdef EXEC
   out_info("disable DEV and SLDEV protection");
+#else
+  out_info(&string_literal);
+#endif
+#ifdef EXEC
   CHECK3(-30, !(addr = dev_get_addr()),"DEV not found");
+#else
+  CHECK3(-30, !(addr = dev_get_addr()),&string_literal);
+#endif
   dev_write_reg(addr, DEV_REG_CR, 0, dev_read_reg(addr, DEV_REG_CR, 0) & ~(DEV_CR_SLDEV | DEV_CR_EN | DEV_CR_INVD));
   return 0;
 }
@@ -343,7 +368,11 @@ static
 int
 enable_dev_bitmap(unsigned addr, unsigned base)
 {
+#ifdef EXEC
   out_description("enable dev at",base);
+#else
+  out_description(&string_literal,base);
+#endif
   unsigned dom = (dev_read_reg(addr, DEV_REG_CAP, 0) >> 8) & 0xff;
   while (dom--)
     {
@@ -365,10 +394,26 @@ int
 enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer)
 {
   unsigned addr;
+#ifdef EXEC
   out_info("enable DEV protection");
+#else
+  out_info(&string_literal);
+#endif
+#ifdef EXEC
   CHECK3(-41, (unsigned) buffer & 0xfff, "dev pointer invalid");
+#else
+  CHECK3(-41, (unsigned) buffer & 0xfff, &string_literal);
+#endif
+#ifdef EXEC
   CHECK3(-42, (unsigned) sldev_buffer < 1<<17 || (unsigned) sldev_buffer & 0xfff, "sldev pointer invalid");
+#else
+  CHECK3(-42, (unsigned) sldev_buffer < 1<<17 || (unsigned) sldev_buffer & 0xfff, &string_literal);
+#endif
+#ifdef EXEC
   CHECK3(-43, !(addr = dev_get_addr()),"DEV not found");
+#else
+  CHECK3(-43, !(addr = dev_get_addr()),&string_literal);
+#endif
 
   /**
    * The DEV interface has a nasty race condition between memsetting

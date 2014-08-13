@@ -16,9 +16,9 @@
  * COPYING file for details.
  */
 
-#include <elf.h>
-#include <util.h>
-#define NULL 0
+#include "include/alloc.h"
+#include "include/elf.h"
+#include "include/util.h"
 
 enum {
 	EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
@@ -46,7 +46,8 @@ gen_mov(unsigned char **code, int reg, unsigned constant)
 	static void
 gen_jmp_edx(unsigned char **code)
 {
-	byte_out(code, 0xFF); byte_out(code, 0xE2);
+	byte_out(code, 0xFF); 
+    byte_out(code, 0xE2);
 }
 
 	static void
@@ -72,13 +73,17 @@ start_module(struct mbi *mbi)
 
 	unsigned load_end;	
 	unsigned bss_offset;
-    unsigned char *code;
+    unsigned char **code;
 
     unsigned int *elf_magic;
     unsigned short *elf_class_data;
 
 	if (mbi->mods_count == 0) {
+#ifdef EXEC
 		out_info("No module to start.\n");
+#else
+		out_info(&string_literal);
+#endif
 		return -1;
 	}
 
@@ -91,7 +96,7 @@ start_module(struct mbi *mbi)
 	// switch it on unconditionally, we assume that m->string is always initialized
 	mbi->flags |=  MBI_FLAG_CMDLINE;
 
-	code = (unsigned char *) TRAMPOLINE_ADDRESS;
+	*code = (unsigned char *) TRAMPOLINE_ADDRESS;
 
 	//search for multiboot header
 	unsigned * ptr;
@@ -116,7 +121,7 @@ start_module(struct mbi *mbi)
 		}
 
 		//create multiboot segment
-		gen_elf_segment(&code, (UINT32 *)mb->load_addr, ((UINT32 *)mb-((UINT32*)mb->header_addr-(UINT32*)mb->load_addr)), load_end-mb->load_addr,bss_offset);
+		gen_elf_segment(code, (UINT32 *)mb->load_addr, ((UINT32 *)mb-((UINT32*)mb->header_addr-(UINT32*)mb->load_addr)), load_end-mb->load_addr,bss_offset);
 		
 
 	} else {
@@ -125,12 +130,21 @@ start_module(struct mbi *mbi)
 		elf = (struct eh *) m->mod_start;
         elf_magic = (unsigned int *) elf->e_ident;
         elf_class_data = (unsigned short *) (elf->e_ident + 4);
+#ifdef EXEC
         out_description("elf magic:", *elf_magic);
         out_description("elf class_data:", *elf_class_data);
 
 		ERROR(-31, *elf_magic != 0x464c457f || *elf_class_data != 0x0101, "ELF header incorrect");
 		ERROR(-32, elf->e_type!=2 || elf->e_machine!=3 || elf->e_version!=1, "ELF type incorrect");
 		ERROR(-33, sizeof(struct ph) > elf->e_phentsize, "e_phentsize to small");
+#else
+        out_description(&string_literal, *elf_magic);
+        out_description(&string_literal, *elf_class_data);
+
+		ERROR(-31, *elf_magic != 0x464c457f || *elf_class_data != 0x0101, &string_literal);
+		ERROR(-32, elf->e_type!=2 || elf->e_machine!=3 || elf->e_version!=1, &string_literal);
+		ERROR(-33, sizeof(struct ph) > elf->e_phentsize, &string_literal);
+#endif
 
 
 
@@ -138,24 +152,30 @@ start_module(struct mbi *mbi)
 			struct ph *ph = (struct ph *)(m->mod_start + elf->e_phoff+ i*elf->e_phentsize);
 			if (ph->p_type != 1)
 				continue;
-			gen_elf_segment(&code, ph->p_paddr, (void *)(m->mod_start+ph->p_offset), ph->p_filesz,
+			gen_elf_segment(code, ph->p_paddr, (void *)(m->mod_start+ph->p_offset), ph->p_filesz,
 					ph->p_memsz - ph->p_filesz);
 		}
 
 	}
 
-	gen_mov(&code, EAX, MBI_MAGIC2);
+	gen_mov(code, EAX, MBI_MAGIC2);
 	if(elf!=NULL){
-		gen_mov(&code, EDX, (unsigned)elf->e_entry);
+		gen_mov(code, EDX, (unsigned)elf->e_entry);
 	} else {
-		gen_mov(&code,EDX,(unsigned)mb->entry_addr);
+		gen_mov(code,EDX,(unsigned)mb->entry_addr);
 	}
 
+#ifdef EXEC
 	out_info("jumping to next segment...\n");
+#else
+	out_info(&string_literal);
+#endif
 	wait(1000);
-	gen_jmp_edx(&code);
+	gen_jmp_edx(code);
 
+#ifdef EXEC
 	asm volatile  ("jmp *%%edx" :: "a" (0), "d" (TRAMPOLINE_ADDRESS), "b" (mbi));
+#endif
 
 
 
