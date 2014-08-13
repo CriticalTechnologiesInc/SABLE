@@ -61,40 +61,52 @@ void configure(unsigned char * passPhrase, unsigned long lenPassphrase)
 
     
     res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_KEYHANDLE,TPM_KH_SRK,&sctx);
+#ifdef DEBUG
     out_string("\nOSAP return value: ");
     out_hex(res,31);
     out_string("\n");
+#endif
 
     res=TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, &sctx);
+#ifdef DEBUG
     out_string("Seal (long) return value: ");
     out_hex(res,31);
     out_string("\n");
+#endif
     ERROR(111,res!=0,"Seal (long) failed");
 
     out_string("\nErasing passphrase from memory...\n");
     memset(passPhrase,0,lenPassphrase);
 
     res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_OWNER,0,&sctx);
+#ifdef DEBUG
     out_string("\nOSAP return value: ");
     out_hex(res,31);
     out_string("\n");
+#endif
 
     res = TPM_NV_DefineSpace(buffer, select, &sctx);
+#ifdef DEBUG
     out_string("TPM_NV_DefineSpace return value: ");
     out_hex(res,31);
     out_string("\n");
     wait(5000);
+#endif
 
 
     res=TPM_Start_OIAP(buffer,&sctx);
+#ifdef DEBUG
     out_string("\nOIAP return value: ");
     out_hex(res,31);
+#endif
 
     res = TPM_NV_WriteValueAuth(buffer,sealedData, 400,&sctx);
+#ifdef DEBUG
     out_string("TPM_NV_WriteValueAuth return value: ");
     out_hex(res,31);
     out_string("\n");
     wait(5000);
+#endif
 
 }
 
@@ -113,32 +125,60 @@ void unsealPassphrase()
     memset(usageAuthSRK,0,20);
 
     res=TPM_Start_OIAP(buffer,&sctx);
+#ifdef DEBUG
     out_string("\nOIAP return value: ");
     out_hex(res,31);
+#endif
 
     res = TPM_NV_ReadValueAuth(buffer,sealedData, 400,400,&sctx);
+#ifdef DEBUG
     out_string("TPM_NV_ReadValueAuth return value: ");
     out_hex(res,31);
     out_string("\n");
+#endif
 
     res=TPM_Start_OIAP(buffer,&sctxParent);
+#ifdef DEBUG
     out_string("\nOIAP Parent return value: ");
     out_hex(res,31);
+#endif
 
     res=TPM_Start_OIAP(buffer,&sctxEntity);
+#ifdef DEBUG
     out_string("\nOIAP Entity return value: ");
     out_hex(res,31);
+#endif
 
     res=TPM_Unseal(buffer,sealedData,unsealedData,100,&unsealedDataSize,&sctxParent,&sctxEntity);
+#ifdef DEBUG
     out_string("\nUnseal return value: ");
     out_hex(res,31);
-    ERROR(108,res!=0,"Unseal failed");
+    CHECK3(108,res!=0,"Unseal failed");
+#endif
 
-out_string("\nWe are about to print the secret passphrase. After we print, we will wait 30 seconds before booting into the next module. If the passphrase is not correct, please turn off your system before the next module boots and use a Live CD to check the files which have been corrupted.\nPassphrase: ");
+    out_string("\nPlease confirm that the passphrase shown below matches the one which was entered during system configuration. If the passphrase does not match, contact your systems administrator immediately.\n\n");
+    out_string("Passphrase: ");
     out_string((char *)unsealedData);
+    out_string("\n\nIf this is correct, type 'yes' in all capitals: ");
+    char entry[20];
+    char *correctEntry = "YES";
+    unsigned int t = 0;
+    char c;
+    c = key_stroke_listener(); // for some reason, there's always an 'enter' char
+    while(t < 20)
+    {
+      c = key_stroke_listener();
+      if (c == 0x0D) break; // user hit 'return'
+      if (c != 0) 
+      {
+          out_char(c);
+          entry[t++] = c;
+      }
+    }
     out_string("\n");
 
-    wait(30000);
+    if (bufcmp(correctEntry, entry, 3))
+        reboot();
 }
 
 /**
@@ -178,6 +218,7 @@ if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
       }
   }
   *lenPassPhrase = t + 1;
+  out_string("\n");
 
 	//clear module for security reasons
 	memset((BYTE *)m->mod_start,0,m->mod_end-m->mod_start);
@@ -361,45 +402,42 @@ int oslo(struct mbi *mbi)
 
   revert_skinit();
 
-  int i;
+  int res;
   BYTE config=0;
   BYTE passPhrase[64];
   memset(passPhrase, 0, 64);
   UINT32 lenPassphrase = 0;
-  BYTE pcr10[20];
 
   ERROR(20, !mbi, "no mbi in oslo()");
 
   if (tis_init(TIS_BASE))
     {
-      ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
-      ERROR(22, mbi_calc_hash(mbi,&config,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
+    ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
+    CHECK4(24,(res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD)), "TPM_PcrRead failed", res);
+#ifdef DEBUG
+    show_hash("PCR[17]: ",dig.digest);
+    wait(1000);
+#endif
+    ERROR(22, mbi_calc_hash(mbi,&config,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
+#ifdef DEBUG
+    show_hash("PCR[19]: ",dig.digest);
+    dump_pcrs(ctx.buffer);
+#endif
+
+    if(config==1) {
+      out_string("\nSealing passphrase: \n\n");
+	  out_string((char *)passPhrase);
+	  out_string("\n\nto PCR[a] with value \n");
       show_hash("PCR[19]: ",dig.digest);
-      memcpy(pcr10,ctx.hash,20);
+	  wait(1000);
 
-      int res;
-      dump_pcrs(ctx.buffer);
-
-      CHECK4(24,(res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD)), "TPM_PcrRead failed", res);
-      show_hash("PCR[17]: ",dig.digest);
-      wait(1000);
-
-      if(config==1){
-	out_string("\nSealing passphrase ");
-	out_string((char *)passPhrase);
-	out_string(" to PCR[a] with value ");
-	for(i=0;i<20;i++)
-		out_hex(*(pcr10+i),7);
-	out_string("\n");
-	wait(1000);
-
-    configure(passPhrase,lenPassphrase);
-    ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
-	out_string("\nConfiguration complete. Rebooting now...\n");
-	wait(5000);
-	reboot();
+      configure(passPhrase,lenPassphrase);
+      ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
+	  out_string("\nConfiguration complete. Rebooting now...\n");
+	  wait(5000);
+	  reboot();
     }
-    else{ 
+    else { 
 	  unsealPassphrase();
     }
         ERROR(25, tis_deactivate_all(), "tis_deactivate failed");

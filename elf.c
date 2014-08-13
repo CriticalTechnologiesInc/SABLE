@@ -68,8 +68,6 @@ start_module(struct mbi *mbi)
 {
     struct module *m;
 	struct mbh *mb;
-	struct mbh *mb_start;
-	struct mbh *mb_end;
 	struct eh *elf=NULL;
 
 	unsigned load_end;	
@@ -96,11 +94,11 @@ start_module(struct mbi *mbi)
 	code = (unsigned char *) TRAMPOLINE_ADDRESS;
 
 	//search for multiboot header
-    mb_start = (struct mbh *)m->mod_start;
-    mb_end = (struct mbh *)m->mod_end;
-	for(mb = mb_start; mb < mb_end; mb++)
-		if(mb->magic == MBI_MAGIC1)
+	unsigned * ptr;
+	for(ptr = (unsigned *) m->mod_start; ptr < (unsigned *)m->mod_start + 8192; ptr++)
+		if(((struct mbh*)ptr)->magic == MBI_MAGIC1)
 			break;
+	mb = (struct mbh*)ptr;
 
 	//check if multiboot or ELF load
 	if((mb->flags & 0x00010000) && (mb->magic == MBI_MAGIC1)) {

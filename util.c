@@ -63,11 +63,11 @@ strnlen_oslo(BYTE *value, UINT32 size)
 
 //compares two buffers for a certain length
 UINT32
-bufcmp(BYTE *buf1, BYTE *buf2, UINT32 size)
+bufcmp(void *buf1, void *buf2, UINT32 size)
 {
     UINT32 i;
     for(i = 0; i < size; i++)
-        if(*(buf1+ i) != *(buf2+i))
+        if(*((unsigned char *)buf1+ i) != *((unsigned char *)buf2+i))
             break;
     return (i<size);
 }
@@ -266,9 +266,11 @@ out_description(const char *prefix, unsigned int value)
 void
 out_info(const char *msg)
 {
+#ifdef DEBUG
   out_string(message_label);
   out_string(msg);
   out_char('\n');
+#endif
 }
 
 /***************************************************************

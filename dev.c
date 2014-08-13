@@ -261,9 +261,7 @@ pci_iterate_devices()
 	      maxfunc=7;
 	    if (!value || value==0xffffffff)
 	      continue;
-#if 0
-	    myprintf("%x:%x.%x %x: %x:%x %x\n", bus, dev, func, class, value & 0xffff, value >> 16, header_type);
-#else
+#ifdef DEBUG
 	    out_hex(bus,7);
 	    out_char(':');
 	    out_hex(dev,4);
@@ -280,7 +278,6 @@ pci_iterate_devices()
 	    out_hex(header_type,7);
 	    out_char('\n');
 #endif
-	    //pci_print_bars(addr, header_type & 0x7f ? 2 : 6);
 	  }
       }
   return 0;
