@@ -201,7 +201,7 @@ add_mem_pool(struct heap *heap, void *ptr, word_t size)
 
 /* Setup the initial allocator. */
 void
-init_allocator()
+init_allocator(void)
 {
     heap->head = (struct mem_node *)HEAP_START;
     heap->head->size = 0;

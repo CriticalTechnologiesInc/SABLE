@@ -240,7 +240,11 @@ pci_print_bars(unsigned addr, unsigned count)
 	    }
 	}
       if (base)
+#ifdef EXEC
 	myprintf("    %c: %#x%x/%#x%x", ch, high_base, base, high_size, size);
+#else
+	myprintf(&string_literal, ch, high_base, base, high_size, size);
+#endif
     }
 }
 
@@ -249,7 +253,7 @@ pci_print_bars(unsigned addr, unsigned count)
  * Iterate over all devices in the pci config space.
  */
 int
-pci_iterate_devices()
+pci_iterate_devices(void)
 {
   for (unsigned bus=0; bus < 255; bus++)
     for (unsigned dev=0; dev < 32; dev++)
@@ -317,7 +321,7 @@ dev_write_reg(unsigned addr, unsigned char func, unsigned char instance, unsigne
 
 static
 unsigned
-dev_get_addr()
+dev_get_addr(void)
 {
   unsigned addr;
   addr = pci_find_device(DEV_PCI_DEVICE_ID_OLD);
@@ -328,10 +332,11 @@ dev_get_addr()
 #else
   CHECK3(-21, !addr, &string_literal);
 #endif
+  addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID);
 #ifdef EXEC
-  CHECK3(-22, !(addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID)),"cap not found");
+  CHECK3(-22, !addr,"cap not found");
 #else
-  CHECK3(-22, !(addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID)),&string_literal);
+  CHECK3(-22, !addr,&string_literal);
 #endif
 #ifdef EXEC
   CHECK3(-23, 0xf != (pci_read_long(addr) & 0xf00ff),"invalid DEV_HDR");
@@ -345,7 +350,7 @@ dev_get_addr()
  * Disable all dev protection.
  */
 int
-disable_dev_protection()
+disable_dev_protection(void)
 {
   unsigned addr;
 #ifdef EXEC
@@ -353,10 +358,11 @@ disable_dev_protection()
 #else
   out_info(&string_literal);
 #endif
+  addr = dev_get_addr();
 #ifdef EXEC
-  CHECK3(-30, !(addr = dev_get_addr()),"DEV not found");
+  CHECK3(-30, !addr,"DEV not found");
 #else
-  CHECK3(-30, !(addr = dev_get_addr()),&string_literal);
+  CHECK3(-30, !addr,&string_literal);
 #endif
   dev_write_reg(addr, DEV_REG_CR, 0, dev_read_reg(addr, DEV_REG_CR, 0) & ~(DEV_CR_SLDEV | DEV_CR_EN | DEV_CR_INVD));
   return 0;
@@ -374,10 +380,11 @@ enable_dev_bitmap(unsigned addr, unsigned base)
   out_description(&string_literal,base);
 #endif
   unsigned dom = (dev_read_reg(addr, DEV_REG_CAP, 0) >> 8) & 0xff;
-  while (dom--)
+  while (dom)
     {
       dev_write_reg(addr, DEV_REG_BASE_HI, dom, 0);
       dev_write_reg(addr, DEV_REG_BASE_HI, dom, base | 3);
+      dom--;
     }
   dev_write_reg(addr, DEV_REG_CR, 0, dev_read_reg(addr, DEV_REG_CR, 0) | DEV_CR_EN | DEV_CR_INVD);
   return 0;
@@ -409,10 +416,11 @@ enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer)
 #else
   CHECK3(-42, (unsigned) sldev_buffer < 1<<17 || (unsigned) sldev_buffer & 0xfff, &string_literal);
 #endif
+  addr = dev_get_addr();
 #ifdef EXEC
-  CHECK3(-43, !(addr = dev_get_addr()),"DEV not found");
+  CHECK3(-43, !addr,"DEV not found");
 #else
-  CHECK3(-43, !(addr = dev_get_addr()),&string_literal);
+  CHECK3(-43, !addr,&string_literal);
 #endif
 
   /**

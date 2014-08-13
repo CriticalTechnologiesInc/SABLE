@@ -78,6 +78,6 @@ void dealloc(struct heap *heap, void *ptr, word_t size);
 
 void add_mem_pool(struct heap *heap, void *ptr, word_t size);
 
-void init_allocator();
+void init_allocator(void);
 
 #endif /* _ALLOC_H_ */

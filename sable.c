@@ -153,6 +153,7 @@ void unsealPassphrase()
     out_hex(res,31);
 #endif
 
+#ifndef SAVE_TPM
     res=TPM_Unseal(buffer,sealedData,unsealedData,100,&unsealedDataSize,&sctxParent,&sctxEntity);
 #ifdef DEBUG
     out_string("\nUnseal return value: ");
@@ -160,6 +161,7 @@ void unsealPassphrase()
 #endif
     if (res != 0)
         out_string("\nUnseal failed");
+#endif
 
     out_string("\nPlease confirm that the passphrase shown below matches the one which was entered during system configuration. If the passphrase does not match, contact your systems administrator immediately.\n\n");
     out_string("Passphrase: ");

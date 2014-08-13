@@ -53,8 +53,8 @@ enum dev_cr {
 };
 
 
-int disable_dev_protection();
-int pci_iterate_devices();
+int disable_dev_protection(void);
+int pci_iterate_devices(void);
 unsigned pci_read_long(unsigned addr);
 void pci_write_long(unsigned addr, unsigned value);
 unsigned pci_find_device_per_class(unsigned short class);
