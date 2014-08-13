@@ -246,7 +246,6 @@ int TPM_NV_DefineSpace(
     TPM_TRANSMIT();
 
     if(res>=0){
-        out_string("\nDefineSpace transmit successful\n");
         res=(int) ntohl(*((UINT32 *) (in_buffer + 6)));
     }
     return res;
@@ -304,7 +303,6 @@ memcpy((unsigned char *)&endbuf->pubAuth,hctx.ctx.hash,20);
 unsigned long receivedDataSize;
 int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+sizeof(SessionEnd), outbuffer, 600);
     if(res>=0){
-	out_string("\nReadValueAuth transmit successful\n");
 	res=(int) ntohl(*((unsigned int *) (outbuffer+6)));
 	receivedDataSize=(int) ntohl(*((unsigned int *) (outbuffer+10)));
 	if(receivedDataSize>dataBufferSize){
@@ -373,7 +371,6 @@ memcpy((unsigned char *)&endbuf->pubAuth,hctx.ctx.hash,20);
 
 int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+dataSize+sizeof(SessionEnd), outbuffer, 600);
     if(res>=0){
-	out_string("\nWriteValueAuth transmit successful\n");
 	res=(int) ntohl(*((unsigned int *) (outbuffer+6)));
     }
     return res;
@@ -393,7 +390,6 @@ temp+=4;
 *((unsigned long*)temp)=ntohl((unsigned long)0x2);
 int res = tis_transmit(buffer,18 , buffer, 34);
 if(res>=0){
-	out_string("\n Flush transmit successful\n");
 	res=(int) ntohl(*((unsigned int *) (buffer+6)));
 }
 return res;

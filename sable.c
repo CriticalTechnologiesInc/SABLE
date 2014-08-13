@@ -85,12 +85,14 @@ void configure(unsigned char * passPhrase, unsigned long lenPassphrase)
     out_string("\n");
 #endif
 
+#ifndef SAVE_TPM
     res = TPM_NV_DefineSpace(buffer, select, &sctx);
 #ifdef DEBUG
     out_string("TPM_NV_DefineSpace return value: ");
     out_hex(res,31);
     out_string("\n");
     wait(5000);
+#endif
 #endif
 
 
@@ -100,12 +102,14 @@ void configure(unsigned char * passPhrase, unsigned long lenPassphrase)
     out_hex(res,31);
 #endif
 
+#ifndef SAVE_TPM
     res = TPM_NV_WriteValueAuth(buffer,sealedData, 400,&sctx);
 #ifdef DEBUG
     out_string("TPM_NV_WriteValueAuth return value: ");
     out_hex(res,31);
     out_string("\n");
     wait(5000);
+#endif
 #endif
 
 }
@@ -153,8 +157,9 @@ void unsealPassphrase()
 #ifdef DEBUG
     out_string("\nUnseal return value: ");
     out_hex(res,31);
-    CHECK3(108,res!=0,"Unseal failed");
 #endif
+    if (res != 0)
+        out_string("\nUnseal failed");
 
     out_string("\nPlease confirm that the passphrase shown below matches the one which was entered during system configuration. If the passphrase does not match, contact your systems administrator immediately.\n\n");
     out_string("Passphrase: ");
@@ -438,7 +443,7 @@ int oslo(struct mbi *mbi)
 	  reboot();
     }
     else { 
-	  unsealPassphrase();
+      unsealPassphrase();
     }
         ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
 

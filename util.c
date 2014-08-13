@@ -126,15 +126,21 @@ void
 exit(unsigned status)
 {
   out_char('\n');
-  //out_description("exit()", status);
+#ifdef EXEC
+  out_description("exit()", status);
+#else
   out_description(&string_literal, status);
+#endif
   for (unsigned i=0; i<1000;i++)
     {
       wait(1000);
       //out_char('.');
     }
-  //out_string("-> OK, reboot now!\n");
+#ifdef EXEC
+  out_string("-> OK, reboot now!\n");
+#else
   out_string(&string_literal);
+#endif
   reboot();
 }
 
@@ -145,15 +151,18 @@ exit(unsigned status)
  * not supported.
  */
 int
-check_cpuid()
+check_cpuid(void)
 {
   int res;
-  //CHECK3(-31,0x8000000A > cpuid_eax(0x80000000), "no ext cpuid");
+#ifdef EXEC
+  CHECK3(-31,0x8000000A > cpuid_eax(0x80000000), "no ext cpuid");
+  CHECK3(-32,!(0x4   & cpuid_ecx(0x80000001)), "no SVM support");
+  CHECK3(-33,!(0x200 & cpuid_edx(0x80000001)), "no APIC support");
+#else
   CHECK3(-31,0x8000000A > cpuid_eax(0x80000000), &string_literal);
-  //CHECK3(-32,!(0x4   & cpuid_ecx(0x80000001)), "no SVM support");
   CHECK3(-32,!(0x4   & cpuid_ecx(0x80000001)), &string_literal);
-  //CHECK3(-33,!(0x200 & cpuid_edx(0x80000001)), "no APIC support");
   CHECK3(-33,!(0x200 & cpuid_edx(0x80000001)), &string_literal);
+#endif
   res = cpuid_eax(0x8000000A) & 0xff;
   return res;
 }
@@ -164,13 +173,16 @@ check_cpuid()
  *
  */
 int
-enable_svm()
+enable_svm(void)
 {
   unsigned long long value;
   value = rdmsr(MSR_EFER);
   wrmsr(MSR_EFER, value | EFER_SVME);
-  //CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), "could not enable SVM");
+#ifdef EXEC
+  CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), "could not enable SVM");
+#else
   CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), &string_literal);
+#endif
   return 0;
 }
 
@@ -253,11 +265,13 @@ out_hex(unsigned value, unsigned bitlen)
 void
 out_description(const char *prefix, unsigned int value)
 {
+#ifdef DEBUG
   out_string(message_label);
   out_string(prefix);
   out_char(' ');
   out_hex(value, 0);
   out_char('\n');
+#endif
 }
 
 /**
@@ -371,7 +385,7 @@ static int kkybrd_scancode_std [] = {
 const int INVALID_SCANCODE = 0;
 
 //! read status from keyboard controller
-unsigned char kybrd_ctrl_read_status() {
+unsigned char kybrd_ctrl_read_status(void) {
     return inb(KYBRD_CTRL_STATS_REG);
 }
 
@@ -387,7 +401,7 @@ void kybrd_ctrl_send_cmd(BYTE cmd) {
 }
 
 //! read keyboard encoder buffer
-BYTE kybrd_enc_read_buf () {
+BYTE kybrd_enc_read_buf (void) {
     return inb(KYBRD_ENC_INPUT_BUF);
 }
  
@@ -525,7 +539,7 @@ char kybrd_key_to_ascii (int code) {
 	return 0;
 }
 
-char key_stroke_listener () {
+char key_stroke_listener (void) {
 
 	int code = 0;
 
