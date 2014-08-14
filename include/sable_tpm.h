@@ -130,6 +130,24 @@
 // Official TCG Structures and Definitions
 //---------------------------------------------------
 
+/*
+ * TPM Ordinal definitions extracted from the TPM 1.2 specification, rev 85.
+ */
+
+#define TPM_ORD_OIAP                              ((UINT32)0x0000000A)
+#define TPM_ORD_OSAP                              ((UINT32)0x0000000B)
+#define TPM_ORD_Extend                            ((UINT32)0x00000014)
+#define TPM_ORD_PcrRead                           ((UINT32)0x00000015)
+#define TPM_ORD_Seal                              ((UINT32)0x00000017)
+#define TPM_ORD_Unseal                            ((UINT32)0x00000018)
+#define TPM_ORD_GetRandom                         ((UINT32)0x00000046)
+#define TPM_ORD_GetCapability                     ((UINT32)0x00000065)
+#define TPM_ORD_SHA1CompleteExtend                ((UINT32)0x000000A3)
+#define TPM_ORD_FlushSpecific                     ((UINT32)0x000000BA)
+#define TPM_ORD_NV_DefineSpace                    ((UINT32)0x000000CC)
+#define TPM_ORD_NV_WriteValueAuth                 ((UINT32)0x000000CE)
+#define TPM_ORD_NV_ReadValueAuth                  ((UINT32)0x000000D0)
+
 //-------------------------------------------------------------------
 // Part 2, section 2.1: Basic data types
 typedef BYTE   TPM_BOOL;
@@ -151,6 +169,9 @@ typedef UINT32 TPM_RESULT;
 //-------------------------------------------------------------------
 // Part 2, section 3: Structure Tags
 typedef UINT16  TPM_STRUCTURE_TAG;
+#define TPM_TAG_PCR_INFO_LONG          ((UINT16)0x0006)
+#define TPM_TAG_NV_ATTRIBUTES          ((UINT16)0x0017)
+#define TPM_TAG_NV_DATA_PUBLIC         ((UINT16)0x0018)
 
 //-------------------------------------------------------------------
 // Part 2, section 4: Types
@@ -191,6 +212,9 @@ typedef TPM_DIGEST TPM_COMPOSITE_HASH;
 // Part 2, section 6: Command Tags
 
 typedef UINT16 TPM_TAG;                                     /* 1.1b */
+#define TPM_TAG_RQU_COMMAND            ((UINT16)0x00c1)
+#define TPM_TAG_RQU_AUTH1_COMMAND      ((UINT16)0x00c2)
+#define TPM_TAG_RQU_AUTH2_COMMAND      ((UINT16)0x00c3)
 
 //-------------------------------------------------------------------
 // Part 2, section 8: PCR Structures
@@ -207,12 +231,25 @@ typedef BYTE  TPM_LOCALITY_SELECTION;
 
 typedef UINT32 TPM_NV_INDEX;
 typedef UINT32 TPM_NV_PER_ATTRIBUTES;
+#define TPM_NV_PER_AUTHREAD            (((UINT32)1)<<18)
+#define TPM_NV_PER_AUTHWRITE           (((UINT32)1)<<2)
 
 typedef struct tdTPM_NV_ATTRIBUTES
 {
     TPM_STRUCTURE_TAG     tag;
     TPM_NV_PER_ATTRIBUTES attributes;
 } TPM_NV_ATTRIBUTES;
+
+//-------------------------------------------------------------------
+// Part 2, section 21.1: TPM_CAPABILITY_AREA
+
+typedef UINT32 TPM_CAPABILITY_AREA;                         /* 1.1b */
+#define TPM_CAP_PROPERTY               ((UINT32)0x00000005) /* 1.1b */
+
+//-------------------------------------------------------------------
+// Part 2, section 21.2: Subcap values for CAP_PROPERTY
+
+#define TPM_CAP_PROP_PCR               ((UINT32)0x00000101) /* 1.1b */
 
 //---------------------------------------------------
 // Custom TPM data structures for SABLE

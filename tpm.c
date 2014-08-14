@@ -673,7 +673,7 @@ TPM_TRANSMIT_FUNC(GetCapability_Pcrs, (unsigned char *buffer, unsigned int *valu
 		      AND TPM_SUBCAP AND TPM_CAP_PROP_PCR };,
 		  if (TPM_EXTRACT_LONG(0)!=4)
 		    return -2;
-		  *value=TPM_EXTRACT_LONG(4);)
+		  *value= (unsigned int)TPM_EXTRACT_LONG(4);)
 
 void
 dump_pcrs(BYTE *buffer)
@@ -681,7 +681,7 @@ dump_pcrs(BYTE *buffer)
   TPM_PCRINDEX pcrs;
   TPM_DIGEST dig;
 
-  if (TPM_GetCapability_Pcrs(buffer, &pcrs))
+  if (TPM_GetCapability_Pcrs(buffer, (unsigned int *)&pcrs))
     out_info("TPM_GetCapability_Pcrs() failed");
   else
     out_description("PCRs:", pcrs);
