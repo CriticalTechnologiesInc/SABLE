@@ -64,7 +64,7 @@ TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
     return res;
 }
 
-int TPM_Unseal(
+TPM_RESULT TPM_Unseal(
         BYTE *in_buffer, 
         BYTE *inData, 
         BYTE *secretData,
@@ -684,46 +684,54 @@ TPM_Extend(
     return res < 0 ? res : (int) ntohl(*((unsigned int *) (in_buffer+6)));
 }
 
-int TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 entityValue, SessionCtx * sctx){
-    int res;
+TPM_RESULT TPM_Start_OSAP(
+        BYTE *in_buffer, 
+        BYTE *usageAuth, 
+        UINT32 entityType, 
+        UINT32 entityValue, 
+        SessionCtx * sctx)
+{
+    TPM_RESULT res;
     UINT32 tpm_offset_out = 0;
-    struct HMAC_Context hctx;
-    TPM_OSAP com;
-    TPM_NONCE nonceOddOSAP;
+    struct HMAC_Context *hctx = alloc(heap, sizeof(struct HMAC_Context), 0);
+    TPM_OSAP *com = alloc(heap, sizeof(TPM_OSAP), 0);
+    TPM_NONCE *nonceEvenOSAP = alloc(heap, sizeof(TPM_NONCE), 0);
 
     UINT32 paramSize = sizeof(TPM_OSAP);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
-    BYTE hmac_buffer[60];
 
-    res = TPM_GetRandom(in_buffer, nonceOddOSAP.nonce, sizeof(TPM_NONCE));
+    // construct header
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_OSAP);
+    com->entityType = ntohs(entityType);
+    com->entityValue = ntohl(entityValue);
+    res = TPM_GetRandom(in_buffer, com->nonceOddOSAP.nonce, sizeof(TPM_NONCE));
 #ifdef EXEC
     CHECK4(108, res, "could not get random num from TPM", res);
 #else
     CHECK4(108, res, &string_literal, res);
 #endif
 
-    // construct header
-    com.tag = ntohs(TPM_TAG_RQU_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_OSAP);
-    com.entityType = ntohs(entityType);
-    com.entityValue = ntohl(entityValue);
-    com.nonceOddOSAP = nonceOddOSAP;
+    SABLE_TPM_COPY_TO(com, paramSize);
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Start_OSAP() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
-    SABLE_TPM_COPY_TO(&com, paramSize);
-    TPM_TRANSMIT();
+    res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
-    if(res>=0){
-        res=(int) ntohl(*((unsigned int *) (in_buffer+6)));
-        TPM_COPY_FROM((unsigned char *)&sctx->authHandle,0,4);
-        TPM_COPY_FROM((unsigned char *)&sctx->nonceEven,4,20);
-        TPM_COPY_FROM(hmac_buffer,24,20);
-        memcpy(hmac_buffer+20,nonceOddOSAP.nonce,20);
-        hmac_init(&hctx,usageAuth,20);
-        hmac(&hctx,hmac_buffer,40);
-        hmac_finish(&hctx);
-        memcpy((unsigned char *)&sctx->sharedSecret,hctx.ctx.hash,20);
-    }
+    TPM_COPY_FROM((BYTE *) &sctx->authHandle, 0, sizeof(TPM_AUTHHANDLE));
+    TPM_COPY_FROM((BYTE *) &sctx->nonceEven, 4, sizeof(TPM_NONCE));
+    TPM_COPY_FROM(nonceEvenOSAP, 24, sizeof(TPM_NONCE));
+
+    hmac_init(hctx, usageAuth, sizeof(TPM_AUTHDATA));
+    hmac(hctx, nonceEvenOSAP->nonce, sizeof(TPM_NONCE));
+    hmac(hctx, com->nonceOddOSAP.nonce, sizeof(TPM_NONCE));
+    hmac_finish(hctx);
+
+    memcpy((BYTE *)&sctx->sharedSecret, hctx->ctx.hash, TCG_HASH_SIZE);
 
     return res;
 }
