@@ -134,7 +134,7 @@ void unsealPassphrase()
     out_hex(res,31);
 #endif
 
-    res = TPM_NV_ReadValueAuth(buffer,sealedData, 400,400,&sctx);
+    res = TPM_NV_ReadValueAuth(buffer, sealedData, 400, &sctx);
 #ifdef DEBUG
     out_string("TPM_NV_ReadValueAuth return value: ");
     out_hex(res,31);
