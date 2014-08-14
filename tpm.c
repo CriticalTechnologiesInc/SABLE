@@ -438,17 +438,17 @@ getTPM_PCR_INFO_LONG(
         sdTPM_PCR_INFO_LONG *info, 
         sdTPM_PCR_SELECTION select)
 {
-    struct SHA1_Context ctx;
-    sdTPM_PCR_COMPOSITE comp;
+    struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
+    sdTPM_PCR_COMPOSITE *comp = alloc(heap, sizeof(sdTPM_PCR_COMPOSITE) , 0);
 
-    comp.select = select;
-    comp.valueSize = ntohl(2 * TCG_HASH_SIZE);
-    TPM_PcrRead(buffer, &comp.hash1, SLB_PCR_ORD);
-    TPM_PcrRead(buffer, &comp.hash2, MODULE_PCR_ORD);
+    comp->select = select;
+    comp->valueSize = ntohl(2 * TCG_HASH_SIZE);
+    TPM_PcrRead(buffer, &comp->hash1, SLB_PCR_ORD);
+    TPM_PcrRead(buffer, &comp->hash2, MODULE_PCR_ORD);
 
-    sha1_init(&ctx);
-    sha1(&ctx, (BYTE *)&comp, sizeof(sdTPM_PCR_COMPOSITE));
-    sha1_finish(&ctx);
+    sha1_init(ctx);
+    sha1(ctx, (BYTE *)comp, sizeof(sdTPM_PCR_COMPOSITE));
+    sha1_finish(ctx);
 
     info->tag = ntohs(TPM_TAG_PCR_INFO_LONG);
     info->localityAtCreation = TPM_LOC_TWO;
@@ -456,8 +456,8 @@ getTPM_PCR_INFO_LONG(
     info->creationPCRSelection = select;
     info->releasePCRSelection = select;
 
-    memcpy(info->digestAtCreation.digest, ctx.hash, TCG_HASH_SIZE);
-    memcpy(info->digestAtRelease.digest, ctx.hash, TCG_HASH_SIZE);
+    memcpy(info->digestAtCreation.digest, ctx->hash, TCG_HASH_SIZE);
+    memcpy(info->digestAtRelease.digest, ctx->hash, TCG_HASH_SIZE);
 }
 
 int TPM_Seal(
