@@ -572,22 +572,23 @@ int TPM_GetRandom(
         BYTE *dest,
         UINT32 size)
 {
-    int res;
-    stTPM_GETRANDOM com;
+    TPM_RESULT res;
+    stTPM_GETRANDOM *com = alloc(heap, sizeof(stTPM_GETRANDOM), 0);
     UINT32 tpm_offset_out = 0;
     UINT32 paramSize = sizeof(stTPM_GETRANDOM);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
     // construct header
-    com.tag = ntohs(TPM_TAG_RQU_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_GetRandom);
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_GetRandom);
 
-    com.bytesRequested = ntohl(size);
-    SABLE_TPM_COPY_TO(&com, sizeof(stTPM_GETRANDOM));
-    TPM_TRANSMIT();
-      if(res>=0)
-        res=(int) ntohl(*((unsigned int *) (in_buffer+6)));
+    com->bytesRequested = ntohl(size);
+
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_GETRANDOM));
+    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_GetRandom() failed on transmit");
+
+    res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer+6)));
 
 #ifdef EXEC
     CHECK4(108,ntohl(*((unsigned int*)(in_buffer+10)))!=size,"could not get enough random bytes from TPM", ntohl(*((unsigned int*)(in_buffer+10))));
