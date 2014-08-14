@@ -659,29 +659,34 @@ TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
     return res;
 }
 
-int
+TPM_RESULT
 TPM_Extend(
         BYTE *in_buffer, 
         TPM_PCRINDEX pcr_index, 
         TPM_DIGEST *hash)
 {
-    int res;
+    TPM_RESULT res;
     UINT32 tpm_offset_out = 0;
-    stTPM_Extend com;
+    stTPM_Extend *com = alloc(heap, sizeof(stTPM_Extend), 0);
     UINT32 paramSize = sizeof(stTPM_Extend);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
-    com.tag = ntohs(TPM_TAG_RQU_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_Extend);
-    com.pcrNum = ntohl(pcr_index);
-    com.inDigest = *hash;
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_Extend);
+    com->pcrNum = ntohl(pcr_index);
+    com->inDigest = *hash;
 
-    SABLE_TPM_COPY_TO(&com, sizeof(stTPM_Extend));
-    TPM_TRANSMIT();
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_Extend));
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_GetRandom() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
     TPM_COPY_FROM(hash->digest, 0, TCG_HASH_SIZE);
 
-    return res < 0 ? res : (int) ntohl(*((unsigned int *) (in_buffer+6)));
+    res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
+    return res;
 }
 
 TPM_RESULT TPM_Start_OSAP(
