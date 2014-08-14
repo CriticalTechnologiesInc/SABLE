@@ -50,7 +50,11 @@ TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
     com->ordinal = ntohl(TPM_ORD_OIAP);
 
     SABLE_TPM_COPY_TO(com, paramSize);
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Start_OIAP() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Start_OIAP() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     res = (TPM_RESULT) ntohl(*(in_buffer+6));
     TPM_COPY_FROM((BYTE *)&sctx->authHandle,0,4);
@@ -127,7 +131,11 @@ int TPM_Unseal(
     SABLE_TPM_COPY_TO(endBufParent, sizeof(SessionEnd));
     SABLE_TPM_COPY_TO(endBufEntity, sizeof(SessionEnd));
 
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Unseal() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Unseal() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     res = (int) ntohl(*((unsigned int *) (in_buffer+6)));
     if(res==0){
@@ -250,7 +258,11 @@ TPM_RESULT TPM_NV_DefineSpace(
     SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
 
     // transmit command to TPM
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_DefineSpace() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_DefineSpace() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
@@ -317,7 +329,11 @@ TPM_NV_ReadValueAuth(
     SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
 
     // transmit command to TPM
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_ReadValueAuth() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_ReadValueAuth() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
@@ -397,7 +413,11 @@ TPM_NV_WriteValueAuth(
     SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
 
     // transmit command to TPM
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_WriteValueAuth() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_WriteValueAuth() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
@@ -426,7 +446,11 @@ TPM_Flush(
     SABLE_TPM_COPY_TO(com, sizeof(stTPM_FLUSH_SPECIFIC));
 
     // transmit command to TPM
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Flush() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Flush() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
 	res = (TPM_RESULT) ntohl(*((unsigned int *) (in_buffer+6)));
     return res;
@@ -567,7 +591,8 @@ int TPM_Seal(
     return res;
 }
 
-int TPM_GetRandom(
+TPM_RESULT
+TPM_GetRandom(
         BYTE *in_buffer, 
         BYTE *dest,
         UINT32 size)
@@ -586,7 +611,11 @@ int TPM_GetRandom(
     com->bytesRequested = ntohl(size);
 
     SABLE_TPM_COPY_TO(com, sizeof(stTPM_GETRANDOM));
-    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_GetRandom() failed on transmit");
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_GetRandom() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer+6)));
 
@@ -600,38 +629,29 @@ int TPM_GetRandom(
     return res;
 }
 
-int
+TPM_RESULT
 TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
-    int res;
+    TPM_RESULT res;
     UINT32 paramSize = sizeof(stTPM_PCRREAD);
     UINT32 tpm_offset_out = 0;
-    stTPM_PCRREAD com;
+    stTPM_PCRREAD *com = alloc(heap, sizeof(stTPM_PCRREAD), 0);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
     // construct the command
-    com.tag = ntohs(TPM_TAG_RQU_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_PcrRead);
-    com.pcrIndex = ntohl(pcrindex);
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_PcrRead);
+    com->pcrIndex = ntohl(pcrindex);
 
     // transmit command to TPM
-    SABLE_TPM_COPY_TO(&com, paramSize);
-    TPM_TRANSMIT();
+    SABLE_TPM_COPY_TO(com, paramSize);
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_PcrRead() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
-    // error detection
-    if (res >= 0)
-        res = (int)ntohl(*((UINT32 *) (in_buffer + 6)));
-    else
-#ifdef EXEC
-        CHECK3(TPM_TRANSMIT_FAIL, TRUE, "tis_transmit() failed in TPM_PcrRead()");
-#else
-        CHECK3(TPM_TRANSMIT_FAIL, TRUE, &string_literal);
-#endif
-#ifdef EXEC
-    CHECK4(res, res, "TPM_PcrRead() failed:", res);
-#else
-    CHECK4(res, res, &string_literal, res);
-#endif
+    res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
     // if everything succeeded, extract the PCR value
     TPM_COPY_FROM(hash->digest, 0, TCG_HASH_SIZE);
