@@ -26,39 +26,36 @@ encAuth_gen(
         TPM_NONCE *nonceEven, 
         TPM_ENCAUTH *encAuth)
 {
-    struct SHA1_Context ctx;
+    struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
 
-    sha1_init(&ctx);
-    sha1(&ctx, sharedSecret, TCG_HASH_SIZE);
-    sha1(&ctx, nonceEven->nonce, sizeof(TPM_NONCE));
-    sha1_finish(&ctx);
+    sha1_init(ctx);
+    sha1(ctx, sharedSecret, TCG_HASH_SIZE);
+    sha1(ctx, nonceEven->nonce, sizeof(TPM_NONCE));
+    sha1_finish(ctx);
 
-    do_xor(auth->authdata, ctx.hash, encAuth->authdata, TCG_HASH_SIZE);
+    do_xor(auth->authdata, ctx->hash, encAuth->authdata, TCG_HASH_SIZE);
 }
 
 TPM_RESULT 
 TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
-    int res;
-    TPM_COMMAND com;
+    TPM_RESULT res;
+    TPM_COMMAND *com = alloc(heap, sizeof(TPM_COMMAND), 0);
     UINT32 tpm_offset_out = 0;
     UINT32 paramSize = sizeof(TPM_COMMAND);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
     
     // construct header
-    com.tag = ntohs(TPM_TAG_RQU_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_OIAP);
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_OIAP);
 
-    SABLE_TPM_COPY_TO(&com, paramSize);
-    TPM_TRANSMIT();
+    SABLE_TPM_COPY_TO(com, paramSize);
+    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Start_OIAP() failed on transmit");
 
-    if ((int)res >= 0)
-    {
-        res = (TPM_RESULT) ntohl(*(in_buffer+6));
-        TPM_COPY_FROM((BYTE *)&sctx->authHandle,0,4);
-        TPM_COPY_FROM((BYTE *)&sctx->nonceEven,4,20);
-        TPM_GetRandom(in_buffer, sctx->nonceOdd.nonce, sizeof(TPM_NONCE));
-    }
+    res = (TPM_RESULT) ntohl(*(in_buffer+6));
+    TPM_COPY_FROM((BYTE *)&sctx->authHandle,0,4);
+    TPM_COPY_FROM((BYTE *)&sctx->nonceEven,4,20);
+    TPM_GetRandom(in_buffer, sctx->nonceOdd.nonce, sizeof(TPM_NONCE));
 
     return res;
 }
@@ -72,75 +69,67 @@ int TPM_Unseal(
         SessionCtx *sctxParent, 
         SessionCtx *sctxEntity)
 {
-    int res;
-    struct SHA1_Context ctx;
-    struct HMAC_Context hctx;
-    stTPM_UNSEAL com;
-    SessionEnd endBufParent, endBufEntity;
+    TPM_RESULT res;
+    struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
+    struct HMAC_Context *hctx = alloc(heap, sizeof(struct HMAC_Context), 0);
+    stTPM_UNSEAL *com = alloc(heap, sizeof(stTPM_UNSEAL), 0);
+    SessionEnd *endBufParent = alloc(heap, sizeof(SessionEnd), 0);
+    SessionEnd *endBufEntity = alloc(heap, sizeof(SessionEnd), 0);
 
-    UINT32 sealInfoSize = ntohl(*((UINT32 *)(inData+4)));
-    UINT32 encDataSize= ntohl(*((UINT32 *)(inData+8+sealInfoSize)));
-    UINT32 inDataSize=12+sealInfoSize+encDataSize;
+    UINT32 sealInfoSize = ntohl(*((UINT32 *)(inData + 4)));
+    UINT32 encDataSize= ntohl(*((UINT32 *)(inData + 8 + sealInfoSize)));
+    UINT32 inDataSize = 12 + sealInfoSize + encDataSize;
 
     UINT32 tpm_offset_out = 0; 
     UINT32 paramSize = sizeof(stTPM_UNSEAL) + inDataSize + 2*sizeof(SessionEnd);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
-    com.tag = ntohs(TPM_TAG_RQU_AUTH2_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_Unseal);
-    com.parentHandle = ntohl(TPM_KH_SRK);
+    com->tag = ntohs(TPM_TAG_RQU_AUTH2_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_Unseal);
+    com->parentHandle = ntohl(TPM_KH_SRK);
 
-    endBufParent.authHandle = sctxParent->authHandle;
-    endBufParent.nonceOdd = sctxParent->nonceOdd;
-    endBufParent.continueAuthSession = FALSE;
-    memset(endBufParent.pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
+    endBufParent->authHandle = sctxParent->authHandle;
+    endBufParent->nonceOdd = sctxParent->nonceOdd;
+    endBufParent->continueAuthSession = FALSE;
+    memset(endBufParent->pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
 
-    sha1_init(&ctx);
-    sha1(&ctx, (BYTE *)&com.ordinal, sizeof(TPM_COMMAND_CODE));
-    sha1(&ctx, inData, inDataSize);
-    sha1_finish(&ctx);
+    sha1_init(ctx);
+    sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
+    sha1(ctx, inData, inDataSize);
+    sha1_finish(ctx);
 
-    hmac_init(&hctx, endBufParent.pubAuth.authdata, sizeof(TPM_AUTHDATA));
-    hmac(&hctx, ctx.hash, TCG_HASH_SIZE);
-    hmac(&hctx, sctxParent->nonceEven.nonce, sizeof(TPM_NONCE));
-    hmac(&hctx, endBufParent.nonceOdd.nonce, sizeof(TPM_NONCE));
-    hmac(&hctx, &endBufParent.continueAuthSession, sizeof(TPM_BOOL));
-    hmac_finish(&hctx);
+    hmac_init(hctx, endBufParent->pubAuth.authdata, sizeof(TPM_AUTHDATA));
+    hmac(hctx, ctx->hash, TCG_HASH_SIZE);
+    hmac(hctx, sctxParent->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, endBufParent->nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, &endBufParent->continueAuthSession, sizeof(TPM_BOOL));
+    hmac_finish(hctx);
 
-    memcpy(&endBufParent.pubAuth, hctx.ctx.hash, sizeof(TPM_AUTHDATA));
+    memcpy(&endBufParent->pubAuth, hctx->ctx.hash, sizeof(TPM_AUTHDATA));
 
-    endBufEntity.authHandle = sctxEntity->authHandle;
-    endBufEntity.nonceOdd = sctxEntity->nonceOdd;
-    endBufEntity.continueAuthSession = FALSE;
-    memset(endBufEntity.pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
+    endBufEntity->authHandle = sctxEntity->authHandle;
+    endBufEntity->nonceOdd = sctxEntity->nonceOdd;
+    endBufEntity->continueAuthSession = FALSE;
+    memset(endBufEntity->pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
 
-    hmac_init(&hctx, endBufEntity.pubAuth.authdata, sizeof(TPM_AUTHDATA));
-    hmac(&hctx, ctx.hash, TCG_HASH_SIZE);
-    hmac(&hctx, sctxEntity->nonceEven.nonce, sizeof(TPM_NONCE));
-    hmac(&hctx, endBufEntity.nonceOdd.nonce, sizeof(TPM_NONCE));
-    hmac(&hctx, &endBufEntity.continueAuthSession, sizeof(TPM_BOOL));
-    hmac_finish(&hctx);
+    hmac_init(hctx, endBufEntity->pubAuth.authdata, sizeof(TPM_AUTHDATA));
+    hmac(hctx, ctx->hash, TCG_HASH_SIZE);
+    hmac(hctx, sctxEntity->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, endBufEntity->nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, &endBufEntity->continueAuthSession, sizeof(TPM_BOOL));
+    hmac_finish(hctx);
 
-    memcpy(&endBufEntity.pubAuth, hctx.ctx.hash, sizeof(TPM_AUTHDATA));
+    memcpy(&endBufEntity->pubAuth, hctx->ctx.hash, sizeof(TPM_AUTHDATA));
 
-    SABLE_TPM_COPY_TO(&com, sizeof(stTPM_UNSEAL));
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_UNSEAL));
     SABLE_TPM_COPY_TO(inData, inDataSize);
-    SABLE_TPM_COPY_TO(&endBufParent, sizeof(SessionEnd));
-    SABLE_TPM_COPY_TO(&endBufEntity, sizeof(SessionEnd));
+    SABLE_TPM_COPY_TO(endBufParent, sizeof(SessionEnd));
+    SABLE_TPM_COPY_TO(endBufEntity, sizeof(SessionEnd));
 
-    TPM_TRANSMIT();
-#ifdef EXEC
-    ERROR(108,res<0,"failed to send/receive data to/from the TPM");
-#else
-    ERROR(108,res<0,&string_literal);
-#endif
-    res=(int) ntohl(*((unsigned int *) (in_buffer+6)));
-#ifdef EXEC
-    CHECK4(108,res!=0,"Unseal unsuccessful",res);
-#else
-    CHECK4(108,res!=0,&string_literal,res);
-#endif
+    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Unseal() failed on transmit");
+
+    res = (int) ntohl(*((unsigned int *) (in_buffer+6)));
     if(res==0){
         *secretDataSize=ntohl(*((unsigned long*)(in_buffer+10)));
         //this check is necessary to prevent a buffer overflow
@@ -261,11 +250,10 @@ int TPM_NV_DefineSpace(
     SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
 
     // transmit command to TPM
-    TPM_TRANSMIT();
+    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_DefineSpace() failed on transmit");
 
-    if(res>=0){
-        res=(int) ntohl(*((UINT32 *) (in_buffer + 6)));
-    }
+    res = (int) ntohl(*((UINT32 *) (in_buffer + 6)));
+
     return res;
 
 }
@@ -400,23 +388,33 @@ int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+dataSize+sizeof(Se
 
 }
 
-int TPM_Flush(SessionCtx *sctx){
-unsigned char buffer[TCG_BUFFER_SIZE];
-TPM_COMMAND * flush = (TPM_COMMAND*)buffer;
-flush->tag=ntohs(TPM_TAG_RQU_COMMAND);
-flush->paramSize=ntohl(18);
-flush->ordinal=ntohl(TPM_ORD_FlushSpecific);
-unsigned char * temp=buffer+sizeof(TPM_COMMAND);
-*((unsigned long*)temp)=(unsigned long)sctx->authHandle;
-temp+=4;
-*((unsigned long*)temp)=ntohl((unsigned long)0x2);
-int res = tis_transmit(buffer,18 , buffer, 34);
-if(res>=0){
-	res=(int) ntohl(*((unsigned int *) (buffer+6)));
-}
-return res;
-}
+TPM_RESULT
+TPM_Flush(
+        BYTE *in_buffer, 
+        SessionCtx *sctx) 
+{
+    TPM_RESULT res;
+    UINT32 tpm_offset_out = 0;
+    stTPM_FLUSH_SPECIFIC *com = alloc(heap, sizeof(stTPM_FLUSH_SPECIFIC), 0);
 
+    UINT32 paramSize = sizeof(stTPM_FLUSH_SPECIFIC);
+    BYTE *out_buffer = alloc(heap, paramSize, 0);
+
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(18);
+    com->ordinal=ntohl(TPM_ORD_FlushSpecific);
+    com->handle = sctx->authHandle;
+    com->resourceType = ntohl(TPM_RT_AUTH);
+    
+    // package the entire command into a bytestream
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_FLUSH_SPECIFIC));
+
+    // transmit command to TPM
+    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Flush() failed on transmit");
+
+	res = (TPM_RESULT) ntohl(*((unsigned int *) (in_buffer+6)));
+    return res;
+}
 
 void
 getTPM_PCR_INFO_LONG(

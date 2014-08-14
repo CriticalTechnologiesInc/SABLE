@@ -114,7 +114,7 @@
 /**
  * Transmit command to the TPM
  */
-#define TPM_TRANSMIT()				\
+#define TPM_TRANSMIT(FUNCTION_NAME)				\
     res = tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE)
 
 /**
@@ -165,6 +165,7 @@ typedef UINT32 TPM_COMMAND_CODE;                            /* 1.1b */
 typedef UINT32 TPM_AUTHHANDLE;
 typedef UINT32 TPM_PCRINDEX;
 typedef UINT32 TPM_RESULT;
+typedef UINT32 TPM_HANDLE;
 
 //-------------------------------------------------------------------
 // Part 2, section 3: Structure Tags
@@ -175,6 +176,9 @@ typedef UINT16  TPM_STRUCTURE_TAG;
 
 //-------------------------------------------------------------------
 // Part 2, section 4: Types
+
+typedef UINT32 TPM_RESOURCE_TYPE;
+#define TPM_RT_AUTH                    ((UINT32)0x00000002)
 
 typedef UINT16 TPM_ENTITY_TYPE;                             /* 1.1b */
 #define TPM_ET_KEYHANDLE               ((UINT16)0x0001)     /* 1.1b */
@@ -320,6 +324,14 @@ typedef struct {
     TPM_TAG tag;
     UINT32 paramSize;
     TPM_COMMAND_CODE ordinal;
+    TPM_HANDLE handle;
+    TPM_RESOURCE_TYPE resourceType;
+} stTPM_FLUSH_SPECIFIC;
+
+typedef struct {
+    TPM_TAG tag;
+    UINT32 paramSize;
+    TPM_COMMAND_CODE ordinal;
     UINT32 bytesRequested;
 } stTPM_GETRANDOM;
 
@@ -407,7 +419,7 @@ typedef struct {
 } stTPM_NV_READVALUE;
 
 ///////////////////////////////////////////////////////////////////////////
-int TPM_Flush(SessionCtx *sctx);
+TPM_RESULT TPM_Flush(BYTE *in_buffer, SessionCtx *sctx);
 int TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx);
 int TPM_NV_ReadValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, UINT32 dataBufferSize, SessionCtx *sctx);
 int TPM_NV_DefineSpace(BYTE *buffer, sdTPM_PCR_SELECTION select, SessionCtx *sctx);
