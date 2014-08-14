@@ -404,7 +404,7 @@ typedef struct {
     TPM_TAG tag;
     UINT32 paramSize;
     TPM_COMMAND_CODE ordinal;
-    UINT32 nvIndex;
+    TPM_NV_INDEX nvIndex;
     UINT32 offset;
     UINT32 dataSize;
 } stTPM_NV_WRITEVALUE;
@@ -420,7 +420,7 @@ typedef struct {
 
 ///////////////////////////////////////////////////////////////////////////
 TPM_RESULT TPM_Flush(BYTE *in_buffer, SessionCtx *sctx);
-int TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx);
+TPM_RESULT TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx);
 TPM_RESULT TPM_NV_ReadValueAuth(BYTE *in_buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx);
 TPM_RESULT TPM_NV_DefineSpace(BYTE *buffer, sdTPM_PCR_SELECTION select, SessionCtx *sctx);
 int TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex);

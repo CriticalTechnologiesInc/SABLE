@@ -269,7 +269,7 @@ TPM_NV_ReadValueAuth(
     UINT32 tpm_offset_out = 0;
 
     // designate buffers
-    UINT32 paramSize = sizeof(stTPM_NV_WRITEVALUE) + sizeof(SessionEnd);
+    UINT32 paramSize = sizeof(stTPM_NV_READVALUE) + sizeof(SessionEnd);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
     // declare data structures
@@ -291,6 +291,7 @@ TPM_NV_ReadValueAuth(
     se->nonceOdd = sctx->nonceOdd;
     se->continueAuthSession = FALSE;
 
+    // generate hashes for crypto
     sha1_init(ctx);
     sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
     sha1(ctx, (BYTE *)&com->nvIndex, sizeof(TPM_NV_INDEX));
@@ -337,64 +338,70 @@ TPM_NV_ReadValueAuth(
 }
 
 
-int TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize, SessionCtx *sctx){
-struct SHA1_Context ctx;
-struct HMAC_Context hctx;
-unsigned char outbuffer[TCG_BUFFER_SIZE];
-stTPM_NV_WRITEVALUE * buf = (stTPM_NV_WRITEVALUE*) outbuffer;
-buf->tag=ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
-buf->paramSize=ntohl(sizeof(stTPM_NV_WRITEVALUE)+dataSize+sizeof(SessionEnd));
-buf->ordinal=ntohl(TPM_ORD_NV_WriteValueAuth);
-buf->nvIndex=ntohl(0x10000);
-buf->offset=ntohl(0);
-buf->dataSize=ntohl(dataSize);
-memcpy(outbuffer+sizeof(stTPM_NV_WRITEVALUE),data,dataSize);
+TPM_RESULT 
+TPM_NV_WriteValueAuth(
+        BYTE *in_buffer, 
+        BYTE *data, 
+        UINT32 dataSize, 
+        SessionCtx *sctx)
+{
+    TPM_RESULT res;
+    UINT32 tpm_offset_out = 0;
 
-SessionEnd * endbuf= (SessionEnd *)(outbuffer+sizeof(stTPM_NV_WRITEVALUE)+dataSize);
-endbuf->authHandle = sctx->authHandle;
-memcpy((unsigned char *)&endbuf->nonceOdd, (unsigned char *)&sctx->nonceOdd,20);
-endbuf->continueAuthSession=0;
+    // designate buffers
+    UINT32 paramSize = sizeof(stTPM_NV_WRITEVALUE) + dataSize + sizeof(SessionEnd);
+    BYTE *out_buffer = alloc(heap, paramSize, 0);
 
-unsigned long offset=0;
-memcpy(buffer+offset,(unsigned char *)&buf->ordinal,4);
-offset+=4;
-memcpy(buffer+offset,(unsigned char *)&buf->nvIndex,4);
-offset+=4;
-memcpy(buffer+offset,(unsigned char *)&buf->offset,4);
-offset+=4;
-memcpy(buffer+offset,(unsigned char *)&buf->dataSize,4);
-offset+=4;
+    // declare data structures
+    struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
+    struct HMAC_Context *hctx = alloc(heap, sizeof(struct HMAC_Context), 0);
+    stTPM_NV_WRITEVALUE *com = alloc(heap, sizeof(stTPM_NV_WRITEVALUE), 0);
+    SessionEnd *se = alloc(heap, sizeof(SessionEnd), 0);
+    TPM_AUTHDATA *authData = alloc(heap, sizeof(TPM_AUTHDATA), 0);
 
-memcpy(buffer+offset,outbuffer+sizeof(stTPM_NV_WRITEVALUE),dataSize);
-offset+=dataSize;
-sha1_init(&ctx);
-sha1(&ctx,buffer,offset);
-sha1_finish(&ctx);
+    // populate structures
+    com->tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_NV_WriteValueAuth);
+    com->nvIndex = ntohl(0x10000);  // HARDCODED
+    com->offset = ntohl(0); // HARDCODED
+    com->dataSize = ntohl(dataSize);
 
-offset=0;
-memcpy(buffer+offset,ctx.hash,20);
-offset+=20;
-memcpy(buffer+offset,(unsigned char *)&sctx->nonceEven,20);
-offset+=20;
-memcpy(buffer+offset,(unsigned char *)&endbuf->nonceOdd,20);
-offset+=20;
-memcpy(buffer+offset,(unsigned char *)&endbuf->continueAuthSession,1);
-offset+=1;
+    se->authHandle = sctx->authHandle;
+    se->nonceOdd = sctx->nonceOdd;
+    se->continueAuthSession = FALSE;
 
-unsigned char authData[20];
-memset(authData,0,20);
-hmac_init(&hctx,authData,20);
-hmac(&hctx,buffer,offset);
-hmac_finish(&hctx);
-memcpy((unsigned char *)&endbuf->pubAuth,hctx.ctx.hash,20);
+    // generate hashes for crypto
+    sha1_init(ctx);
+    sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
+    sha1(ctx, (BYTE *)&com->nvIndex, sizeof(TPM_NV_INDEX));
+    sha1(ctx, (BYTE *)&com->offset, sizeof(UINT32));
+    sha1(ctx, (BYTE *)&com->dataSize, sizeof(UINT32));
+    sha1(ctx, data, dataSize);
+    sha1_finish(ctx);
 
-int res = tis_transmit(outbuffer, sizeof(stTPM_NV_WRITEVALUE)+dataSize+sizeof(SessionEnd), outbuffer, 600);
-    if(res>=0){
-	res=(int) ntohl(*((unsigned int *) (outbuffer+6)));
-    }
+    memset(authData->authdata, 0, sizeof(TPM_AUTHDATA));
+
+    hmac_init(hctx, authData->authdata, TCG_HASH_SIZE);
+    hmac(hctx, ctx->hash, TCG_HASH_SIZE);
+    hmac(hctx, sctx->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, se->nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, &se->continueAuthSession, sizeof(TPM_BOOL));
+    hmac_finish(hctx);
+
+    memcpy(se->pubAuth.authdata, hctx->ctx.hash, sizeof(TPM_AUTHDATA));
+    
+    // package the entire command into a bytestream
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_NV_READVALUE));
+    SABLE_TPM_COPY_TO(data, dataSize);
+    SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
+
+    // transmit command to TPM
+    ERROR(-1, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_NV_WriteValueAuth() failed on transmit");
+
+    res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
+
     return res;
-
-
 }
 
 TPM_RESULT
