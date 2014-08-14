@@ -40,7 +40,7 @@ int send_ipi(unsigned param);
  */
 static inline
 int
-stop_processors()
+stop_processors(void)
 {
   return send_ipi(APIC_ICR_INIT);
 }
@@ -54,6 +54,10 @@ static inline
 int
 start_processors(unsigned address)
 {
+#ifdef EXEC
   CHECK4(-50, address & 0xfff00fff, "address %d not aligned or larger then 1MB", address);
+#else
+  CHECK4(-50, address & 0xfff00fff, &string_literal, address);
+#endif
   return send_ipi(APIC_ICR_STARTUP | address >> 12);
 }

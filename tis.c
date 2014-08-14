@@ -13,8 +13,8 @@
  */
 
 
-#include "util.h"
-#include "tis.h"
+#include "include/util.h"
+#include "include/tis.h"
 
 
 /**
@@ -50,7 +50,11 @@ tis_init(int base)
       && ((mmap->intf_capability & ~0x1fa) == 5)
       && ((mmap->access & 0xe8) == 0x80))
     {
+#ifdef EXEC
       out_info("Fix DID/VID bug...");
+#else
+      out_info(&string_literal);
+#endif
       tis_access(TIS_LOCALITY_0, 0);
     }
 
@@ -58,30 +62,62 @@ tis_init(int base)
     {
     case 0x2e4d5453:   /* "STM." */
     case 0x4a100000:
+#ifdef EXEC
       out_description("STM rev:", id->rid);
+#else
+      out_description(&string_literal, id->rid);
+#endif
       return TIS_INIT_STM;
     case 0xb15d1:
+#ifdef EXEC
       out_description("Infineon rev:", id->rid);
+#else
+      out_description(&string_literal, id->rid);
+#endif
       return TIS_INIT_INFINEON;
     case 0x32021114:
     case 0x32031114:
+#ifdef EXEC
       out_description("Atmel rev:", id->rid);
+#else
+      out_description(&string_literal, id->rid);
+#endif
       return TIS_INIT_ATMEL;
     case 0x100214E4:
+#ifdef EXEC
       out_description("Broadcom rev:", id->rid);
+#else
+      out_description(&string_literal, id->rid);
+#endif
       return TIS_INIT_BROADCOM;
     case 0x10001:
+#ifdef EXEC
       out_description("Qemu TPM rev:", id->rid);
+#else
+      out_description(&string_literal, id->rid);
+#endif
       return TIS_INIT_QEMU;
     case 0x11014:
+#ifdef EXEC
       out_description("IBM TPM rev:", id->rid);
+#else
+      out_description(&string_literal, id->rid);
+#endif
       return TIS_INIT_IBM;
     case 0:
     case -1:
+#ifdef EXEC
       out_info("TPM not found!");
+#else
+      out_info(&string_literal);
+#endif
       return TIS_INIT_NO_TPM;
     default:
+#ifdef EXEC
       out_description("TPM unknown! ID:",id->did_vid);
+#else
+      out_description(&string_literal,id->did_vid);
+#endif
       return TIS_INIT_NO_TPM;
     }
 }
@@ -126,9 +162,21 @@ tis_access(int locality, int force)
   tis_locality = tis_base + locality;
   mmap = (struct tis_mmap *) tis_locality;
 
+#ifdef EXEC
   CHECK3(0, !(mmap->access & TIS_ACCESS_VALID), "access register not valid");
+#else
+  CHECK3(0, !(mmap->access & TIS_ACCESS_VALID), &string_literal);
+#endif
+#ifdef EXEC
   CHECK3(0,  mmap->access == 0xff, "access register invalid")
+#else
+  CHECK3(0,  mmap->access == 0xff, &string_literal)
+#endif
+#ifdef EXEC
   CHECK3(2, mmap->access & TIS_ACCESS_ACTIVE, "locality already active");
+#else
+  CHECK3(2, mmap->access & TIS_ACCESS_ACTIVE, &string_literal);
+#endif
 
   // first try it the normal way
   mmap->access = TIS_ACCESS_REQUEST;
@@ -178,14 +226,24 @@ tis_write(const unsigned char *buffer, unsigned int size)
       mmap->sts_base = TIS_STS_CMD_READY;
       wait_state(mmap, TIS_STS_CMD_READY);
     }
+#ifdef EXEC
   CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), "tis_write() not ready");
+#else
+  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), &string_literal);
+#endif
 
 
-  for(res=0; res < size;res++)
-      mmap->data_fifo = *buffer++;
+  for(res=0; res < size;res++) {
+      mmap->data_fifo = *buffer;
+      buffer++;
+  }
 
   wait_state(mmap, TIS_STS_VALID);
+#ifdef EXEC
   CHECK3(-2, mmap->sts_base & TIS_STS_EXPECT,   "TPM expects more data");
+#else
+  CHECK3(-2, mmap->sts_base & TIS_STS_EXPECT,   &string_literal);
+#endif
 
   //execute the command
   mmap->sts_base = TIS_STS_TPM_GO;
@@ -206,12 +264,22 @@ tis_read(unsigned char *buffer, unsigned int size)
   unsigned res = 0;
 
   wait_state(mmap, TIS_STS_VALID | TIS_STS_DATA_AVAIL);
+#ifdef EXEC
   CHECK4(-2, !(mmap->sts_base & TIS_STS_VALID), "sts not valid",mmap->sts_base);
+#else
+  CHECK4(-2, !(mmap->sts_base & TIS_STS_VALID), &string_literal,mmap->sts_base);
+#endif
 
-  for (res=0; res < size && mmap->sts_base & TIS_STS_DATA_AVAIL; res++)
-      *buffer++ = mmap->data_fifo;
+  for (res=0; res < size && mmap->sts_base & TIS_STS_DATA_AVAIL; res++) {
+      *buffer = mmap->data_fifo;
+      buffer++;
+  }
 
+#ifdef EXEC
   CHECK3(-3, mmap->sts_base & TIS_STS_DATA_AVAIL, "more data available");
+#else
+  CHECK3(-3, mmap->sts_base & TIS_STS_DATA_AVAIL, &string_literal);
+#endif
 
   // make the tpm ready again -> this allows tpm background jobs to complete
   mmap->sts_base = TIS_STS_CMD_READY;
@@ -229,9 +297,17 @@ tis_transmit(const unsigned char *write_buffer, unsigned int write_count, unsign
   unsigned int res;
 
   res = tis_write(write_buffer, write_count);
+#ifdef EXEC
   CHECK4(-1, res<=0, "  TIS write error:",res);
+#else
+  CHECK4(-1, res<=0, &string_literal,res);
+#endif
 
   res = tis_read(read_buffer, read_count);
+#ifdef EXEC
   CHECK4(-2, res<=0, "  TIS read error:",res);
+#else
+  CHECK4(-2, res<=0, &string_literal,res);
+#endif
   return res;
 }

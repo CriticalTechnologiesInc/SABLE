@@ -23,7 +23,11 @@ extern const char string_literal;
 #define EFER_SVME                      1<<12
 
 #ifndef NDEBUG
+#ifdef EXEC
 #define assert(X) {if (!(X)) { out_string("\nAssertion failed: '" #X  "'\n\n"); exit(0xbadbbbad);}}
+#else
+#define assert(X) {if (!(X)) { exit(0xbadbbbad);}}
+#endif
 #else
 #define assert(X)
 #endif

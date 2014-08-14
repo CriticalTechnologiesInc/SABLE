@@ -14,8 +14,14 @@
 
 #pragma once
 
+#ifdef __midl
+#define SIZEIS(x)  [size_is(x)]
+#else
+#define SIZEIS(x)
+#endif
+
+#include "platform.h"
 #include "tis.h"
-#include "tpm.h"
 
 #define TPM_TRANSMIT_FAIL              0xFFFF0000
 
@@ -120,14 +126,102 @@
 
 ///////////////////////////////////////////////////////////////////////////
 
-enum tpm_subcaps_size {
-  TPM_NO_SUBCAP=0,
-  TPM_SUBCAP=4,
-};
+//---------------------------------------------------
+// Official TCG Structures and Definitions
+//---------------------------------------------------
+
+//-------------------------------------------------------------------
+// Part 2, section 2.1: Basic data types
+typedef BYTE   TPM_BOOL;
+#ifndef FALSE
+#define FALSE  0x00
+#define TRUE   0x01
+#endif /* ifndef FALSE */
+
+//-------------------------------------------------------------------
+// Part 2, section 2.3: Helper Redefinitions
+//   Many of the helper redefinitions appear later in this file
+//   so that they are declared next to the list of valid values
+//   they may hold.
+typedef UINT32 TPM_COMMAND_CODE;                            /* 1.1b */
+typedef UINT32 TPM_AUTHHANDLE;
+typedef UINT32 TPM_PCRINDEX;
+typedef UINT32 TPM_RESULT;
+
+//-------------------------------------------------------------------
+// Part 2, section 3: Structure Tags
+typedef UINT16  TPM_STRUCTURE_TAG;
+
+//-------------------------------------------------------------------
+// Part 2, section 4: Types
+
+typedef UINT16 TPM_ENTITY_TYPE;                             /* 1.1b */
+#define TPM_ET_KEYHANDLE               ((UINT16)0x0001)     /* 1.1b */
+#define TPM_ET_OWNER                   ((UINT16)0x0002)     /* 1.1b */
+
+typedef UINT32 TPM_KEY_HANDLE;                              /* 1.1b */
+#define TPM_KH_SRK                     ((UINT32)0x40000000)
+
+//-------------------------------------------------------------------
+// Part 2, section 5: Basic Structures
+
+#define TPM_SHA1_160_HASH_LEN    0x14
+#define TPM_SHA1BASED_NONCE_LEN  TPM_SHA1_160_HASH_LEN
+
+typedef struct tdTPM_NONCE                                  /* 1.1b */
+{
+    BYTE  nonce[TPM_SHA1BASED_NONCE_LEN];
+} TPM_NONCE;
+
+typedef struct tdTPM_AUTHDATA                               /* 1.1b */
+{
+    BYTE  authdata[TPM_SHA1_160_HASH_LEN];
+} TPM_AUTHDATA;
+
+typedef TPM_AUTHDATA TPM_ENCAUTH;
+
+typedef struct tdTPM_DIGEST
+{
+    BYTE  digest[TPM_SHA1_160_HASH_LEN];
+} TPM_DIGEST;
+
+typedef TPM_DIGEST TPM_COMPOSITE_HASH;
+
+//-------------------------------------------------------------------
+// Part 2, section 6: Command Tags
+
+typedef UINT16 TPM_TAG;                                     /* 1.1b */
+
+//-------------------------------------------------------------------
+// Part 2, section 8: PCR Structures
+
+typedef BYTE  TPM_LOCALITY_SELECTION;
+#define TPM_LOC_FOUR                   (((UINT32)1)<<4)
+#define TPM_LOC_THREE                  (((UINT32)1)<<3)
+#define TPM_LOC_TWO                    (((UINT32)1)<<2)
+#define TPM_LOC_ONE                    (((UINT32)1)<<1)
+#define TPM_LOC_ZERO                   (((UINT32)1)<<0)
+
+//-------------------------------------------------------------------
+// Part 2, section 19: NV Structures
+
+typedef UINT32 TPM_NV_INDEX;
+typedef UINT32 TPM_NV_PER_ATTRIBUTES;
+
+typedef struct tdTPM_NV_ATTRIBUTES
+{
+    TPM_STRUCTURE_TAG     tag;
+    TPM_NV_PER_ATTRIBUTES attributes;
+} TPM_NV_ATTRIBUTES;
 
 //---------------------------------------------------
 // Custom TPM data structures for SABLE
 //---------------------------------------------------
+
+enum tpm_subcaps_size {
+  TPM_NO_SUBCAP=0,
+  TPM_SUBCAP=4,
+};
 
 typedef struct {
     UINT16 sizeOfSelect;
@@ -274,7 +368,6 @@ typedef struct {
     UINT32 offset;
     UINT32 dataSize;
 } stTPM_NV_READVALUE;
-
 
 ///////////////////////////////////////////////////////////////////////////
 int TPM_Flush(SessionCtx *sctx);
