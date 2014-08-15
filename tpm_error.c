@@ -14,8 +14,9 @@
  * $Id: tpm_error.c 364 2010-02-11 10:24:45Z mast $
  */
 
-#include "tpm_error.h"
+#include "include/tpm_error.h"
 
+#ifdef EXEC
 const char *tpm_error_to_string(TPM_RESULT res)
 {
   switch (res) {
@@ -247,3 +248,213 @@ const char *tpm_error_to_string(TPM_RESULT res)
       return "Unknown TPM error";
   }
 }
+
+#else
+const char *tpm_error_to_string(TPM_RESULT res)
+{
+  switch (res) {
+    case TPM_SUCCESS:
+      return &string_literal;
+    case TPM_E_AUTHFAIL:
+      return &string_literal;
+    case TPM_E_BADINDEX:
+      return &string_literal;
+    case TPM_E_BAD_PARAMETER:
+      return &string_literal;
+    case TPM_E_AUDITFAILURE:
+      return &string_literal;
+    case TPM_E_CLEAR_DISABLED:
+      return &string_literal;
+    case TPM_E_DEACTIVATED:
+      return &string_literal;
+    case TPM_E_DISABLED:
+      return &string_literal;
+    case TPM_E_DISABLED_CMD:
+      return &string_literal;
+    case TPM_E_FAIL:
+      return &string_literal;
+    case TPM_E_BAD_ORDINAL:
+      return &string_literal;
+    case TPM_E_INSTALL_DISABLED:
+      return &string_literal;
+    case TPM_E_INVALID_KEYHANDLE:
+      return &string_literal;
+    case TPM_E_KEYNOTFOUND:
+      return &string_literal;
+    case TPM_E_INAPPROPRIATE_ENC:
+      return &string_literal;
+    case TPM_E_MIGRATEFAIL:
+      return &string_literal;
+    case TPM_E_INVALID_PCR_INFO:
+      return &string_literal;
+    case TPM_E_NOSPACE:
+      return &string_literal;
+    case TPM_E_NOSRK:
+      return &string_literal;
+    case TPM_E_NOTSEALED_BLOB:
+      return &string_literal;
+    case TPM_E_OWNER_SET:
+      return &string_literal;
+    case TPM_E_RESOURCES:
+      return &string_literal;
+    case TPM_E_SHORTRANDOM:
+      return &string_literal;
+    case TPM_E_SIZE:
+      return &string_literal;
+    case TPM_E_WRONGPCRVAL:
+      return &string_literal;
+    case TPM_E_BAD_PARAM_SIZE:
+      return &string_literal;
+    case TPM_E_SHA_THREAD:
+      return &string_literal;
+    case TPM_E_SHA_ERROR:
+      return &string_literal;
+    case TPM_E_FAILEDSELFTEST:
+      return &string_literal;
+    case TPM_E_AUTH2FAIL:
+      return &string_literal;
+    case TPM_E_BADTAG:
+      return &string_literal;
+    case TPM_E_IOERROR:
+      return &string_literal;
+    case TPM_E_ENCRYPT_ERROR:
+      return &string_literal;
+    case TPM_E_DECRYPT_ERROR:
+      return &string_literal;
+    case TPM_E_INVALID_AUTHHANDLE:
+      return &string_literal;
+    case TPM_E_NO_ENDORSEMENT:
+      return &string_literal;
+    case TPM_E_INVALID_KEYUSAGE:
+      return &string_literal;
+    case TPM_E_WRONG_ENTITYTYPE:
+      return &string_literal;
+    case TPM_E_INVALID_POSTINIT:
+      return &string_literal;
+    case TPM_E_INAPPROPRIATE_SIG:
+      return &string_literal;
+    case TPM_E_BAD_KEY_PROPERTY:
+      return &string_literal;
+    case TPM_E_BAD_MIGRATION:
+      return &string_literal;
+    case TPM_E_BAD_SCHEME:
+      return &string_literal;
+    case TPM_E_BAD_DATASIZE:
+      return &string_literal;
+    case TPM_E_BAD_MODE:
+      return &string_literal;
+    case TPM_E_BAD_PRESENCE:
+      return &string_literal;
+    case TPM_E_BAD_VERSION:
+      return &string_literal;
+    case TPM_E_NO_WRAP_TRANSPORT:
+      return &string_literal;
+    case TPM_E_AUDITFAIL_UNSUCCESSFUL:
+      return &string_literal;
+    case TPM_E_AUDITFAIL_SUCCESSFUL:
+      return &string_literal;
+    case TPM_E_NOTRESETABLE:
+      return &string_literal;
+    case TPM_E_NOTLOCAL:
+      return &string_literal;
+    case TPM_E_BAD_TYPE:
+      return &string_literal;
+    case TPM_E_INVALID_RESOURCE:
+      return &string_literal;
+    case TPM_E_NOTFIPS:
+      return &string_literal;
+    case TPM_E_INVALID_FAMILY:
+      return &string_literal;
+    case TPM_E_NO_NV_PERMISSION:
+      return &string_literal;
+    case TPM_E_REQUIRES_SIGN:
+      return &string_literal;
+    case TPM_E_KEY_NOTSUPPORTED:
+      return &string_literal;
+    case TPM_E_AUTH_CONFLICT:
+      return &string_literal;
+    case TPM_E_AREA_LOCKED:
+      return &string_literal;
+    case TPM_E_BAD_LOCALITY:
+      return &string_literal;
+    case TPM_E_READ_ONLY:
+      return &string_literal;
+    case TPM_E_PER_NOWRITE:
+      return &string_literal;
+    case TPM_E_FAMILYCOUNT:
+      return &string_literal;
+    case TPM_E_WRITE_LOCKED:
+      return &string_literal;
+    case TPM_E_BAD_ATTRIBUTES:
+      return &string_literal;
+    case TPM_E_INVALID_STRUCTURE:
+      return &string_literal;
+    case TPM_E_KEY_OWNER_CONTROL:
+      return &string_literal;
+    case TPM_E_BAD_COUNTER:
+      return &string_literal;
+    case TPM_E_NOT_FULLWRITE:
+      return &string_literal;
+    case TPM_E_CONTEXT_GAP:
+      return &string_literal;
+    case TPM_E_MAXNVWRITES:
+      return &string_literal;
+    case TPM_E_NOOPERATOR:
+      return &string_literal;
+    case TPM_E_RESOURCEMISSING:
+      return &string_literal;
+    case TPM_E_DELEGATE_LOCK:
+      return &string_literal;
+    case TPM_E_DELEGATE_FAMILY:
+      return &string_literal;
+    case TPM_E_DELEGATE_ADMIN:
+      return &string_literal;
+    case TPM_E_TRANSPORT_NOTEXCLUSIVE:
+      return &string_literal;
+    case TPM_E_OWNER_CONTROL:
+      return &string_literal;
+    case TPM_E_DAA_RESOURCES:
+      return &string_literal;
+    case TPM_E_DAA_INPUT_DATA0:
+      return &string_literal;
+    case TPM_E_DAA_INPUT_DATA1:
+      return &string_literal;
+    case TPM_E_DAA_ISSUER_SETTINGS:
+      return &string_literal;
+    case TPM_E_DAA_TPM_SETTINGS:
+      return &string_literal;
+    case TPM_E_DAA_STAGE:
+      return &string_literal;
+    case TPM_E_DAA_ISSUER_VALIDITY:
+      return &string_literal;
+    case TPM_E_DAA_WRONG_W:
+      return &string_literal;
+    case TPM_E_BAD_HANDLE:
+      return &string_literal;
+    case TPM_E_BAD_DELEGATE:
+      return &string_literal;
+    case TPM_E_BADCONTEXT:
+      return &string_literal;
+    case TPM_E_TOOMANYCONTEXTS:
+      return &string_literal;
+    case TPM_E_MA_TICKET_SIGNATURE:
+      return &string_literal;
+    case TPM_E_MA_DESTINATION:
+      return &string_literal;
+    case TPM_E_MA_SOURCE:
+      return &string_literal;
+    case TPM_E_MA_AUTHORITY:
+      return &string_literal;
+    case TPM_E_PERMANENTEK:
+      return &string_literal;
+    case TPM_E_BAD_SIGNATURE:
+      return &string_literal;
+    case TPM_E_NOCONTEXTSPACE:
+      return &string_literal;
+    case TPM_E_RETRY:
+      return &string_literal;
+    default:
+      return &string_literal;
+  }
+}
+#endif

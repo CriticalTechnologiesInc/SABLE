@@ -14,6 +14,7 @@
 
 
 #include "include/alloc.h"
+#include "include/tpm_error.h"
 #include "include/version.h"
 #include "include/util.h"
 #include "include/sha.h"
@@ -28,87 +29,89 @@ const char * message_label = "SABLE:   ";
 const unsigned REALMODE_CODE = 0x20000;
 const char *CPU_NAME =  "AMD CPU booted by SABLE";
 
-extern unsigned char g_slb_zero;
-unsigned char g_end_of_low __attribute__((section (".slb.end_of_low"), aligned(4)));
-unsigned char g_aligned_end_of_low __attribute__((section (".slb.aligned_end_of_low"), aligned(4096)));
-unsigned char g_start_of_high __attribute__((section (".slb.start_of_high"), aligned(4)));
-unsigned char g_end_of_high __attribute__((section (".slb.end_of_high"), aligned(4)));
+extern BYTE g_slb_zero;
+BYTE g_end_of_low __attribute__((section (".slb.end_of_low"), aligned(4)));
+BYTE g_aligned_end_of_low __attribute__((section (".slb.aligned_end_of_low"), aligned(4096)));
+BYTE g_start_of_high __attribute__((section (".slb.start_of_high"), aligned(4)));
+BYTE g_end_of_high __attribute__((section (".slb.end_of_high"), aligned(4)));
 
 /**
  * Function to output a hash.
  */
 static void
-show_hash(char *s, unsigned char *hash)
+show_hash(char *s, TPM_DIGEST *hash)
 {
   out_string(message_label);
   out_string(s);
-  for (unsigned i=0; i<20; i++)
-    out_hex(hash[i], 7);
+  for (UINT32 i = 0; i < 20; i++)
+    out_hex(hash->digest[i], 7);
   out_char('\n');
 }
 
-void configure(unsigned char * passPhrase, unsigned long lenPassphrase)
+void configure(BYTE *passPhrase, UINT32 lenPassphrase)
 {
-	unsigned char buffer[1000];
-    int res; 
-    SessionCtx sctx;
-    unsigned char usageAuthSRK[20];
+    BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
+    TPM_RESULT res; 
+    SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
+    BYTE *usageAuthSRK = alloc(heap, 20, 0);
+    BYTE *sealedData = alloc(heap, 400, 0);
+
+    memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
+    memset(usageAuthSRK, 0, 20);
+
     //select PCR 17 and 19
     sdTPM_PCR_SELECTION select = { ntohs(PCR_SELECT_SIZE), { 0x0, 0x0, 0xa } };
-    unsigned char sealedData[400];
-    memset((unsigned char *)&sctx,0,sizeof(SessionCtx));
-    memset(usageAuthSRK,0,20);
-
     
-    res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_KEYHANDLE,TPM_KH_SRK,&sctx);
-#ifdef DEBUG
-    out_string("\nOSAP return value: ");
-    out_hex(res,31);
-    out_string("\n");
+    res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_KEYHANDLE,TPM_KH_SRK,sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Start_OSAP()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
-    res=TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, &sctx);
-#ifdef DEBUG
-    out_string("Seal (long) return value: ");
-    out_hex(res,31);
-    out_string("\n");
+    res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Seal()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
-    ERROR(111,res!=0,"Seal (long) failed");
 
+#ifdef EXEC
     out_string("\nErasing passphrase from memory...\n");
-    memset(passPhrase,0,lenPassphrase);
+#else
+    out_string(&string_literal);
+#endif
+    memset(passPhrase, 0, lenPassphrase);
 
-    res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_OWNER,0,&sctx);
-#ifdef DEBUG
-    out_string("\nOSAP return value: ");
-    out_hex(res,31);
-    out_string("\n");
+    res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_OWNER,0,sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Start_OSAP()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
 #ifndef SAVE_TPM
-    res = TPM_NV_DefineSpace(buffer, select, &sctx);
-#ifdef DEBUG
-    out_string("TPM_NV_DefineSpace return value: ");
-    out_hex(res,31);
-    out_string("\n");
-    wait(5000);
+    res = TPM_NV_DefineSpace(buffer, select, sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_NV_DefineSpace()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 #endif
 
-
-    res=TPM_Start_OIAP(buffer,&sctx);
-#ifdef DEBUG
-    out_string("\nOIAP return value: ");
-    out_hex(res,31);
+    res = TPM_Start_OIAP(buffer,sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Start_OIAP()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
 #ifndef SAVE_TPM
-    res = TPM_NV_WriteValueAuth(buffer,sealedData, 400,&sctx);
-#ifdef DEBUG
-    out_string("TPM_NV_WriteValueAuth return value: ");
-    out_hex(res,31);
-    out_string("\n");
-    wait(5000);
+    res = TPM_NV_WriteValueAuth(buffer,sealedData, 400,sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_NV_WriteValueAuth()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 #endif
 
@@ -179,7 +182,8 @@ void unsealPassphrase()
       if (c != 0) 
       {
           out_char(c);
-          entry[t++] = c;
+          entry[t] = c;
+          t++;
       }
     }
     out_string("\n");
@@ -221,7 +225,8 @@ if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
       if (c != 0) 
       {
           out_char(c);
-          passPhrase[t++] = c;
+          passPhrase[t] = c;
+          t++;
       }
   }
   *lenPassPhrase = t + 1;
@@ -244,7 +249,8 @@ if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
       sha1(ctx, (BYTE *) m->mod_start, m->mod_end - m->mod_start);
       sha1_finish(ctx);
       memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
-      CHECK4(-14, (res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig)), "TPM extend failed", res);
+      res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig);
+      CHECK4(-14, res, "TPM extend failed", res);
     }
   return 0;
 }
@@ -260,9 +266,11 @@ prepare_tpm(unsigned char *buffer)
 {
   int tpm, res;
 
-  CHECK4(-60, 0 >= (tpm = tis_init(TIS_BASE)), "tis init failed", tpm);
+  tpm = tis_init(TIS_BASE);
+  CHECK4(-60, 0 >= tpm, "tis init failed", tpm);
   CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), "could not gain TIS ownership");
-  if ((res=TPM_Startup_Clear(buffer)) && res!=0x26)
+  res = TPM_Startup_Clear(buffer);
+  if (res && res != 0x26)
     out_description("TPM_Startup() failed", res);
 
   CHECK3(-62, tis_deactivate_all(), "tis_deactivate failed");
@@ -293,7 +301,8 @@ __main(struct mbi *mbi, unsigned flags)
   mbi->boot_loader_name = (unsigned) version_string;
 
   int revision = 0;
-  if (0 >= prepare_tpm(buffer) || (0 > (revision = check_cpuid())))
+  revision = check_cpuid();
+  if (0 >= prepare_tpm(buffer) || (0 > revision))
     {
       if (0 > revision)
 	out_info("No SVM platform");
@@ -326,8 +335,7 @@ void zero_stack (void)
     unsigned int stack_base;
     unsigned int ptr;
 
-    __asm__ __volatile__("movl %%esp, %0 "
-                         : "=m" (esp) );
+    __asm__ __volatile__("movl %%esp, %0 " : "=m" (esp) );
 
     stack_base = (0xFFFFFFFF << 12) & esp;  // 2^12 = 4k
 
@@ -422,20 +430,20 @@ int oslo(struct mbi *mbi)
     ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
     CHECK4(24,(res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD)), "TPM_PcrRead failed", res);
 #ifdef DEBUG
-    show_hash("PCR[17]: ",dig.digest);
+    show_hash("PCR[17]: ",&dig);
     wait(1000);
 #endif
     ERROR(22, mbi_calc_hash(mbi,&config,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
 #ifdef DEBUG
-    show_hash("PCR[19]: ",dig.digest);
+    show_hash("PCR[19]: ",&dig);
     dump_pcrs(ctx.buffer);
 #endif
 
     if(config==1) {
       out_string("\nSealing passphrase: \n\n");
 	  out_string((char *)passPhrase);
-	  out_string("\n\nto PCR[a] with value \n");
-      show_hash("PCR[19]: ",dig.digest);
+	  out_string("\n\nto PCR[19] with value \n");
+      show_hash("PCR[19]: ",&dig);
 	  wait(1000);
 
       configure(passPhrase,lenPassphrase);

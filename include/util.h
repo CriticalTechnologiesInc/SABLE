@@ -62,6 +62,28 @@ extern const char string_literal;
   }
 #endif
 
+#define TPM_WARNING(result, command_name)				\
+  {								\
+    if (result) {							\
+      out_string(command_name);  \
+      out_string(" WARNING: ");       \
+      out_string(tpm_error_to_string(result));      \
+      out_string("\n\n");       \
+    }       \
+  }
+
+#define TPM_ERROR(result, command_name)				\
+  {								\
+    if (result) {							\
+      out_string(command_name);  \
+      out_string(" ERROR: ");       \
+      out_string(tpm_error_to_string(result));      \
+      out_string("\n\n");       \
+      wait(10000);      \
+      reboot(); \
+    }       \
+  }
+
 /**
  * Returns result and prints the msg, if value is true.
  */
@@ -78,18 +100,6 @@ extern const char string_literal;
  * Returns result and prints the msg and hex, if value is true.
  */
 #define CHECK4(result, value, msg, hex)			\
-  {							\
-    if (value)						\
-      {							\
-	out_description(msg, hex);			\
-	return result;					\
-      }							\
-  }
-
-/**
- * For use whenever checking the return value on a TPM command
- */
-#define CHECK_TPM(result, value, msg, hex)			\
   {							\
     if (value)						\
       {							\

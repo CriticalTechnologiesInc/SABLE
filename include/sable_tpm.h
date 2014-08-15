@@ -14,6 +14,9 @@
 
 #pragma once
 
+#ifndef __SABLE_TPM_H__
+#define __SABLE_TPM_H__
+
 #ifdef __midl
 #define SIZEIS(x)  [size_is(x)]
 #else
@@ -444,3 +447,5 @@ TPM_RESULT TPM_Unseal( BYTE *buffer, BYTE *inData, BYTE *secretData, UINT32 secr
 TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE * data, UINT32 dataSize, BYTE *stored_data, SessionCtx * sctx);
 int TPM_GetCapability_Pcrs(BYTE buffer[TCG_BUFFER_SIZE], TPM_PCRINDEX *pcrs);
 void dump_pcrs(unsigned char *buffer);
+
+#endif
