@@ -13,15 +13,15 @@
  */
 
 
-#include "version.h"
-#include "util.h"
-#include "sha.h"
-#include "elf.h"
-#include "sable_tpm.h"
-#include "mp.h"
-#include "dev.h"
-#include "sable.h"
-#include "alloc.h"
+#include "include/alloc.h"
+#include "include/version.h"
+#include "include/util.h"
+#include "include/sha.h"
+#include "include/elf.h"
+#include "include/sable_tpm.h"
+#include "include/mp.h"
+#include "include/dev.h"
+#include "include/sable.h"
 
 static const char *version_string = "SABLE " VERSION "\n";
 const char * message_label = "SABLE:   ";

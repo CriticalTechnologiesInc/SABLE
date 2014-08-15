@@ -246,6 +246,10 @@ pci_print_bars(unsigned addr, unsigned count)
 	myprintf(&string_literal, ch, high_base, base, high_size, size);
 #endif
     }
+
+  // cleanup
+  dealloc(heap, bars, 6);
+  dealloc(heap, masks, 6);
 }
 
 

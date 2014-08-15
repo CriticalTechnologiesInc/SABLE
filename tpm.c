@@ -34,6 +34,9 @@ encAuth_gen(
     sha1_finish(ctx);
 
     do_xor(auth->authdata, ctx->hash, encAuth->authdata, TCG_HASH_SIZE);
+
+    // cleanup
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
 }
 
 TPM_RESULT 
@@ -60,6 +63,10 @@ TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx){
     TPM_COPY_FROM((BYTE *)&sctx->authHandle,0,4);
     TPM_COPY_FROM((BYTE *)&sctx->nonceEven,4,20);
     TPM_GetRandom(in_buffer, sctx->nonceOdd.nonce, sizeof(TPM_NONCE));
+
+    // cleanup
+    dealloc(heap, com, sizeof(TPM_COMMAND));
+    dealloc(heap, out_buffer, paramSize);
 
     return res;
 }
@@ -149,7 +156,15 @@ TPM_RESULT TPM_Unseal(
 
         memcpy((unsigned char *)secretData,in_buffer+14,*secretDataSize);
     }
-      
+
+    // cleanup
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, hctx, sizeof(struct HMAC_Context));
+    dealloc(heap, com, sizeof(stTPM_UNSEAL));
+    dealloc(heap, endBufParent, sizeof(SessionEnd));
+    dealloc(heap, endBufEntity, sizeof(SessionEnd));
+    dealloc(heap, out_buffer, paramSize);
+     
     return res;
 }
 
@@ -176,6 +191,10 @@ getTPM_PCR_INFO_SHORT(
     sha1(ctx, (BYTE *)comp, sizeof(sdTPM_PCR_COMPOSITE));
     sha1_finish(ctx);
     memcpy(info->digestAtRelease.digest, ctx->hash, sizeof(TPM_DIGEST));
+
+    // cleanup
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, comp, sizeof(sdTPM_PCR_COMPOSITE));
 }
 
 TPM_RESULT TPM_NV_DefineSpace(
