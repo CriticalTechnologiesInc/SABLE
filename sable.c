@@ -330,19 +330,36 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
  */
 static
 int
-prepare_tpm(unsigned char *buffer)
+prepare_tpm(BYTE *buffer)
 {
-  int tpm, res;
+    int tpm;
+    TPM_RESULT res;
 
-  tpm = tis_init(TIS_BASE);
-  CHECK4(-60, 0 >= tpm, "tis init failed", tpm);
-  CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), "could not gain TIS ownership");
-  res = TPM_Startup_Clear(buffer);
-  if (res && res != 0x26)
-    out_description("TPM_Startup() failed", res);
+    tpm = tis_init(TIS_BASE);
 
-  CHECK3(-62, tis_deactivate_all(), "tis_deactivate failed");
-  return tpm;
+#ifdef EXEC
+    CHECK4(-60, 0 >= tpm, "tis init failed", tpm);
+#else
+    CHECK4(-60, 0 >= tpm, &string_literal, tpm);
+#endif
+
+#ifdef EXEC
+    CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), "could not gain TIS ownership");
+#else
+    CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), &string_literal);
+#endif
+
+    res = TPM_Startup_Clear(buffer);
+    if (res && res != TPM_E_INVALID_POSTINIT)
+#ifdef EXEC
+        TPM_ERROR(res, "TPM_Startup_Clear()");
+#else
+        TPM_ERROR(res, &string_literal);
+#endif
+
+    CHECK3(-62, tis_deactivate_all(), "tis_deactivate failed");
+
+    return tpm;
 }
 
 
