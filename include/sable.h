@@ -18,5 +18,11 @@
 int _main(struct mbi *local_mbi, unsigned flags);
 int osl(struct mbi *mbi);
 
+#ifdef EXEC
+static char *configmagic = "SABLECONFIG";
+#else
+static char *configmagic = &string_literal;
+#endif
+
 extern char smp_init_start;
 extern char smp_init_end;

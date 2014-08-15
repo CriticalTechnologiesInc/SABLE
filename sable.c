@@ -29,6 +29,8 @@ const char * message_label = "SABLE:   ";
 const unsigned REALMODE_CODE = 0x20000;
 const char *CPU_NAME =  "AMD CPU booted by SABLE";
 
+static char config = 0;
+
 extern BYTE g_slb_zero;
 BYTE g_end_of_low __attribute__((section (".slb.end_of_low"), aligned(4)));
 BYTE g_aligned_end_of_low __attribute__((section (".slb.aligned_end_of_low"), aligned(4096)));
@@ -240,62 +242,85 @@ void unsealPassphrase()
  */
 static
 int
-mbi_calc_hash(struct mbi *mbi, BYTE *config, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassPhrase, struct SHA1_Context *ctx, TPM_DIGEST *dig)
+mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassPhrase, struct SHA1_Context *ctx, TPM_DIGEST *dig)
 {
-  unsigned res;
+    TPM_RESULT res;
 
-  CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, "module flag missing");
-  CHECK3(-12, !mbi->mods_count, "no module to hash");
-  out_description("Hashing modules count:", mbi->mods_count);
+#ifdef EXEC
+    CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, "module flag missing");
+    CHECK3(-12, !mbi->mods_count, "no module to hash");
+    out_description("Hashing modules count:", mbi->mods_count);
+#else
+    CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, &string_literal);
+    CHECK3(-12, !mbi->mods_count, &string_literal);
+    out_description(&string_literal, mbi->mods_count);
+#endif
 
-  struct module *m  = (struct module *) (mbi->mods_addr);
-//check for if this has the magic value in the first module
-//if it does, then skip the module, make mbi->mods_addr point to this new module
-//set a flag that config file has been found
-BYTE configmagic[20] = "SABLECONFIG";
-if(!bufcmp(configmagic, (BYTE *)m->mod_start, strnlen_oslo(configmagic, 20))){
-  out_info("config magic detected");
-  *config = 1;
+    struct module *m  = (struct module *) (mbi->mods_addr);
+    //
+    //check for if this has the magic value in the first module
+    //if it does, then skip the module, make mbi->mods_addr point to this new module
+    //set a flag that config file has been found
+    if(!bufcmp((BYTE *)configmagic, (BYTE *)m->mod_start, strnlen_oslo((BYTE *)configmagic, 20))){
+#ifdef DEBUG
+        out_info("config magic detected");
+#endif
+        config = 1;
 
-  out_string("Please enter the passphrase (64 char max): ");
-  unsigned int t = 0;
-  char c;
-  c = key_stroke_listener(); // for some reason, there's always an 'enter' char
-  while(t < passPhraseBufSize)
-  {
-      c = key_stroke_listener();
-      if (c == 0x0D) break; // user hit 'return'
-      if (c != 0) 
-      {
-          out_char(c);
-          passPhrase[t] = c;
-          t++;
-      }
-  }
-  *lenPassPhrase = t + 1;
-  out_string("\n");
+#ifdef EXEC
+        out_string("Please enter the passphrase (64 char max): ");
+#else
+        out_string(&string_literal);
+#endif
 
-	//clear module for security reasons
-	memset((BYTE *)m->mod_start,0,m->mod_end-m->mod_start);
+        UINT32 t = 0;
+        char c = key_stroke_listener(); // for some reason, there's always an 'enter' char
+        while(t < passPhraseBufSize)
+        {
+            c = key_stroke_listener();
+            if (c == 0x0D) break; // user hit 'return'
+            if (c != 0) 
+            {
+                out_char(c);
+                passPhrase[t] = c;
+                t++;
+            }
+        }
+        *lenPassPhrase = t + 1;
+        out_string("\n");
 
-	//skip the module so it's invisible to future code
-	m++;
-	mbi->mods_addr = (unsigned) m;
-	mbi->mods_count--;
-	
-}
+	    //clear module for security reasons
+	    memset((BYTE *)m->mod_start, 0, m->mod_end-m->mod_start);
 
-  for (unsigned i=0; i < mbi->mods_count; i++, m++)
-    {
-      sha1_init(ctx);
-      CHECK3(-13, m->mod_end < m->mod_start, "mod_end less than start");
-      sha1(ctx, (BYTE *) m->mod_start, m->mod_end - m->mod_start);
-      sha1_finish(ctx);
-      memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
-      res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig);
-      CHECK4(-14, res, "TPM extend failed", res);
+	    //skip the module so it's invisible to future code
+	    m++;
+	    mbi->mods_addr = (unsigned) m;
+	    mbi->mods_count--;
     }
-  return 0;
+
+    for (unsigned i = 0; i < mbi->mods_count; i++, m++)
+    {
+        sha1_init(ctx);
+
+#ifdef EXEC
+        CHECK3(-13, m->mod_end < m->mod_start, "mod_end less than start");
+#else
+        CHECK3(-13, m->mod_end < m->mod_start, &string_literal);
+#endif
+
+        sha1(ctx, (BYTE *) m->mod_start, m->mod_end - m->mod_start);
+        sha1_finish(ctx);
+        memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
+        res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig);
+#ifdef EXEC
+        TPM_ERROR(res, "TPM_Extend()");
+#else
+        TPM_ERROR(res, &string_literal);
+#endif
+
+    }
+
+    return 0;
 }
 
 
@@ -461,7 +486,6 @@ int oslo(struct mbi *mbi)
   revert_skinit();
 
   int res;
-  BYTE config=0;
   BYTE passPhrase[64];
   memset(passPhrase, 0, 64);
   UINT32 lenPassphrase = 0;
@@ -476,7 +500,7 @@ int oslo(struct mbi *mbi)
     show_hash("PCR[17]: ",&dig);
     wait(1000);
 #endif
-    ERROR(22, mbi_calc_hash(mbi,&config,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
+    ERROR(22, mbi_calc_hash(mbi,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
 #ifdef DEBUG
     show_hash("PCR[19]: ",&dig);
     dump_pcrs(ctx.buffer);
