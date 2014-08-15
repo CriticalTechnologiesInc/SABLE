@@ -431,5 +431,5 @@ int TPM_Startup_Clear(unsigned char buffer[TCG_BUFFER_SIZE]);
 TPM_RESULT TPM_Extend (BYTE *in_buffer, TPM_PCRINDEX pcr_index, TPM_DIGEST *hash);
 TPM_RESULT TPM_Unseal( BYTE *buffer, BYTE *inData, BYTE *secretData, UINT32 secretDataBufSize, UINT32 *secretDataSize, SessionCtx * sctxParent, SessionCtx * sctxEntity);
 TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE * data, UINT32 dataSize, BYTE *stored_data, SessionCtx * sctx);
-int TPM_GetCapability_Pcrs(unsigned char buffer[TCG_BUFFER_SIZE], unsigned int *pcrs);
+int TPM_GetCapability_Pcrs(BYTE buffer[TCG_BUFFER_SIZE], TPM_PCRINDEX *pcrs);
 void dump_pcrs(unsigned char *buffer);

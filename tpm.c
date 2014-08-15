@@ -743,7 +743,7 @@ TPM_Startup_Clear(unsigned char *buffer)
 /*
  * Get the number of suported pcrs.
  */
-TPM_TRANSMIT_FUNC(GetCapability_Pcrs, (unsigned char *buffer, unsigned int *value),
+TPM_TRANSMIT_FUNC(GetCapability_Pcrs, (BYTE *buffer, TPM_PCRINDEX *value),
 		  unsigned long send_buffer[] = { TPM_ORD_GetCapability
 		      AND TPM_CAP_PROPERTY
 		      AND TPM_SUBCAP AND TPM_CAP_PROP_PCR };,
@@ -754,10 +754,10 @@ TPM_TRANSMIT_FUNC(GetCapability_Pcrs, (unsigned char *buffer, unsigned int *valu
 void
 dump_pcrs(BYTE *buffer)
 {
-  TPM_PCRINDEX pcrs;
-  TPM_DIGEST dig;
+  TPM_PCRINDEX *pcrs = alloc(heap, sizeof(TPM_PCRINDEX), 0);
+  TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
 
-  if (TPM_GetCapability_Pcrs(buffer, (unsigned int *)&pcrs))
+  if (TPM_GetCapability_Pcrs(buffer, pcrs))
 #ifdef EXEC
     out_info("TPM_GetCapability_Pcrs() failed");
 #else
@@ -765,14 +765,14 @@ dump_pcrs(BYTE *buffer)
 #endif
   else
 #ifdef EXEC
-    out_description("PCRs:", pcrs);
+    out_description("PCRs:", *pcrs);
 #else
-    out_description(&string_literal, pcrs);
+    out_description(&string_literal, *pcrs);
 #endif
 
-  for (TPM_PCRINDEX pcr=0; pcr < pcrs; pcr++)
+  for (TPM_PCRINDEX pcr = 0; pcr < *pcrs; pcr++)
     {
-      int res = TPM_PcrRead(buffer, &dig, pcr);
+      TPM_RESULT res = TPM_PcrRead(buffer, dig, pcr);
       if (res)
 	{
 #ifdef EXEC
@@ -796,7 +796,7 @@ dump_pcrs(BYTE *buffer)
 	  out_string(&string_literal);
 #endif
 	  for (unsigned i=0; i<4; i++)
-	    out_hex(dig.digest[i], 7);
+	    out_hex(dig->digest[i], 7);
 	}
       out_char(pcr% 4==3 ? '\n' : ' ');
 
