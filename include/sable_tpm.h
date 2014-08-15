@@ -142,6 +142,7 @@
 #define TPM_ORD_Unseal                            ((UINT32)0x00000018)
 #define TPM_ORD_GetRandom                         ((UINT32)0x00000046)
 #define TPM_ORD_GetCapability                     ((UINT32)0x00000065)
+#define TPM_ORD_Startup                           ((UINT32)0x00000099)
 #define TPM_ORD_SHA1CompleteExtend                ((UINT32)0x000000A3)
 #define TPM_ORD_FlushSpecific                     ((UINT32)0x000000BA)
 #define TPM_ORD_NV_DefineSpace                    ((UINT32)0x000000CC)
@@ -186,6 +187,9 @@ typedef UINT16 TPM_ENTITY_TYPE;                             /* 1.1b */
 
 typedef UINT32 TPM_KEY_HANDLE;                              /* 1.1b */
 #define TPM_KH_SRK                     ((UINT32)0x40000000)
+
+typedef UINT16 TPM_STARTUP_TYPE;                            /* 1.1b */
+#define TPM_ST_CLEAR                   ((UINT16)0x0001)     /* 1.1b */
 
 //-------------------------------------------------------------------
 // Part 2, section 5: Basic Structures
@@ -324,6 +328,13 @@ typedef struct {
     TPM_TAG tag;
     UINT32 paramSize;
     TPM_COMMAND_CODE ordinal;
+    TPM_STARTUP_TYPE startupType;
+} stTPM_STARTUP;
+
+typedef struct {
+    TPM_TAG tag;
+    UINT32 paramSize;
+    TPM_COMMAND_CODE ordinal;
     TPM_HANDLE handle;
     TPM_RESOURCE_TYPE resourceType;
 } stTPM_FLUSH_SPECIFIC;
@@ -427,7 +438,7 @@ TPM_RESULT TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex)
 TPM_RESULT TPM_GetRandom(BYTE *in_buffer, BYTE *dest, UINT32 size);
 TPM_RESULT TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType, UINT32 entityValue, SessionCtx * sctx);
-int TPM_Startup_Clear(unsigned char buffer[TCG_BUFFER_SIZE]);
+TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
 TPM_RESULT TPM_Extend (BYTE *in_buffer, TPM_PCRINDEX pcr_index, TPM_DIGEST *hash);
 TPM_RESULT TPM_Unseal( BYTE *buffer, BYTE *inData, BYTE *secretData, UINT32 secretDataBufSize, UINT32 *secretDataSize, SessionCtx * sctxParent, SessionCtx * sctxEntity);
 TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE * data, UINT32 dataSize, BYTE *stored_data, SessionCtx * sctx);

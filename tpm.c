@@ -730,14 +730,29 @@ TPM_RESULT TPM_Start_OSAP(
  *
  * Note: We could use the TPM_TRANSMIT_FUNC macro, but this generates smaller code.
  */
-int
-TPM_Startup_Clear(unsigned char *buffer)
+TPM_RESULT
+TPM_Startup_Clear(BYTE *in_buffer)
 {
-  ((unsigned int *)buffer)[0] = 0x0000c100;
-  ((unsigned int *)buffer)[1] = 0x00000c00;
-  ((unsigned int *)buffer)[2] = 0x01009900;
-  int res = tis_transmit(buffer, 12, buffer, TCG_BUFFER_SIZE);
-  return res < 0 ? res : (int) ntohl(*((unsigned int *) (buffer+6)));
+    TPM_RESULT res;
+    UINT32 tpm_offset_out = 0;
+    stTPM_STARTUP *com = alloc(heap, sizeof(stTPM_STARTUP), 0);
+    UINT32 paramSize = sizeof(stTPM_STARTUP);
+    BYTE *out_buffer = alloc(heap, paramSize, 0);
+
+    com->tag = ntohs(TPM_TAG_RQU_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_Startup);
+    com->startupType = ntohs(TPM_ST_CLEAR);
+
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_STARTUP));
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Startup() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
+
+    res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
+    return res;
 }
 
 /*
