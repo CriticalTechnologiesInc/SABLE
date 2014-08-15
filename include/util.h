@@ -65,20 +65,22 @@ extern const char string_literal;
 #define TPM_WARNING(result, command_name)				\
   {								\
     if (result) {							\
+      out_string("\nWARNING: ");       \
       out_string(command_name);  \
-      out_string(" WARNING: ");       \
+      out_string(" -- ");       \
       out_string(tpm_error_to_string(result));      \
-      out_string("\n\n");       \
+      out_string("\n");       \
     }       \
   }
 
 #define TPM_ERROR(result, command_name)				\
   {								\
     if (result) {							\
+      out_string("\nERROR: ");       \
       out_string(command_name);  \
-      out_string(" ERROR: ");       \
+      out_string(" -- ");       \
       out_string(tpm_error_to_string(result));      \
-      out_string("\n\n");       \
+      out_string("\n");       \
       wait(10000);      \
       reboot(); \
     }       \

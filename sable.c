@@ -115,63 +115,95 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase)
 #endif
 #endif
 
+    // cleanup
+    dealloc(heap, buffer, TCG_BUFFER_SIZE);
+    dealloc(heap, sctx, sizeof(SessionCtx));
+    dealloc(heap, usageAuthSRK, 20);
+    dealloc(heap, sealedData, 400);
 }
 
 void unsealPassphrase()
 {
-    unsigned char buffer[1000];
-    int res; 
-    SessionCtx sctx;
-    SessionCtx sctxParent;
-    SessionCtx sctxEntity;
-    unsigned char usageAuthSRK[20];
-    unsigned char sealedData[400];
-    unsigned char unsealedData[100];
-    UINT32 unsealedDataSize;
-    memset((unsigned char *)&sctx,0,sizeof(SessionCtx));
-    memset(usageAuthSRK,0,20);
+    TPM_RESULT res; 
 
-    res=TPM_Start_OIAP(buffer,&sctx);
-#ifdef DEBUG
-    out_string("\nOIAP return value: ");
-    out_hex(res,31);
+    BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
+    SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
+    SessionCtx *sctxParent = alloc(heap, sizeof(SessionCtx), 0);
+    SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
+
+    BYTE *usageAuthSRK = alloc(heap, 20, 0);
+    BYTE *sealedData = alloc(heap, 400, 0);
+    BYTE *unsealedData = alloc(heap, 100, 0);
+
+    UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
+    memset(sctx, 0, sizeof(SessionCtx));
+    memset(usageAuthSRK, 0, 20);
+
+    res = TPM_Start_OIAP(buffer, sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Start_OIAP()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
-    res = TPM_NV_ReadValueAuth(buffer, sealedData, 400, &sctx);
-#ifdef DEBUG
-    out_string("TPM_NV_ReadValueAuth return value: ");
-    out_hex(res,31);
-    out_string("\n");
+    res = TPM_NV_ReadValueAuth(buffer, sealedData, 400, sctx);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_NV_ReadValueAuth()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
-    res=TPM_Start_OIAP(buffer,&sctxParent);
-#ifdef DEBUG
-    out_string("\nOIAP Parent return value: ");
-    out_hex(res,31);
+    res = TPM_Start_OIAP(buffer, sctxParent);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Start_OSAP()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
-    res=TPM_Start_OIAP(buffer,&sctxEntity);
-#ifdef DEBUG
-    out_string("\nOIAP Entity return value: ");
-    out_hex(res,31);
+    res = TPM_Start_OIAP(buffer, sctxEntity);
+#ifdef EXEC
+    TPM_ERROR(res, "TPM_Start_OIAP()");
+#else
+    TPM_ERROR(res, &string_literal);
 #endif
 
 #ifndef SAVE_TPM
-    res=TPM_Unseal(buffer,sealedData,unsealedData,100,&unsealedDataSize,&sctxParent,&sctxEntity);
-#ifdef DEBUG
-    out_string("\nUnseal return value: ");
-    out_hex(res,31);
+    res = TPM_Unseal(buffer, sealedData, unsealedData, 100, unsealedDataSize, sctxParent, sctxEntity);
+#ifdef EXEC
+    TPM_WARNING(res, "TPM_Unseal()");
+#else
+    TPM_WARNING(res, &string_literal);
 #endif
-    if (res != 0)
-        out_string("\nUnseal failed");
 #endif
 
+#ifdef EXEC
     out_string("\nPlease confirm that the passphrase shown below matches the one which was entered during system configuration. If the passphrase does not match, contact your systems administrator immediately.\n\n");
+#else
+    out_string(&string_literal);
+#endif
+
+#ifdef EXEC
     out_string("Passphrase: ");
-    out_string((char *)unsealedData);
+#else
+    out_string(&string_literal);
+#endif
+
+    out_string((char *) unsealedData);
+
+#ifdef EXEC
     out_string("\n\nIf this is correct, type 'yes' in all capitals: ");
+#else
+    out_string(&string_literal);
+#endif
+
     char entry[20];
+
+#ifdef EXEC
     char *correctEntry = "YES";
+#else
+    char *correctEntry = &string_literal;
+#endif
+
     unsigned int t = 0;
     char c;
     c = key_stroke_listener(); // for some reason, there's always an 'enter' char
@@ -186,10 +218,21 @@ void unsealPassphrase()
           t++;
       }
     }
-    out_string("\n");
+    out_char('\n');
 
     if (bufcmp(correctEntry, entry, 3))
         reboot();
+
+    // cleanup
+    dealloc(heap, buffer, TCG_BUFFER_SIZE);
+    dealloc(heap, sctx, sizeof(SessionCtx));
+    dealloc(heap, sctxParent, sizeof(SessionCtx));
+    dealloc(heap, sctxEntity, sizeof(SessionCtx));
+
+    dealloc(heap, usageAuthSRK, 20);
+    dealloc(heap, sealedData, 400);
+    dealloc(heap, unsealedData, 100);
+    dealloc(heap, unsealedDataSize, sizeof(UINT32));
 }
 
 /**
