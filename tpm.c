@@ -484,7 +484,7 @@ getTPM_PCR_INFO_LONG(
     memcpy(info->digestAtRelease.digest, ctx->hash, TCG_HASH_SIZE);
 }
 
-int TPM_Seal(
+TPM_RESULT TPM_Seal(
         BYTE *in_buffer, 
         sdTPM_PCR_SELECTION select,
         BYTE *data,
@@ -492,101 +492,85 @@ int TPM_Seal(
         BYTE *stored_data,
         SessionCtx *sctx)
 {
-    int res;
-    struct SHA1_Context ctx;
-    struct HMAC_Context hctx;
-    sdTPM_PCR_INFO_LONG info;
-    SessionEnd se;
-    stTPM_SEAL com;
-    TPM_AUTHDATA entityAuthData;
+    TPM_RESULT res;
+    struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
+    struct HMAC_Context *hctx = alloc(heap, sizeof(struct HMAC_Context), 0);
+    SessionEnd *se = alloc(heap, sizeof(SessionEnd), 0);
+    stTPM_SEAL *com = alloc(heap, sizeof(stTPM_SEAL), 0);
+    TPM_AUTHDATA *entityAuthData = alloc(heap, sizeof(TPM_AUTHDATA), 0);
 
-    UINT32 sha_offset = 0, hmac_offset = 0, tpm_offset_out = 0;
-    UINT32 sha_size = sizeof(TPM_COMMAND_CODE) + sizeof(TPM_ENCAUTH) + sizeof(UINT32) + sizeof(sdTPM_PCR_INFO_LONG) + sizeof(UINT32) + dataSize;
-    UINT32 hmac_size = TCG_HASH_SIZE + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + sizeof(TPM_BOOL);
-    BYTE *sha_buf = alloc(heap, sha_size, 0);
-    BYTE *hmac_buf = alloc(heap, sha_size, 0);
-
+    UINT32 tpm_offset_out = 0; 
     int paramSize = sizeof(stTPM_SEAL) + dataSize + sizeof(SessionEnd);
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
     // construct command header
-    com.tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
-    com.paramSize = ntohl(paramSize);
-    com.ordinal = ntohl(TPM_ORD_Seal);
+    com->tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
+    com->paramSize = ntohl(paramSize);
+    com->ordinal = ntohl(TPM_ORD_Seal);
 
     // handle of the SRK
-    com.keyHandle = ntohl(TPM_KH_SRK);
+    com->keyHandle = ntohl(TPM_KH_SRK);
 
     /* get encAuth to assign authData needed to Unseal. authData isn't part of our access control model so we just use a well-known secret of zeroes. */
-    memset(entityAuthData.authdata, 0, 20);
-    encAuth_gen(&entityAuthData, sctx->sharedSecret, &sctx->nonceEven, &com.encAuth); 
+    memset(entityAuthData->authdata, 0, sizeof(TPM_AUTHDATA));
+    encAuth_gen(entityAuthData, sctx->sharedSecret, &sctx->nonceEven, &com->encAuth); 
 
     // generate TPM_PCR_INFO
-    getTPM_PCR_INFO_LONG(in_buffer, &info, select);
-    com.pcrInfoSize = ntohl(sizeof(sdTPM_PCR_INFO_LONG));
-    com.pcrInfo = info;
+    getTPM_PCR_INFO_LONG(in_buffer, &com->pcrInfo, select);
+    com->pcrInfoSize = ntohl(sizeof(sdTPM_PCR_INFO_LONG));
 
-    com.inDataSize = ntohl(dataSize);
+    com->inDataSize = ntohl(dataSize);
 
     // prepare necessary elements for SHA1
-    SHA_COPY_TO(&com.ordinal, sizeof(TPM_COMMAND_CODE));
-    SHA_COPY_TO(&com.encAuth, sizeof(TPM_ENCAUTH));
-    SHA_COPY_TO(&com.pcrInfoSize, sizeof(UINT32));
-    SHA_COPY_TO(&com.pcrInfo, sizeof(sdTPM_PCR_INFO_LONG));
-    SHA_COPY_TO(&com.inDataSize, sizeof(UINT32));
-    SHA_COPY_TO(data, dataSize);
+    sha1_init(ctx);
+    sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
+    sha1(ctx, (BYTE *)&com->encAuth, sizeof(TPM_ENCAUTH));
+    sha1(ctx, (BYTE *)&com->pcrInfoSize, sizeof(UINT32));
+    sha1(ctx, (BYTE *)&com->pcrInfo, sizeof(sdTPM_PCR_INFO_LONG));
+    sha1(ctx, (BYTE *)&com->inDataSize, sizeof(UINT32));
+    sha1(ctx, (BYTE *)data, dataSize);
+    sha1_finish(ctx);
 
-    sha1_init(&ctx);
-    sha1(&ctx, sha_buf, sha_size);
-    sha1_finish(&ctx);
-
-    se.authHandle = sctx->authHandle;
-    res = TPM_GetRandom(in_buffer, (BYTE *)&se.nonceOdd, TCG_HASH_SIZE);
-#ifdef EXEC
-    CHECK4(108, res, "could not get random num from TPM", res);
-#else
-    CHECK4(108, res, &string_literal, res);
-#endif
-    se.continueAuthSession = TRUE;
+    se->authHandle = sctx->authHandle;
+    res = TPM_GetRandom(in_buffer, (BYTE *)&se->nonceOdd, sizeof(TPM_NONCE));
+    se->continueAuthSession = TRUE;
 
     // prepare elements for HMAC
-    HMAC_COPY_TO(&ctx.hash, TCG_HASH_SIZE);
-    HMAC_COPY_TO(&sctx->nonceEven.nonce, sizeof(TPM_NONCE));
-    HMAC_COPY_TO(&se.nonceOdd.nonce, sizeof(TPM_NONCE));
-    HMAC_COPY_TO(&se.continueAuthSession, sizeof(TPM_BOOL));
+    hmac_init(hctx, sctx->sharedSecret, TCG_HASH_SIZE);
+    hmac(hctx, (BYTE *)&ctx->hash, TCG_HASH_SIZE);
+    hmac(hctx, (BYTE *)&sctx->nonceEven.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, (BYTE *)&se->nonceOdd.nonce, sizeof(TPM_NONCE));
+    hmac(hctx, (BYTE *)&se->continueAuthSession, sizeof(TPM_BOOL));
+    hmac_finish(hctx);
 
-    hmac_init(&hctx, sctx->sharedSecret, TCG_HASH_SIZE);
-    hmac(&hctx, hmac_buf, hmac_offset);
-    hmac_finish(&hctx);
-    memcpy(&se.pubAuth, hctx.ctx.hash, TCG_HASH_SIZE);
+    memcpy(&se->pubAuth, hctx->ctx.hash, TCG_HASH_SIZE);
 
     // package the entire command into a bytestream
-    SABLE_TPM_COPY_TO(&com, sizeof(stTPM_SEAL));
+    SABLE_TPM_COPY_TO(com, sizeof(stTPM_SEAL));
     SABLE_TPM_COPY_TO(data, dataSize);
-    SABLE_TPM_COPY_TO(&se, sizeof(SessionEnd));
+    SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
 
     // transmit command to TPM
-    TPM_TRANSMIT();
+#ifdef EXEC
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, "TPM_Seal() failed on transmit");
+#else
+    ERROR(TPM_TRANSMIT_FAIL, tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0, &string_literal);
+#endif
 
     unsigned long sealedDataSize=0;
     unsigned long sealInfoSize;
     unsigned long encDataSize;
-    if(res>=0){
 
-        res=(int) ntohl(*((unsigned int *) (in_buffer+6)));
-        if (res > 0)
-            return res;
+    res = (TPM_RESULT) ntohl(*((unsigned int *) (in_buffer + 6)));
+    if (res > 0)
+        return res;
 
-        sealInfoSize=ntohl(*((unsigned long *)(in_buffer+14)));	
-        
-        encDataSize=ntohl(*((unsigned long *)(in_buffer+18+sealInfoSize)));
-        sealedDataSize=12+sealInfoSize+encDataSize;
+    sealInfoSize = ntohl(*((unsigned long *)(in_buffer + 14)));	
+    
+    encDataSize = ntohl(*((unsigned long *)(in_buffer + 18 + sealInfoSize)));
+    sealedDataSize = 12 + sealInfoSize + encDataSize;
 
-        //CHECK4(108,sealedDataSize>sealedDataBufSize,"sealed data too big", sealedDataSize);
-
-        memcpy(stored_data,in_buffer+10,sealedDataSize);
-
-    }
+    memcpy(stored_data, in_buffer + 10, sealedDataSize);
 
     return res;
 }
