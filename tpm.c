@@ -208,11 +208,8 @@ TPM_RESULT TPM_NV_DefineSpace(
     struct HMAC_Context *hctx = alloc(heap, sizeof(struct HMAC_Context), 0);
 
     // declare data structures
-    TPM_NV_ATTRIBUTES *perm = alloc(heap, sizeof(TPM_NV_ATTRIBUTES), 0);
     TPM_AUTHDATA *authData = alloc(heap, sizeof(TPM_AUTHDATA), 0);
     sdTPM_PCR_INFO_SHORT *info = alloc(heap, sizeof(sdTPM_PCR_INFO_SHORT), 0);
-    sdTPM_NV_DATA_PUBLIC *pub = alloc(heap, sizeof(sdTPM_NV_DATA_PUBLIC), 0);
-    TPM_ENCAUTH *encAuth = alloc(heap, sizeof(TPM_ENCAUTH), 0);
 
     // declare the command
     stTPM_NV_DEFINESPACE *com = alloc(heap, sizeof(stTPM_NV_DEFINESPACE), 0);
@@ -223,30 +220,27 @@ TPM_RESULT TPM_NV_DefineSpace(
     BYTE *out_buffer = alloc(heap, paramSize, 0);
 
     // populate the data structures
-    perm->tag = ntohs(TPM_TAG_NV_ATTRIBUTES);
-    perm->attributes = ntohl(TPM_NV_PER_AUTHWRITE | TPM_NV_PER_AUTHREAD);
+    com->pubInfo.permission.tag = ntohs(TPM_TAG_NV_ATTRIBUTES);
+    com->pubInfo.permission.attributes = ntohl(TPM_NV_PER_AUTHWRITE | TPM_NV_PER_AUTHREAD);
 
     getTPM_PCR_INFO_SHORT(in_buffer, info, select);
 
-    pub->tag = ntohs(TPM_TAG_NV_DATA_PUBLIC);
-    pub->nvIndex = ntohl(NV_DATA_OFFSET);
-    pub->pcrInfoRead = *info;
-    pub->pcrInfoWrite = *info;
-    pub->permission = *perm;
-    pub->bReadSTClear = FALSE;
-    pub->bWriteSTClear = FALSE;
-    pub->bWriteDefine = FALSE;
-    pub->dataSize = ntohl(NV_DATA_SIZE);
+    com->pubInfo.tag = ntohs(TPM_TAG_NV_DATA_PUBLIC);
+    com->pubInfo.nvIndex = ntohl(NV_DATA_OFFSET);
+    com->pubInfo.pcrInfoRead = *info;
+    com->pubInfo.pcrInfoWrite = *info;
+    com->pubInfo.bReadSTClear = FALSE;
+    com->pubInfo.bWriteSTClear = FALSE;
+    com->pubInfo.bWriteDefine = FALSE;
+    com->pubInfo.dataSize = ntohl(NV_DATA_SIZE);
 
     memset(&authData->authdata, 0, TCG_HASH_SIZE);
-    encAuth_gen(authData, sctx->sharedSecret, &sctx->nonceEven, encAuth);
+    encAuth_gen(authData, sctx->sharedSecret, &sctx->nonceEven, &com->encAuth);
 
     // populate the command
     com->tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
     com->paramSize = ntohl(paramSize);
     com->ordinal = ntohl(TPM_ORD_NV_DefineSpace);
-    com->pubInfo = *pub;
-    com->encAuth = *encAuth;
 
     sha1_init(ctx);
     sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
@@ -285,8 +279,14 @@ TPM_RESULT TPM_NV_DefineSpace(
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
-    return res;
+    // cleanup
+    dealloc(heap, authData, sizeof(TPM_AUTHDATA));
+    dealloc(heap, info, sizeof(sdTPM_PCR_INFO_SHORT));
+    dealloc(heap, com, sizeof(stTPM_NV_DEFINESPACE));
+    dealloc(heap, se, sizeof(SessionEnd));
+    dealloc(heap, out_buffer, paramSize);
 
+    return res;
 }
 
 TPM_RESULT
@@ -368,8 +368,16 @@ TPM_NV_ReadValueAuth(
 	    }
 	    memcpy(data, in_buffer + 14, receivedDataSize);
     }
-    return res;
 
+    // cleanup
+    dealloc(heap, out_buffer, paramSize);
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, hctx, sizeof(struct HMAC_Context));
+    dealloc(heap, com, sizeof(stTPM_NV_READVALUE));
+    dealloc(heap, se, sizeof(SessionEnd));
+    dealloc(heap, authData, sizeof(TPM_AUTHDATA));
+
+    return res;
 }
 
 
@@ -440,6 +448,14 @@ TPM_NV_WriteValueAuth(
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
 
+    // cleanup
+    dealloc(heap, out_buffer, paramSize);
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, hctx, sizeof(struct HMAC_Context));
+    dealloc(heap, com, sizeof(stTPM_NV_WRITEVALUE));
+    dealloc(heap, se, sizeof(SessionEnd));
+    dealloc(heap, authData, sizeof(TPM_AUTHDATA));
+
     return res;
 }
 
@@ -472,6 +488,11 @@ TPM_Flush(
 #endif
 
 	res = (TPM_RESULT) ntohl(*((unsigned int *) (in_buffer+6)));
+
+    // cleanup
+    dealloc(heap, com, sizeof(stTPM_FLUSH_SPECIFIC));
+    dealloc(heap, out_buffer, paramSize);
+
     return res;
 }
 
@@ -501,6 +522,10 @@ getTPM_PCR_INFO_LONG(
 
     memcpy(info->digestAtCreation.digest, ctx->hash, TCG_HASH_SIZE);
     memcpy(info->digestAtRelease.digest, ctx->hash, TCG_HASH_SIZE);
+
+    // cleanup
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, comp, sizeof(sdTPM_PCR_COMPOSITE));
 }
 
 TPM_RESULT TPM_Seal(
@@ -591,6 +616,14 @@ TPM_RESULT TPM_Seal(
 
     memcpy(stored_data, in_buffer + 10, sealedDataSize);
 
+    // cleanup
+    dealloc(heap, out_buffer, paramSize);
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, hctx, sizeof(struct HMAC_Context));
+    dealloc(heap, com, sizeof(stTPM_NV_WRITEVALUE));
+    dealloc(heap, se, sizeof(SessionEnd));
+    dealloc(heap, entityAuthData, sizeof(TPM_AUTHDATA));
+
     return res;
 }
 
@@ -627,7 +660,11 @@ TPM_GetRandom(
 #else
     CHECK4(108,ntohl(*((unsigned int*)(in_buffer+10)))!=size,&string_literal, ntohl(*((unsigned int*)(in_buffer+10))));
 #endif
-      TPM_COPY_FROM(dest,4,size);
+    TPM_COPY_FROM(dest,4,size);
+
+    // cleanup
+    dealloc(heap, com, sizeof(stTPM_GETRANDOM));
+    dealloc(heap, out_buffer, paramSize);
 
     return res;
 }
@@ -659,6 +696,10 @@ TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
     // if everything succeeded, extract the PCR value
     TPM_COPY_FROM(hash->digest, 0, TCG_HASH_SIZE);
 
+    // cleanup
+    dealloc(heap, com, sizeof(stTPM_PCRREAD));
+    dealloc(heap, out_buffer, paramSize);
+
     return res;
 }
 
@@ -689,6 +730,11 @@ TPM_Extend(
     TPM_COPY_FROM(hash->digest, 0, TCG_HASH_SIZE);
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
+
+    // cleanup
+    dealloc(heap, com, sizeof(stTPM_Extend));
+    dealloc(heap, out_buffer, paramSize);
+
     return res;
 }
 
@@ -741,6 +787,12 @@ TPM_RESULT TPM_Start_OSAP(
 
     memcpy((BYTE *)&sctx->sharedSecret, hctx->ctx.hash, TCG_HASH_SIZE);
 
+    // cleanup
+    dealloc(heap, hctx, sizeof(struct HMAC_Context));
+    dealloc(heap, com, sizeof(TPM_OSAP));
+    dealloc(heap, nonceEvenOSAP, sizeof(TPM_NONCE));
+    dealloc(heap, out_buffer, paramSize);
+
     return res;
 }
 
@@ -771,6 +823,11 @@ TPM_Startup_Clear(BYTE *in_buffer)
 #endif
 
     res = (TPM_RESULT) ntohl(*((UINT32 *) (in_buffer + 6)));
+
+    // cleanup
+    dealloc(heap, com, sizeof(stTPM_STARTUP));
+    dealloc(heap, out_buffer, paramSize);
+
     return res;
 }
 
@@ -835,4 +892,8 @@ dump_pcrs(BYTE *buffer)
       out_char(pcr% 4==3 ? '\n' : ' ');
 
     }
+
+  // cleanup
+  dealloc(heap, pcrs, sizeof(TPM_PCRINDEX));
+  dealloc(heap, dig, sizeof(TPM_DIGEST));
 }
