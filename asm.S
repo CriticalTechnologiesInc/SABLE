@@ -147,7 +147,7 @@ SLB_FUNCTION _slb_start
 	movl	-4(%esp), %eax
 
 	/* jmp to main */
-	jmp     oslo
+	jmp     sable
 
 
 /* the gdt to load after skinit */

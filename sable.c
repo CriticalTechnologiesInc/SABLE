@@ -262,7 +262,7 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
     //check for if this has the magic value in the first module
     //if it does, then skip the module, make mbi->mods_addr point to this new module
     //set a flag that config file has been found
-    if(!bufcmp((BYTE *)configmagic, (BYTE *)m->mod_start, strnlen_oslo((BYTE *)configmagic, 20))){
+    if(!bufcmp((BYTE *)configmagic, (BYTE *)m->mod_start, strnlen_sable((BYTE *)configmagic, 20))){
 #ifdef DEBUG
         out_info("config magic detected");
 #endif
@@ -372,42 +372,64 @@ int
 main(struct mbi *mbi, unsigned flags)
 {
 
-  unsigned char buffer[TCG_BUFFER_SIZE];
+    unsigned char buffer[TCG_BUFFER_SIZE];
 
-  // initialize the heap
-  UINT32 heap_len = 0x00040000;
-  init_allocator();
-  add_mem_pool(heap, heap->head + sizeof(struct mem_node), heap_len);
+    // initialize the heap
+    UINT32 heap_len = 0x00040000;
+    init_allocator();
+    add_mem_pool(heap, heap->head + sizeof(struct mem_node), heap_len);
 
-  out_string(version_string);
-  ERROR(10, !mbi || flags != MBI_MAGIC2, "not loaded via multiboot");
+    out_string(version_string);
+#ifdef EXEC
+    ERROR(10, !mbi || flags != MBI_MAGIC2, "not loaded via multiboot");
+#else
+    ERROR(10, !mbi || flags != MBI_MAGIC2, &string_literal);
+#endif
 
-  // set bootloader name
-  mbi->flags |= MBI_FLAG_BOOT_LOADER_NAME;
-  mbi->boot_loader_name = (unsigned) version_string;
+    // set bootloader name
+    mbi->flags |= MBI_FLAG_BOOT_LOADER_NAME;
+    mbi->boot_loader_name = (unsigned) version_string;
 
-  int revision = 0;
-  revision = check_cpuid();
-  if (0 >= prepare_tpm(buffer) || (0 > revision))
+    int revision = check_cpuid();
+    if (0 >= prepare_tpm(buffer) || (0 > revision))
     {
-      if (0 > revision)
-	out_info("No SVM platform");
-      else
-	out_info("Could not prepare the TPM");
+        if (0 > revision)
+#ifdef EXEC
+	        out_info("No SVM platform");
+#else
+	        out_info(&string_literal);
+#endif
+        else
+#ifdef EXEC
+	        out_info("Could not prepare the TPM");
+#else
+	        out_info(&string_literal);
+#endif
 
-      ERROR(11, start_module(mbi), "start module failed");
+#ifdef EXEC
+        ERROR(11, start_module(mbi), "start module failed");
+#else
+        ERROR(11, start_module(mbi), &string_literal);
+#endif
     }
 
-  out_description("SVM revision:", revision);
-  ERROR(12, enable_svm(), "could not enable SVM");
+#ifdef EXEC
+    out_description("SVM revision:", revision);
+    ERROR(12, enable_svm(), "could not enable SVM");
+    ERROR(13, stop_processors(), "sending an INIT IPI to other processors failed");
+#else
+    out_description(&string_literal, revision);
+    ERROR(12, enable_svm(), &string_literal);
+    ERROR(13, stop_processors(), &string_literal);
+#endif
 
-  ERROR(13, stop_processors(), "sending an INIT IPI to other processors failed");
+#ifdef DEBUG
+    out_info("call skinit");
+    wait(1000);
+#endif
+    do_skinit();
 
-  out_info("call skinit");
-  wait(1000);
-  do_skinit();
-
-  return 0;
+    return 0;
 }
 
 /* Note: This function Assumes a 4KB stack.  A more elegant solution
@@ -455,9 +477,9 @@ fixup(void)
 #endif
 
 #ifdef EXEC
-    CHECK3(-10, strnlen_oslo((BYTE *)CPU_NAME, 1024)>=48,"cpu name to long");
+    CHECK3(-10, strnlen_sable((BYTE *)CPU_NAME, 1024)>=48,"cpu name to long");
 #else
-    CHECK3(-10, strnlen_oslo((BYTE *)CPU_NAME, 1024)>=48,&string_literal);
+    CHECK3(-10, strnlen_sable((BYTE *)CPU_NAME, 1024)>=48,&string_literal);
 #endif
 
     for (i = 0; i<6; i++)
@@ -482,50 +504,59 @@ fixup(void)
 
     revision = enable_svm();
 #ifdef EXEC
-  CHECK3(12, revision, "could not enable SVM");
-  out_description("SVM revision:", revision);
+    CHECK3(12, revision, "could not enable SVM");
+    out_description("SVM revision:", revision);
 #else
-  CHECK3(12, revision, &string_literal);
-  out_description(&string_literal, revision);
+    CHECK3(12, revision, &string_literal);
+    out_description(&string_literal, revision);
 #endif
 
 #ifdef EXEC
-  out_info("enable global interrupt flag");
+    out_info("enable global interrupt flag");
 #else
-  out_info(&string_literal);
+    out_info(&string_literal);
 #endif
-  asm volatile("stgi");
-  return 0;
+    asm volatile("stgi");
+    return 0;
 }
 
 int revert_skinit(void)
 {
-  if (0 < check_cpuid())
+    if (0 < check_cpuid())
     {
-      if (disable_dev_protection())
-        out_info("DEV disable failed");
+        if (disable_dev_protection())
+#ifdef EXEC
+            out_info("DEV disable failed");
+#else
+            out_info(&string_literal);
+#endif
 
-      CHECK3(11, fixup(), "fixup failed");
-      out_info("fixup done");
+#ifdef EXEC
+        CHECK3(11, fixup(), "fixup failed");
+#else
+        CHECK3(11, fixup(), &string_literal);
+#endif
+#ifdef EXEC
+        out_info("fixup done");
+#else
+        out_info(&string_literal);
+#endif
     }
 
-  ERROR(12, pci_iterate_devices(), "could not iterate over the devices");
+#ifdef EXEC
+    ERROR(12, pci_iterate_devices(), "could not iterate over the devices");
+#else
+    ERROR(12, pci_iterate_devices(), &string_literal);
+#endif
 
-  return 0;
-}
-
-/* a useful test function */
-void hello(void)
-{
-    out_info("hello, world!");
-    wait(5000);
+    return 0;
 }
 
 /**
  * This code is executed after skinit.
  */
-/* int oslo(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
-int oslo(struct mbi *mbi)
+/* int sable(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
+int sable(struct mbi *mbi)
 {
   struct SHA1_Context ctx;
   TPM_DIGEST dig;
@@ -537,7 +568,7 @@ int oslo(struct mbi *mbi)
   memset(passPhrase, 0, 64);
   UINT32 lenPassphrase = 0;
 
-  ERROR(20, !mbi, "no mbi in oslo()");
+  ERROR(20, !mbi, "no mbi in sable()");
 
   if (tis_init(TIS_BASE))
     {

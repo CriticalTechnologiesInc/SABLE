@@ -52,7 +52,7 @@ ntohs(UINT16 v)
 
 // like strlen
 UINT32
-strnlen_oslo(BYTE *value, UINT32 size)
+strnlen_sable(BYTE *value, UINT32 size)
 {
     unsigned long i;
     for(i = 0; i < size; i++)
