@@ -60,7 +60,7 @@ SLB_FUNCTION __start
 	xchg    %ebx,%eax
 	pushl	%eax
 	pushl   $exit
-	jmp     __main
+	jmp     main
 
 SLB_FUNCTION smp_init_start
 	.code16

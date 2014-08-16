@@ -15,7 +15,7 @@
 #pragma once
 #include "mbi.h"
 
-int _main(struct mbi *local_mbi, unsigned flags);
+int main(struct mbi *local_mbi, unsigned flags);
 int osl(struct mbi *mbi);
 
 #ifdef EXEC

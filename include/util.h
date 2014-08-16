@@ -34,11 +34,6 @@ extern const char string_literal;
 
 #define UNUSED(x) (void)(x)
 
-/**
- * we want inlined stringops
- */
-#define strlen(x)     __builtin_strlen(x)
-
 #ifndef NDEBUG
 
 /**

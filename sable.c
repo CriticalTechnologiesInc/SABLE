@@ -124,7 +124,8 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase)
     dealloc(heap, sealedData, 400);
 }
 
-void unsealPassphrase()
+void 
+unsealPassphrase(void)
 {
     TPM_RESULT res; 
 
@@ -368,7 +369,7 @@ prepare_tpm(BYTE *buffer)
  * and disable all localities.
  */
 int
-__main(struct mbi *mbi, unsigned flags)
+main(struct mbi *mbi, unsigned flags)
 {
 
   unsigned char buffer[TCG_BUFFER_SIZE];
@@ -413,6 +414,7 @@ __main(struct mbi *mbi, unsigned flags)
  * would probably define some symbols and let the linker script
  * determine the stack size.
  */
+/*
 void zero_stack (void) __attribute__ ((section (".text.slb")));
 void zero_stack (void) 
 {
@@ -439,31 +441,59 @@ void zero_stack (void)
       *((char*) ptr) = 0;
     }
 }
+*/
 
 int
 fixup(void)
 {
-  unsigned i;
+    unsigned i;
 
-  out_info("patch CPU name tag");
-  CHECK3(-10, strlen(CPU_NAME)>=48,"cpu name to long");
-  for (i=0; i<6; i++)
-    wrmsr(0xc0010030+i, * (unsigned long long*) (CPU_NAME+i*8));
+#ifdef EXEC
+    out_info("patch CPU name tag");
+#else
+    out_info(&string_literal);
+#endif
 
-  out_info("halt APs in init state");
-  int revision;
+#ifdef EXEC
+    CHECK3(-10, strnlen_oslo((BYTE *)CPU_NAME, 1024)>=48,"cpu name to long");
+#else
+    CHECK3(-10, strnlen_oslo((BYTE *)CPU_NAME, 1024)>=48,&string_literal);
+#endif
 
-  /**
-   * Start the stopped APs and execute some fixup code.
-   */
-  memcpy((char *) REALMODE_CODE, &smp_init_start, &smp_init_end - &smp_init_start);
-  CHECK3(-2, start_processors(REALMODE_CODE), "sending an STARTUP IPI to other processors failed");
+    for (i = 0; i<6; i++)
+        wrmsr(0xc0010030+i, * (unsigned long long*) (CPU_NAME+i*8));
 
+#ifdef EXEC
+    out_info("halt APs in init state");
+#else
+    out_info(&string_literal);
+#endif
+    int revision;
 
-  CHECK3(12, (revision = enable_svm()), "could not enable SVM");
+    /**
+     * Start the stopped APs and execute some fixup code.
+     */
+    memcpy((char *) REALMODE_CODE, &smp_init_start, &smp_init_end - &smp_init_start);
+#ifdef EXEC
+    CHECK3(-2, start_processors(REALMODE_CODE), "sending an STARTUP IPI to other processors failed");
+#else
+    CHECK3(-2, start_processors(REALMODE_CODE), &string_literal);
+#endif
+
+    revision = enable_svm();
+#ifdef EXEC
+  CHECK3(12, revision, "could not enable SVM");
   out_description("SVM revision:", revision);
+#else
+  CHECK3(12, revision, &string_literal);
+  out_description(&string_literal, revision);
+#endif
 
+#ifdef EXEC
   out_info("enable global interrupt flag");
+#else
+  out_info(&string_literal);
+#endif
   asm volatile("stgi");
   return 0;
 }
@@ -512,7 +542,8 @@ int oslo(struct mbi *mbi)
   if (tis_init(TIS_BASE))
     {
     ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
-    CHECK4(24,(res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD)), "TPM_PcrRead failed", res);
+    res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD);
+    CHECK4(24, res, "TPM_PcrRead failed", res);
 #ifdef DEBUG
     show_hash("PCR[17]: ",&dig);
     wait(1000);

@@ -15,6 +15,7 @@
  */
 
 #include "include/tpm_error.h"
+#include "include/util.h"
 
 #ifdef EXEC
 const char *tpm_error_to_string(TPM_RESULT res)
