@@ -556,57 +556,119 @@ int revert_skinit(void)
  * This code is executed after skinit.
  */
 /* int sable(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
-int sable(struct mbi *mbi)
+int 
+sable(struct mbi *mbi)
 {
-  struct SHA1_Context ctx;
-  TPM_DIGEST dig;
+    TPM_RESULT res;
+    struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
+    TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
+    BYTE *passPhrase = alloc(heap, 64, 0);
 
-  revert_skinit();
+    revert_skinit();
 
-  int res;
-  BYTE passPhrase[64];
-  memset(passPhrase, 0, 64);
-  UINT32 lenPassphrase = 0;
+    memset(passPhrase, 0, 64);
+    UINT32 lenPassphrase = 0;
 
-  ERROR(20, !mbi, "no mbi in sable()");
+#ifdef EXEC
+    ERROR(20, !mbi, "no mbi in sable()");
+#else
+    ERROR(20, !mbi, &string_literal);
+#endif
 
-  if (tis_init(TIS_BASE))
+    if (tis_init(TIS_BASE))
     {
-    ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
-    res = TPM_PcrRead(ctx.buffer, &dig, SLB_PCR_ORD);
-    CHECK4(24, res, "TPM_PcrRead failed", res);
-#ifdef DEBUG
-    show_hash("PCR[17]: ",&dig);
-    wait(1000);
-#endif
-    ERROR(22, mbi_calc_hash(mbi,passPhrase,64,&lenPassphrase, &ctx,&dig),  "calc hash failed");
-#ifdef DEBUG
-    show_hash("PCR[19]: ",&dig);
-    dump_pcrs(ctx.buffer);
+
+#ifdef EXEC
+        ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
+#else
+        ERROR(21, !tis_access(TIS_LOCALITY_2, 0), &string_literal);
 #endif
 
-    if(config==1) {
-      out_string("\nSealing passphrase: \n\n");
-	  out_string((char *)passPhrase);
-	  out_string("\n\nto PCR[19] with value \n");
-      show_hash("PCR[19]: ",&dig);
-	  wait(1000);
+        res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
+#ifdef EXEC
+        TPM_ERROR(res, "TPM_PcrRead()");
+#else
+        TPM_ERROR(res, &string_literal);
+#endif
 
-      configure(passPhrase,lenPassphrase);
-      ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
-	  out_string("\nConfiguration complete. Rebooting now...\n");
-	  wait(5000);
-	  reboot();
-    }
-    else { 
-      unsealPassphrase();
-    }
+#ifdef DEBUG
+        show_hash("PCR[17]: ", dig);
+        wait(1000);
+#endif
+
+#ifdef EXEC
+        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,&lenPassphrase, ctx, dig),  "calc hash failed");
+#else
+        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,&lenPassphrase, ctx, dig),  &string_literal);
+#endif
+
+#ifdef DEBUG
+        show_hash("PCR[19]: ", dig);
+        dump_pcrs(ctx->buffer);
+#endif
+
+        if (config == 1) {
+
+#ifdef EXEC
+            out_string("\nSealing passphrase: \n\n");
+#else
+            out_string(&string_literal);
+#endif
+
+	        out_string((char *)passPhrase);
+
+#ifdef EXEC
+	        out_string("\n\nto PCR[19] with value \n");
+#else
+	        out_string(&string_literal);
+#endif
+
+#ifdef EXEC
+            show_hash("PCR[19]: ", dig);
+#else
+            show_hash(&string_literal, dig);
+#endif
+
+	        wait(1000);
+
+            configure(passPhrase, lenPassphrase);
+
+#ifdef EXEC
+            ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
+#else
+            ERROR(25, tis_deactivate_all(), &string_literal);
+#endif
+
+#ifdef EXEC
+	        out_string("\nConfiguration complete. Rebooting now...\n");
+#else
+	        out_string(&string_literal);
+#endif
+
+	        wait(5000);
+	        reboot();
+        }
+        else { 
+            unsealPassphrase();
+        }
+#ifdef EXEC
         ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
+#else
+        ERROR(25, tis_deactivate_all(), &string_literal);
+#endif
+    }
 
-  }
+    //zero_stack();
 
-  //zero_stack();
+    // cleanup
+    dealloc(heap, ctx, sizeof(struct SHA1_Context));
+    dealloc(heap, dig, sizeof(TPM_DIGEST));
+    dealloc(heap, passPhrase, 64);
 
-  ERROR(27, start_module(mbi), "start module failed");
-  return 28;
+#ifdef EXEC
+    ERROR(27, start_module(mbi), "start module failed");
+#else
+    ERROR(27, start_module(mbi), &string_literal);
+#endif
+    return 28;
 }
