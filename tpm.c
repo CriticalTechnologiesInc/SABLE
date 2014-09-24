@@ -169,7 +169,6 @@ TPM_RESULT TPM_Unseal(
 }
 
 //this function assumes using PCRs 17 and 19
-// this returns TPM_PCR_INFO_SHORT in buffer. 
 void
 getTPM_PCR_INFO_SHORT(
         BYTE *buffer, 
@@ -234,7 +233,7 @@ TPM_RESULT TPM_NV_DefineSpace(
     com->pubInfo.bWriteDefine = FALSE;
     com->pubInfo.dataSize = ntohl(NV_DATA_SIZE);
 
-    memset(&authData->authdata, 0, TCG_HASH_SIZE);
+    memset(authData->authdata, 0, TCG_HASH_SIZE);
     encAuth_gen(authData, sctx->sharedSecret, &sctx->nonceEven, &com->encAuth);
 
     // populate the command
@@ -516,7 +515,7 @@ getTPM_PCR_INFO_LONG(
 
     info->tag = ntohs(TPM_TAG_PCR_INFO_LONG);
     info->localityAtCreation = TPM_LOC_TWO;
-    info->localityAtRelease = TPM_LOC_ONE | TPM_LOC_TWO | TPM_LOC_THREE;
+    info->localityAtRelease = TPM_LOC_ZERO | TPM_LOC_ONE | TPM_LOC_TWO | TPM_LOC_THREE | TPM_LOC_FOUR;
     info->creationPCRSelection = select;
     info->releasePCRSelection = select;
 

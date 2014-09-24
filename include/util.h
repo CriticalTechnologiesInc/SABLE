@@ -57,6 +57,7 @@ extern const char string_literal;
   }
 #endif
 
+#ifdef EXEC
 #define TPM_WARNING(result, command_name)				\
   {								\
     if (result) {							\
@@ -80,7 +81,31 @@ extern const char string_literal;
       reboot(); \
     }       \
   }
+#else
+#define TPM_WARNING(result, command_name)				\
+  {								\
+    if (result) {							\
+      out_string(&string_literal);       \
+      out_string(command_name);  \
+      out_string(&string_literal);       \
+      out_string(tpm_error_to_string(result));      \
+      out_string(&string_literal);       \
+    }       \
+  }
 
+#define TPM_ERROR(result, command_name)				\
+  {								\
+    if (result) {							\
+      out_string(&string_literal);       \
+      out_string(command_name);  \
+      out_string(&string_literal);       \
+      out_string(tpm_error_to_string(result));      \
+      out_string(&string_literal);       \
+      wait(10000);      \
+      reboot(); \
+    }       \
+  }
+#endif
 /**
  * Returns result and prints the msg, if value is true.
  */

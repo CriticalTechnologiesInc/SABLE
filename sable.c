@@ -24,18 +24,27 @@
 #include "include/dev.h"
 #include "include/sable.h"
 
+#ifdef EXEC
 static const char *version_string = "SABLE " VERSION "\n";
 const char * message_label = "SABLE:   ";
 const unsigned REALMODE_CODE = 0x20000;
 const char *CPU_NAME =  "AMD CPU booted by SABLE";
+#else
+static const char *version_string;
+const char * message_label;
+const unsigned REALMODE_CODE = 0x20000;
+const char *CPU_NAME;
+#endif
 
 static char config = 0;
 
 extern BYTE g_slb_zero;
+#ifdef EXEC
 BYTE g_end_of_low __attribute__((section (".slb.end_of_low"), aligned(4)));
 BYTE g_aligned_end_of_low __attribute__((section (".slb.aligned_end_of_low"), aligned(4096)));
 BYTE g_start_of_high __attribute__((section (".slb.start_of_high"), aligned(4)));
 BYTE g_end_of_high __attribute__((section (".slb.end_of_high"), aligned(4)));
+#endif
 
 /**
  * Function to output a hash.
@@ -133,6 +142,7 @@ unsealPassphrase(void)
     SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
     SessionCtx *sctxParent = alloc(heap, sizeof(SessionCtx), 0);
     SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
+    char *entry = alloc(heap, 20 * sizeof(char), 0);
 
     BYTE *usageAuthSRK = alloc(heap, 20, 0);
     BYTE *sealedData = alloc(heap, 400, 0);
@@ -198,8 +208,6 @@ unsealPassphrase(void)
 #else
     out_string(&string_literal);
 #endif
-
-    char entry[20];
 
 #ifdef EXEC
     char *correctEntry = "YES";
@@ -288,7 +296,7 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
             }
         }
         *lenPassPhrase = t + 1;
-        out_string("\n");
+        out_char('\n');
 
 	    //clear module for security reasons
 	    memset((BYTE *)m->mod_start, 0, m->mod_end-m->mod_start);
@@ -358,7 +366,11 @@ prepare_tpm(BYTE *buffer)
         TPM_ERROR(res, &string_literal);
 #endif
 
+#ifdef EXEC
     CHECK3(-62, tis_deactivate_all(), "tis_deactivate failed");
+#else
+    CHECK3(-62, tis_deactivate_all(), &string_literal);
+#endif
 
     return tpm;
 }
@@ -372,12 +384,12 @@ int
 main(struct mbi *mbi, unsigned flags)
 {
 
-    unsigned char buffer[TCG_BUFFER_SIZE];
-
     // initialize the heap
     UINT32 heap_len = 0x00040000;
     init_allocator();
     add_mem_pool(heap, heap->head + sizeof(struct mem_node), heap_len);
+
+    BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
 
     out_string(version_string);
 #ifdef EXEC
@@ -422,6 +434,9 @@ main(struct mbi *mbi, unsigned flags)
     ERROR(12, enable_svm(), &string_literal);
     ERROR(13, stop_processors(), &string_literal);
 #endif
+
+    // cleanup
+    dealloc(heap, buffer, TCG_BUFFER_SIZE);
 
 #ifdef DEBUG
     out_info("call skinit");
@@ -516,7 +531,11 @@ fixup(void)
 #else
     out_info(&string_literal);
 #endif
-    asm volatile("stgi");
+
+#ifdef EXEC
+    asm volatile("stgi");  // Not included in proof!
+#endif
+
     return 0;
 }
 
@@ -567,7 +586,8 @@ sable(struct mbi *mbi)
     revert_skinit();
 
     memset(passPhrase, 0, 64);
-    UINT32 lenPassphrase = 0;
+    UINT32 *lenPassphrase = alloc(heap, sizeof(UINT32), 0);
+    *lenPassphrase = 0;
 
 #ifdef EXEC
     ERROR(20, !mbi, "no mbi in sable()");
@@ -597,9 +617,9 @@ sable(struct mbi *mbi)
 #endif
 
 #ifdef EXEC
-        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,&lenPassphrase, ctx, dig),  "calc hash failed");
+        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,lenPassphrase, ctx, dig),  "calc hash failed");
 #else
-        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,&lenPassphrase, ctx, dig),  &string_literal);
+        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,lenPassphrase, ctx, dig),  &string_literal);
 #endif
 
 #ifdef DEBUG
@@ -631,7 +651,7 @@ sable(struct mbi *mbi)
 
 	        wait(1000);
 
-            configure(passPhrase, lenPassphrase);
+            configure(passPhrase, *lenPassphrase);
 
 #ifdef EXEC
             ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
@@ -664,6 +684,7 @@ sable(struct mbi *mbi)
     dealloc(heap, ctx, sizeof(struct SHA1_Context));
     dealloc(heap, dig, sizeof(TPM_DIGEST));
     dealloc(heap, passPhrase, 64);
+    dealloc(heap, lenPassphrase, sizeof(UINT32));
 
 #ifdef EXEC
     ERROR(27, start_module(mbi), "start module failed");
