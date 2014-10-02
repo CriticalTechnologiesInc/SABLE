@@ -317,6 +317,11 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
         CHECK3(-13, m->mod_end < m->mod_start, &string_literal);
 #endif
 
+#ifdef DEBUG
+	out_description("Module starts at ", m->mod_start);
+	out_description("Module ends at ", m->mod_end);
+#endif
+
         sha1(ctx, (BYTE *) m->mod_start, m->mod_end - m->mod_start);
         sha1_finish(ctx);
         memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
@@ -328,6 +333,8 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
 #endif
 
     }
+
+    wait(10000);
 
     return 0;
 }

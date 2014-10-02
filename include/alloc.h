@@ -35,7 +35,7 @@
 
 extern struct heap *heap;
 
-#define HEAP_START 0x001c0000
+#define HEAP_START 0x110000
 
 #ifndef NULL
 #define NULL ((void *)0)

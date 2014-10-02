@@ -6,8 +6,8 @@
 
 MEMORY
 {
-    low (rwxai)  : ORIGIN = 0x100000, LENGTH = 60K
-    high (rwxai) : ORIGIN = 0x110000, LENGTH = 0x70000
+    low (rwxai)  : ORIGIN = 0x100000, LENGTH = 256K
+    high (rwxai) : ORIGIN = 0x140000, LENGTH = 0x40000
     null (rwxai) : ORIGIN = 0x180000, LENGTH = 0 /* Intentional 0 length */
 }
 
