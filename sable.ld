@@ -6,9 +6,9 @@
 
 MEMORY
 {
-    low (rwxai)  : ORIGIN = 0x100000, LENGTH = 256K
-    high (rwxai) : ORIGIN = 0x140000, LENGTH = 0x40000
-    null (rwxai) : ORIGIN = 0x180000, LENGTH = 0 /* Intentional 0 length */
+    low (rwxai)  : ORIGIN = 0x100000, LENGTH = 64K
+    high (rwxai) : ORIGIN = 0x110000, LENGTH = 0x70004
+    null (rwxai) : ORIGIN = 0x180004, LENGTH = 0 /* Intentional 0 length */
 }
 
 
@@ -35,10 +35,8 @@ SECTIONS
   HIGH :
   {
     *(.slb.start_of_high) /* not a real variable; only concerned with its address */
-    *(.text.nslb)
-    *(.data.nslb)
-    *(.rodata.nslb)
-    *(.bss.nslb)
+    FILL(0x00000000);
+    . = ORIGIN(high) + LENGTH(high) - 4;
     *(.slb.end_of_high) /* not a real variable; only concerned with its address */
   } >high
   /* Code should be built with -fno-common, but if it's not, complain! */
