@@ -59,28 +59,26 @@ show_hash(char *s, TPM_DIGEST *hash)
   out_char('\n');
 }
 
-void configure(BYTE *passPhrase, UINT32 lenPassphrase)
+void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *srkAuthData, BYTE *passPhraseAuthData)
 {
     BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
     TPM_RESULT res; 
     SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
-    BYTE *usageAuthSRK = alloc(heap, 20, 0);
     BYTE *sealedData = alloc(heap, 400, 0);
 
     memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
-    memset(usageAuthSRK, 0, 20);
 
     //select PCR 17 and 19
     sdTPM_PCR_SELECTION select = { ntohs(PCR_SELECT_SIZE), { 0x0, 0x0, 0xa } };
     
-    res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_KEYHANDLE,TPM_KH_SRK,sctx);
+    res = TPM_Start_OSAP(buffer,srkAuthData,TPM_ET_KEYHANDLE,TPM_KH_SRK,sctx);
 #ifdef EXEC
     TPM_ERROR(res, "TPM_Start_OSAP()");
 #else
     TPM_ERROR(res, &string_literal);
 #endif
 
-    res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx);
+    res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx, passPhraseAuthData);
 #ifdef EXEC
     TPM_ERROR(res, "TPM_Seal()");
 #else
@@ -93,8 +91,15 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase)
     out_string(&string_literal);
 #endif
     memset(passPhrase, 0, lenPassphrase);
-
-    res = TPM_Start_OSAP(buffer,usageAuthSRK,TPM_ET_OWNER,0,sctx);
+    
+#ifdef EXEC
+    out_string("\nErasing passphrase authdata from memory...\n");
+#else
+    out_string(&string_literal);
+#endif
+    memset(passPhraseAuthData, 0, 20);
+    
+    res = TPM_Start_OSAP(buffer,srkAuthData,TPM_ET_OWNER,0,sctx);
 #ifdef EXEC
     TPM_ERROR(res, "TPM_Start_OSAP()");
 #else
@@ -129,12 +134,11 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase)
     // cleanup
     dealloc(heap, buffer, TCG_BUFFER_SIZE);
     dealloc(heap, sctx, sizeof(SessionCtx));
-    dealloc(heap, usageAuthSRK, 20);
     dealloc(heap, sealedData, 400);
 }
 
 void 
-unsealPassphrase(void)
+unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData)
 {
     TPM_RESULT res; 
 
@@ -144,13 +148,14 @@ unsealPassphrase(void)
     SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
     char *entry = alloc(heap, 20 * sizeof(char), 0);
 
-    BYTE *usageAuthSRK = alloc(heap, 20, 0);
     BYTE *sealedData = alloc(heap, 400, 0);
     BYTE *unsealedData = alloc(heap, 100, 0);
 
     UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
     memset(sctx, 0, sizeof(SessionCtx));
-    memset(usageAuthSRK, 0, 20);
+    
+    memcpy(sctxParent->pubAuth.authdata, srkAuthData, 20);
+    memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData, 20);
 
     res = TPM_Start_OIAP(buffer, sctx);
 #ifdef EXEC
@@ -233,6 +238,13 @@ unsealPassphrase(void)
 
     if (bufcmp(correctEntry, entry, 3))
         reboot();
+    
+#ifdef EXEC
+    out_string("\nErasing passphrase authdata from memory...\n");
+#else
+    out_string(&string_literal);
+#endif
+    memset(passPhraseAuthData, 0, 20);
 
     // cleanup
     dealloc(heap, buffer, TCG_BUFFER_SIZE);
@@ -240,7 +252,6 @@ unsealPassphrase(void)
     dealloc(heap, sctxParent, sizeof(SessionCtx));
     dealloc(heap, sctxEntity, sizeof(SessionCtx));
 
-    dealloc(heap, usageAuthSRK, 20);
     dealloc(heap, sealedData, 400);
     dealloc(heap, unsealedData, 100);
     dealloc(heap, unsealedDataSize, sizeof(UINT32));
@@ -589,18 +600,39 @@ sable(struct mbi *mbi)
     struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
     TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
     BYTE *passPhrase = alloc(heap, 64, 0);
+    BYTE *srkAuthData = alloc(heap, 20, 0);
+    BYTE *passPhraseAuthData = alloc(heap, 20, 0);
 
     revert_skinit();
 
     memset(passPhrase, 0, 64);
     UINT32 *lenPassphrase = alloc(heap, sizeof(UINT32), 0);
     *lenPassphrase = 0;
+    
+    memset(srkAuthData, 0, 20);
+    memset(passPhraseAuthData, 0, 20);
 
 #ifdef EXEC
     ERROR(20, !mbi, "no mbi in sable()");
 #else
     ERROR(20, !mbi, &string_literal);
 #endif
+    
+#ifdef EXEC
+    out_string("Please enter the srkAuthData (20 bytes): ");
+#else
+    out_string(&string_literal);
+#endif
+    
+    keyboardReader(srkAuthData, 20);
+    
+#ifdef EXEC
+    out_string("Please enter the passPhraseAuthData (20 bytes): ");
+#else
+    out_string(&string_literal);
+#endif
+    
+    keyboardReader(passPhraseAuthData, 20);
 
     if (tis_init(TIS_BASE))
     {
@@ -658,7 +690,7 @@ sable(struct mbi *mbi)
 
 	        wait(1000);
 
-            configure(passPhrase, *lenPassphrase);
+            configure(passPhrase, *lenPassphrase, srkAuthData, passPhraseAuthData);
 
 #ifdef EXEC
             ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
@@ -676,7 +708,7 @@ sable(struct mbi *mbi)
 	        reboot();
         }
         else { 
-            unsealPassphrase();
+            unsealPassphrase(srkAuthData, passPhraseAuthData);
         }
 #ifdef EXEC
         ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
@@ -692,6 +724,8 @@ sable(struct mbi *mbi)
     dealloc(heap, dig, sizeof(TPM_DIGEST));
     dealloc(heap, passPhrase, 64);
     dealloc(heap, lenPassphrase, sizeof(UINT32));
+    dealloc(heap, srkAuthData, 20);
+    dealloc(heap, passPhraseAuthData, 20);
 
 #ifdef EXEC
     ERROR(27, start_module(mbi), "start module failed");
@@ -699,4 +733,23 @@ sable(struct mbi *mbi)
     ERROR(27, start_module(mbi), &string_literal);
 #endif
     return 28;
+}
+
+void keyboardReader(BYTE* entry, UINT32 BufSize) {
+    
+    UINT32 t = 0;
+    char c = key_stroke_listener(); // for some reason, there's always an 'enter' char
+    while(t < BufSize)
+    {
+        c = key_stroke_listener();
+        if (c == 0x0D) break; // user hit 'return'
+        if (c != 0)
+        {
+            out_char(c);
+            entry[t] = c;
+            t++;
+        }
+    }
+    out_char('\n');
+    
 }

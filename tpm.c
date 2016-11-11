@@ -103,7 +103,7 @@ TPM_RESULT TPM_Unseal(
     endBufParent->authHandle = sctxParent->authHandle;
     endBufParent->nonceOdd = sctxParent->nonceOdd;
     endBufParent->continueAuthSession = FALSE;
-    memset(endBufParent->pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
+    endBufParent->pubAuth = sctxParent->pubAuth;
 
     sha1_init(ctx);
     sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
@@ -122,7 +122,7 @@ TPM_RESULT TPM_Unseal(
     endBufEntity->authHandle = sctxEntity->authHandle;
     endBufEntity->nonceOdd = sctxEntity->nonceOdd;
     endBufEntity->continueAuthSession = FALSE;
-    memset(endBufEntity->pubAuth.authdata, 0, sizeof(TPM_AUTHDATA));
+    endBufEntity->pubAuth = sctxEntity->pubAuth;
 
     hmac_init(hctx, endBufEntity->pubAuth.authdata, sizeof(TPM_AUTHDATA));
     hmac(hctx, ctx->hash, TCG_HASH_SIZE);
@@ -528,12 +528,13 @@ getTPM_PCR_INFO_LONG(
 }
 
 TPM_RESULT TPM_Seal(
-        BYTE *in_buffer, 
-        sdTPM_PCR_SELECTION select,
-        BYTE *data,
-        UINT32 dataSize, 
-        BYTE *stored_data,
-        SessionCtx *sctx)
+    BYTE *in_buffer,
+    sdTPM_PCR_SELECTION select,
+    BYTE *data,
+    UINT32 dataSize,
+    BYTE *stored_data,
+    SessionCtx *sctx,
+    BYTE *passPhraseAuthData)
 {
     TPM_RESULT res;
     struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
@@ -555,8 +556,8 @@ TPM_RESULT TPM_Seal(
     com->keyHandle = ntohl(TPM_KH_SRK);
 
     /* get encAuth to assign authData needed to Unseal. authData isn't part of our access control model so we just use a well-known secret of zeroes. */
-    memset(entityAuthData->authdata, 0, sizeof(TPM_AUTHDATA));
-    encAuth_gen(entityAuthData, sctx->sharedSecret, &sctx->nonceEven, &com->encAuth); 
+    memcpy(entityAuthData->authdata, passPhraseAuthData, sizeof(TPM_AUTHDATA));
+    encAuth_gen(entityAuthData, sctx->sharedSecret, &sctx->nonceEven, &com->encAuth);
 
     // generate TPM_PCR_INFO
     getTPM_PCR_INFO_LONG(in_buffer, &com->pcrInfo, select);
