@@ -743,13 +743,109 @@ void keyboardReader(BYTE* entry, UINT32 BufSize) {
     {
         c = key_stroke_listener();
         if (c == 0x0D) break; // user hit 'return'
-        if (c != 0)
+        if (c == 0x30) { out_char(c); entry[t] = 0; t++;}
+        else if (c != 0)
         {
             out_char(c);
-            entry[t] = c;
+            switch(c) {
+                case 0x20: entry[t] = ' ';
+                case 0x21: entry[t] = '!';
+                case 0x22: entry[t] = '"';
+                case 0x23: entry[t] = '#';
+                case 0x24: entry[t] = '$';
+                case 0x25: entry[t] = '%';
+                case 0x26: entry[t] = '&';
+                case 0x27: entry[t] = '\'';
+                case 0x28: entry[t] = '(';
+                case 0x29: entry[t] = ')';
+                case 0x2a: entry[t] = '*';
+                case 0x2b: entry[t] = '+';
+                case 0x2c: entry[t] = ',';
+                case 0x2d: entry[t] = '-';
+                case 0x2e: entry[t] = '.';
+                case 0x2f: entry[t] = '/';
+                case 0x30: entry[t] = 0;
+                case 0x31: entry[t] = 1;
+                case 0x32: entry[t] = 2;
+                case 0x33: entry[t] = 3;
+                case 0x34: entry[t] = 4;
+                case 0x35: entry[t] = 5;
+                case 0x36: entry[t] = 6;
+                case 0x37: entry[t] = 7;
+                case 0x38: entry[t] = 8;
+                case 0x39: entry[t] = 9;
+                case 0x3a: entry[t] = ':';
+                case 0x3b: entry[t] = ';';
+                case 0x3c: entry[t] = '<';
+                case 0x3d: entry[t] = '=';
+                case 0x3e: entry[t] = '>';
+                case 0x3f: entry[t] = '?';
+                case 0x40: entry[t] = '@';
+                case 0x41: entry[t] = 'A';
+                case 0x42: entry[t] = 'B';
+                case 0x43: entry[t] = 'C';
+                case 0x44: entry[t] = 'D';
+                case 0x45: entry[t] = 'E';
+                case 0x46: entry[t] = 'F';
+                case 0x47: entry[t] = 'G';
+                case 0x48: entry[t] = 'H';
+                case 0x49: entry[t] = 'I';
+                case 0x4a: entry[t] = 'J';
+                case 0x4b: entry[t] = 'K';
+                case 0x4c: entry[t] = 'L';
+                case 0x4d: entry[t] = 'M';
+                case 0x4e: entry[t] = 'N';
+                case 0x4f: entry[t] = 'O';
+                case 0x50: entry[t] = 'P';
+                case 0x51: entry[t] = 'Q';
+                case 0x52: entry[t] = 'R';
+                case 0x53: entry[t] = 'S';
+                case 0x54: entry[t] = 'T';
+                case 0x55: entry[t] = 'U';
+                case 0x56: entry[t] = 'V';
+                case 0x57: entry[t] = 'W';
+                case 0x58: entry[t] = 'X';
+                case 0x59: entry[t] = 'Y';
+                case 0x5a: entry[t] = 'Z';
+                case 0x5b: entry[t] = '[';
+                case 0x5c: entry[t] = '\\';
+                case 0x5d: entry[t] = ']';
+                case 0x5e: entry[t] = '^';
+                case 0x5f: entry[t] = '_';
+                case 0x60: entry[t] = '`';
+                case 0x61: entry[t] = 'a';
+                case 0x62: entry[t] = 'b';
+                case 0x63: entry[t] = 'c';
+                case 0x64: entry[t] = 'd';
+                case 0x65: entry[t] = 'e';
+                case 0x66: entry[t] = 'f';
+                case 0x67: entry[t] = 'g';
+                case 0x68: entry[t] = 'h';
+                case 0x69: entry[t] = 'i';
+                case 0x6a: entry[t] = 'j';
+                case 0x6b: entry[t] = 'k';
+                case 0x6c: entry[t] = 'l';
+                case 0x6d: entry[t] = 'm';
+                case 0x6e: entry[t] = 'n';
+                case 0x6f: entry[t] = 'o';
+                case 0x70: entry[t] = 'p';
+                case 0x71: entry[t] = 'q';
+                case 0x72: entry[t] = 'r';
+                case 0x73: entry[t] = 's';
+                case 0x74: entry[t] = 't';
+                case 0x75: entry[t] = 'u';
+                case 0x76: entry[t] = 'v';
+                case 0x77: entry[t] = 'w';
+                case 0x78: entry[t] = 'x';
+                case 0x79: entry[t] = 'y';
+                case 0x7a: entry[t] = 'z';
+                case 0x7b: entry[t] = '{';
+                case 0x7c: entry[t] = '|';
+                case 0x7d: entry[t] = '}';
+                case 0x7e: entry[t] = '~';
+            }
             t++;
         }
     }
     out_char('\n');
-    
 }
