@@ -375,3 +375,4 @@ void exit(unsigned status) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);
 void serial_init(void);
+int keyboardReader(BYTE* entry, UINT32 BufSize);

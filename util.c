@@ -594,3 +594,23 @@ char key_stroke_listener (void) {
     return 0;
 }
 
+int
+keyboardReader(BYTE* entry, UINT32 BufSize) {
+    
+    UINT32 t = 0;
+    char c = key_stroke_listener(); // for some reason, there's always an 'enter' char
+    while(t < BufSize)
+    {
+        c = key_stroke_listener();
+        if (c == 0x0D) break; // user hit 'return'
+        
+        if (c != 0) {
+          entry[t] = c;
+          out_char(c);
+          t++;
+        }
+    }
+    out_char('\n');
+    return t; 
+}
+

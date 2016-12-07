@@ -138,7 +138,7 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData, BYTE
 }
 
 void 
-unsealPassphrase(BYTE *ownerAuthData, BYTE *srkAuthData, BYTE *passPhraseAuthData)
+unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData)
 {
     TPM_RESULT res; 
 
@@ -154,7 +154,6 @@ unsealPassphrase(BYTE *ownerAuthData, BYTE *srkAuthData, BYTE *passPhraseAuthDat
     UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
     memset(sctx, 0, sizeof(SessionCtx));
     
-    memcpy(sctx->pubAuth.authdata, ownerAuthData, 20); 
     memcpy(sctxParent->pubAuth.authdata, srkAuthData, 20);
     memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData, 20);
 
@@ -754,7 +753,7 @@ configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
 	        reboot();
         }
         else { 
-            unsealPassphrase(ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
+            unsealPassphrase(ctxSrk->hash, ctxPas->hash);
         }
 #ifdef EXEC
         ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
@@ -783,26 +782,6 @@ configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
     ERROR(27, start_module(mbi), &string_literal);
 #endif
     return 28;
-}
-
-int
-keyboardReader(BYTE* entry, UINT32 BufSize) {
-    
-    UINT32 t = 0;
-    char c = key_stroke_listener(); // for some reason, there's always an 'enter' char
-    while(t < BufSize)
-    {
-        c = key_stroke_listener();
-        if (c == 0x0D) break; // user hit 'return'
-        
-        if (c != 0) {
-          entry[t] = c;
-          out_char(c);
-          t++;
-        }
-    }
-    out_char('\n');
-    return t; 
 }
 
 
