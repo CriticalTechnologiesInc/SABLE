@@ -78,6 +78,13 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData, BYTE
     TPM_ERROR(res, &string_literal);
 #endif
 
+#ifdef EXEC
+    out_string("\nErasing srk authdata from memory...\n");
+#else
+    out_string(&string_literal);
+#endif
+    memset(srkAuthData, 0, 20);
+
     res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx, passPhraseAuthData);
 #ifdef EXEC
     TPM_ERROR(res, "TPM_Seal()");
@@ -105,6 +112,13 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData, BYTE
 #else
     TPM_ERROR(res, &string_literal);
 #endif
+
+#ifdef EXEC
+    out_string("\nErasing owner authdata from memory...\n");
+#else
+    out_string(&string_literal);
+#endif
+    memset(ownerAuthData, 0, 20);
 
 #ifndef SAVE_TPM
     res = TPM_NV_DefineSpace(buffer, select, sctx);
@@ -245,6 +259,13 @@ unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData)
     out_string(&string_literal);
 #endif
     memset(passPhraseAuthData, 0, 20);
+
+#ifdef EXEC
+    out_string("\nErasing srk authdata from memory...\n");
+#else
+    out_string(&string_literal);
+#endif
+    memset(srkAuthData, 0, 20);
 
     // cleanup
     dealloc(heap, buffer, TCG_BUFFER_SIZE);
@@ -646,23 +667,6 @@ sable(struct mbi *mbi)
     }
 
 #ifdef EXEC
-    out_string("Please enter the ownerAuthData (20 char max): ");
-#else
-    out_string(&string_literal);
-#endif
-    
-    ownerAuthLen = keyboardReader(ownerAuthData,20);
-    
-    if (ownerAuthLen > 0) {
-      sha1_init(ctxOwn);
-      sha1(ctxOwn, ownerAuthData, ownerAuthLen);
-      sha1_finish(ctxOwn);
-    }
-    else {
-      memset(ctxOwn->hash,0,20);
-    }
-
-#ifdef EXEC
     out_string("Please enter the passPhraseAuthData (20 char max): ");
 #else
     out_string(&string_literal);
@@ -735,7 +739,24 @@ sable(struct mbi *mbi)
 
 	        wait(1000);
 
-configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
+            #ifdef EXEC
+    out_string("Please enter the ownerAuthData (20 char max): ");
+#else
+    out_string(&string_literal);
+#endif
+    
+    ownerAuthLen = keyboardReader(ownerAuthData,20);
+    
+    if (ownerAuthLen > 0) {
+      sha1_init(ctxOwn);
+      sha1(ctxOwn, ownerAuthData, ownerAuthLen);
+      sha1_finish(ctxOwn);
+    }
+    else {
+      memset(ctxOwn->hash,0,20);
+    }
+
+    configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
 
 #ifdef EXEC
             ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
@@ -761,6 +782,10 @@ configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
         ERROR(25, tis_deactivate_all(), &string_literal);
 #endif
     }
+
+    memset(srkAuthData, 0, 20);
+    memset(ownerAuthData, 0, 20);
+    memset(passPhraseAuthData, 0, 20);
 
     //zero_stack();
 
