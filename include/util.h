@@ -17,8 +17,6 @@
 #include "asm.h"
 #include "platform.h"
 
-extern const char string_literal;
-
 #define MSR_EFER                       0xC0000080
 #define EFER_SVME                      1<<12
 

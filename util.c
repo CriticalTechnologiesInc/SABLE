@@ -15,8 +15,6 @@
 
 #include "include/util.h"
 
-const char string_literal = 0;
-
 void
 memcpy(void *dest, const void *src, UINT32 len) 
 {
