@@ -21,6 +21,9 @@ DEFINE_STRING(enable_dev_at, "enable dev at");
 DEFINE_STRING(enable_DEV_protection, "enable DEV protection");
 DEFINE_STRING(dev_pointer_invalid, "dev pointer invalid");
 DEFINE_STRING(sldev_pointer_invalid, "sldev pointer invalid");
+DEFINE_STRING(not_BSP_or_APIC_disabled, "not BSP or APIC disabled");
+DEFINE_STRING(APIC_out_of_range, "APIC out of range");
+DEFINE_STRING(Interrupt_pending, "Interrupt pending");
 #else
 DEFINE_STRING(no_capability_list_support, 0);
 DEFINE_STRING(SHA_data_exceeds_maximum_size, 0);
@@ -40,4 +43,7 @@ DEFINE_STRING(enable_dev_at, 0);
 DEFINE_STRING(enable_DEV_protection, 0);
 DEFINE_STRING(dev_pointer_invalid, 0);
 DEFINE_STRING(sldev_pointer_invalid, 0);
+DEFINE_STRING(not_BSP_or_APIC_disabled, 0);
+DEFINE_STRING(APIC_out_of_range, 0);
+DEFINE_STRING(Interrupt_pending, 0);
 #endif

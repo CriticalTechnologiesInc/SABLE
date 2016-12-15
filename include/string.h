@@ -21,5 +21,8 @@ DECLARE_STRING(enable_dev_at);
 DECLARE_STRING(enable_DEV_protection);
 DECLARE_STRING(dev_pointer_invalid);
 DECLARE_STRING(sldev_pointer_invalid);
+DECLARE_STRING(not_BSP_or_APIC_disabled);
+DECLARE_STRING(APIC_out_of_range);
+DECLARE_STRING(Interrupt_pending);
 
 #endif
