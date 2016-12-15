@@ -1,10 +1,9 @@
 #ifndef STRING_H
 #define STRING_H
 
-#ifdef EXEC
-extern const char *const s_no_capability_list_support;
-extern const char *const s_SHA_data_exceeds_maximum_size;
-#else
-#endif
+#define DECLARE_STRING(str) extern const char *const s_ ## str
+
+DECLARE_STRING(no_capability_list_support);
+DECLARE_STRING(SHA_data_exceeds_maximum_size);
 
 #endif
