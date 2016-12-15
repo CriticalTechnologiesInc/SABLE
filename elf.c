@@ -18,6 +18,7 @@
 
 #include "elf.h"
 #include "alloc.h"
+#include "string.h"
 #include "util.h"
 
 enum {
@@ -78,11 +79,7 @@ int start_module(struct mbi *mbi) {
   unsigned short *elf_class_data;
 
   if (mbi->mods_count == 0) {
-#ifdef EXEC
-    out_info("No module to start.\n");
-#else
-    out_info(&string_literal);
-#endif
+    out_info(s_No_module_to_start);
     return -1;
   }
 
@@ -131,25 +128,14 @@ int start_module(struct mbi *mbi) {
     elf = (struct eh *)m->mod_start;
     elf_magic = (unsigned int *)elf->e_ident;
     elf_class_data = (unsigned short *)(elf->e_ident + 4);
-#ifdef EXEC
-    out_description("elf magic:", *elf_magic);
-    out_description("elf class_data:", *elf_class_data);
+    out_description(s_elf_magic, *elf_magic);
+    out_description(s_elf_class_data, *elf_class_data);
 
     ERROR(-31, *elf_magic != 0x464c457f || *elf_class_data != 0x0101,
-          "ELF header incorrect");
+          s_ELF_header_incorrect);
     ERROR(-32, elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
-          "ELF type incorrect");
-    ERROR(-33, sizeof(struct ph) > elf->e_phentsize, "e_phentsize to small");
-#else
-    out_description(&string_literal, *elf_magic);
-    out_description(&string_literal, *elf_class_data);
-
-    ERROR(-31, *elf_magic != 0x464c457f || *elf_class_data != 0x0101,
-          &string_literal);
-    ERROR(-32, elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
-          &string_literal);
-    ERROR(-33, sizeof(struct ph) > elf->e_phentsize, &string_literal);
-#endif
+          s_ELF_type_incorrect);
+    ERROR(-33, sizeof(struct ph) > elf->e_phentsize, s_e_phentsize_too_small);
 
     for (unsigned i = 0; i < elf->e_phnum; i++) {
       struct ph *ph =
@@ -168,11 +154,7 @@ int start_module(struct mbi *mbi) {
     gen_mov(EDX, (unsigned)mb->entry_addr);
   }
 
-#ifdef EXEC
-  out_info("jumping to next segment...\n");
-#else
-  out_info(&string_literal);
-#endif
+  out_info(s_jumping_to_next_segment);
   wait(1000);
   gen_jmp_edx();
 

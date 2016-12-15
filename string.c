@@ -24,6 +24,13 @@ DEFINE_STRING(sldev_pointer_invalid, "sldev pointer invalid");
 DEFINE_STRING(not_BSP_or_APIC_disabled, "not BSP or APIC disabled");
 DEFINE_STRING(APIC_out_of_range, "APIC out of range");
 DEFINE_STRING(Interrupt_pending, "Interrupt pending");
+DEFINE_STRING(No_module_to_start, "No module to start.\n");
+DEFINE_STRING(elf_magic, "elf magic:");
+DEFINE_STRING(elf_class_data, "elf class_data:");
+DEFINE_STRING(ELF_header_incorrect, "ELF header incorrect");
+DEFINE_STRING(ELF_type_incorrect, "ELF type incorrect");
+DEFINE_STRING(e_phentsize_too_small, "e_phentsize to small");
+DEFINE_STRING(jumping_to_next_segment, "jumping to next segment...\n");
 #else
 DEFINE_STRING(no_capability_list_support, 0);
 DEFINE_STRING(SHA_data_exceeds_maximum_size, 0);
@@ -46,4 +53,11 @@ DEFINE_STRING(sldev_pointer_invalid, 0);
 DEFINE_STRING(not_BSP_or_APIC_disabled, 0);
 DEFINE_STRING(APIC_out_of_range, 0);
 DEFINE_STRING(Interrupt_pending, 0);
+DEFINE_STRING(No_module_to_start, 0);
+DEFINE_STRING(elf_magic, 0);
+DEFINE_STRING(elf_class_data, 0);
+DEFINE_STRING(ELF_header_incorrect, 0);
+DEFINE_STRING(ELF_type_incorrect, 0);
+DEFINE_STRING(e_phentsize_too_small, 0);
+DEFINE_STRING(jumping_to_next_segment, 0);
 #endif

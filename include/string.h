@@ -24,5 +24,12 @@ DECLARE_STRING(sldev_pointer_invalid);
 DECLARE_STRING(not_BSP_or_APIC_disabled);
 DECLARE_STRING(APIC_out_of_range);
 DECLARE_STRING(Interrupt_pending);
+DECLARE_STRING(No_module_to_start);
+DECLARE_STRING(elf_magic);
+DECLARE_STRING(elf_class_data);
+DECLARE_STRING(ELF_header_incorrect);
+DECLARE_STRING(ELF_type_incorrect);
+DECLARE_STRING(e_phentsize_too_small);
+DECLARE_STRING(jumping_to_next_segment);
 
 #endif
