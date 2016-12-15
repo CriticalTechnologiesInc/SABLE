@@ -12,10 +12,9 @@
  * COPYING file for details.
  */
 
-
-#include "include/sha.h"
-#include "include/util.h"
-
+#include "sha.h"
+#include "util.h"
+#include "string.h"
 
 #define ROL(VALUE, COUNT) ((VALUE)<<COUNT | (VALUE)>>(32-COUNT))
 
@@ -116,7 +115,7 @@ sha1(struct SHA1_Context *ctx, unsigned char* value, unsigned count)
       memcpy(ctx->buffer + ctx->index, value, 64 - ctx->index);
       process_block(ctx);
       ctx->blocks++;
-      ERROR(-20, ctx->blocks>=1<<23, &string_literal);
+      ERROR(-20, ctx->blocks>=1<<23, s_SHA_data_exceeds_maximum_size);
     }
 
   memcpy(ctx->buffer + ctx->index, value, count);
