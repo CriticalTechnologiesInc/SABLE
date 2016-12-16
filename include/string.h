@@ -36,5 +36,26 @@ DECLARE_STRING(configmagic);
 DECLARE_STRING(WARNING);
 DECLARE_STRING(dashes);
 DECLARE_STRING(ERROR);
+DECLARE_STRING(TPM_Start_OIAP_failed_on_transmit);
+DECLARE_STRING(TPM_Unseal_failed_on_transmit);
+DECLARE_STRING(secret_data_too_big_for_buffer);
+DECLARE_STRING(could_not_get_random_number_from_TPM);
+DECLARE_STRING(TPM_NV_DefineSpace_failed_on_transmit);
+DECLARE_STRING(TPM_NV_ReadValueAuth_failed_on_transmit);
+DECLARE_STRING(buffer_overflow_detected);
+DECLARE_STRING(TPM_NV_WriteValueAuth_failed_on_transmit);
+DECLARE_STRING(TPM_Flush_failed_on_transmit);
+DECLARE_STRING(TPM_Seal_failed_on_transmit);
+DECLARE_STRING(TPM_GetRandom_failed_on_transmit);
+DECLARE_STRING(could_not_get_enough_random_bytes_from_TPM);
+DECLARE_STRING(TPM_PcrRead_failed_on_transmit);
+DECLARE_STRING(TPM_Extend_failed_on_transmit);
+DECLARE_STRING(TPM_Start_OSAP_failed_on_transmit);
+DECLARE_STRING(TPM_Startup_failed_on_transmit);
+DECLARE_STRING(TPM_GetCapability_Pcrs_failed);
+DECLARE_STRING(PCRs);
+DECLARE_STRING(TPM_PcrRead_failed_with);
+DECLARE_STRING(left_bracket);
+DECLARE_STRING(right_bracket);
 
 #endif
