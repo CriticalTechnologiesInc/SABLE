@@ -66,49 +66,29 @@
   }
 #endif
 
-#ifdef EXEC
 #define TPM_WARNING(result, command_name)                                      \
   {                                                                            \
     if (result) {                                                              \
-      out_string("\nWARNING: ");                                               \
+      out_string(s_WARNING);                                                   \
       out_string(command_name);                                                \
-      out_string(" -- ");                                                      \
+      out_string(s_dashes);                                                    \
       out_string(tpm_error_to_string(result));                                 \
-      out_string("\n");                                                        \
+      out_char('\n');                                                          \
     }                                                                          \
   }
 
 #define TPM_ERROR(result, command_name)                                        \
   {                                                                            \
     if (result) {                                                              \
-      out_string("\nERROR: ");                                                 \
+      out_string(s_ERROR);                                                     \
       out_string(command_name);                                                \
-      out_string(" -- ");                                                      \
+      out_string(s_dashes);                                                    \
       out_string(tpm_error_to_string(result));                                 \
-      out_string("\n");                                                        \
+      out_char('\n');                                                          \
       wait(10000);                                                             \
       reboot();                                                                \
     }                                                                          \
   }
-#else
-#define TPM_WARNING(result, command_name)                                      \
-  {                                                                            \
-    if (result) {                                                              \
-      out_string(command_name);                                                \
-      out_string(tpm_error_to_string(result));                                 \
-    }                                                                          \
-  }
-
-#define TPM_ERROR(result, command_name)                                        \
-  {                                                                            \
-    if (result) {                                                              \
-      out_string(command_name);                                                \
-      out_string(tpm_error_to_string(result));                                 \
-      wait(10000);                                                             \
-      reboot();                                                                \
-    }                                                                          \
-  }
-#endif
 /**
  * Returns result and prints the msg, if value is true.
  */

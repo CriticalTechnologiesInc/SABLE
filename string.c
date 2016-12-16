@@ -38,3 +38,6 @@ DEFINE_STRING(jumping_to_next_segment, "jumping to next segment...\n");
 DEFINE_STRING(address_d_not_aligned_or_larger_than_1MB,
               "address %d not aligned or larger then 1MB");
 DEFINE_STRING(configmagic, "SABLECONFIG");
+DEFINE_STRING(WARNING, "\nWARNING: ");
+DEFINE_STRING(dashes, " -- ");
+DEFINE_STRING(ERROR, "\nERROR: ");

@@ -33,5 +33,8 @@ DECLARE_STRING(e_phentsize_too_small);
 DECLARE_STRING(jumping_to_next_segment);
 DECLARE_STRING(address_d_not_aligned_or_larger_than_1MB);
 DECLARE_STRING(configmagic);
+DECLARE_STRING(WARNING);
+DECLARE_STRING(dashes);
+DECLARE_STRING(ERROR);
 
 #endif
