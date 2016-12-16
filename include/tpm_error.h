@@ -9,16 +9,15 @@
 #include "sable_tpm.h"
 
 #ifndef TPM_E_BASE
-#define TPM_E_BASE        ((UINT32)0)
+#define TPM_E_BASE ((UINT32)0)
 #endif
 
 #ifndef TPM_E_NON_FATAL
-#define TPM_E_NON_FATAL   ((UINT32)0x00000800)
+#define TPM_E_NON_FATAL ((UINT32)0x00000800)
 #endif
 
-
 // Successful completion of the TPM operation.
-#define TPM_SUCCESS    TPM_E_BASE
+#define TPM_SUCCESS TPM_E_BASE
 
 //
 // MessageId: TPM_E_AUTHFAIL
@@ -198,7 +197,7 @@
 //
 // MessageText:
 //
-// There is already an Owner 
+// There is already an Owner
 //
 #define TPM_E_OWNER_SET ((UINT32)(TPM_E_BASE + 0x00000014))
 
@@ -240,11 +239,11 @@
 #define TPM_E_WRONGPCRVAL ((UINT32)(TPM_E_BASE + 0x00000018))
 
 //
-// MessageId: TPM_E_BAD_PARAM_SIZE 
+// MessageId: TPM_E_BAD_PARAM_SIZE
 //
 // MessageText:
 //
-// The paramSize argument to the command has the incorrect value 
+// The paramSize argument to the command has the incorrect value
 //
 #define TPM_E_BAD_PARAM_SIZE ((UINT32)(TPM_E_BASE + 0x00000019))
 
@@ -919,8 +918,7 @@
 //
 // There is no room in the context list for additional contexts
 //
-#define TPM_E_NOCONTEXTSPACE  ((UINT32)(TPM_E_BASE + 0x00000063))
-
+#define TPM_E_NOCONTEXTSPACE ((UINT32)(TPM_E_BASE + 0x00000063))
 
 //
 // MessageId: TPM_E_RETRY

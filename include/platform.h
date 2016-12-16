@@ -7,16 +7,14 @@ There are platform dependent and general defines.
 #ifndef TSS_PLATFORM_H
 #define TSS_PLATFORM_H
 
-
-typedef  unsigned char    BYTE;  
-typedef  signed char      TSS_BOOL;
+typedef unsigned char BYTE;
+typedef signed char TSS_BOOL;
 // basetsd.h provides definitions of UINT16, UINT32 and UINT64.
-typedef  unsigned short   UINT16;
-typedef  unsigned long    UINT32;
-typedef  unsigned long long UINT64;
-typedef  unsigned short   TSS_UNICODE;
-typedef  void*            PVOID;
-
+typedef unsigned short UINT16;
+typedef unsigned long UINT32;
+typedef unsigned long long UINT64;
+typedef unsigned short TSS_UNICODE;
+typedef void *PVOID;
 
 /* Include this so that applications that use names as defined in the
  * 1.1 TSS specification can still compile

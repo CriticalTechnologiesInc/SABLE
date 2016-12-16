@@ -13,16 +13,17 @@
  */
 
 
-#include "include/alloc.h"
-#include "include/tpm_error.h"
-#include "include/version.h"
-#include "include/util.h"
-#include "include/sha.h"
-#include "include/elf.h"
-#include "include/sable_tpm.h"
-#include "include/mp.h"
-#include "include/dev.h"
-#include "include/sable.h"
+#include "string.h"
+#include "alloc.h"
+#include "tpm_error.h"
+#include "version.h"
+#include "util.h"
+#include "sha.h"
+#include "elf.h"
+#include "sable_tpm.h"
+#include "mp.h"
+#include "dev.h"
+#include "sable.h"
 
 #ifdef EXEC
 static const char *version_string = "SABLE " VERSION "\n";
@@ -302,7 +303,7 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
     //check for if this has the magic value in the first module
     //if it does, then skip the module, make mbi->mods_addr point to this new module
     //set a flag that config file has been found
-    if(!bufcmp((BYTE *)configmagic, (BYTE *)m->mod_start, strnlen_sable((BYTE *)configmagic, 20))){
+    if(!bufcmp((BYTE *)s_configmagic, (BYTE *)m->mod_start, strnlen_sable((BYTE *)s_configmagic, 20))){
 #ifdef DEBUG
         out_info("config magic detected");
 #endif

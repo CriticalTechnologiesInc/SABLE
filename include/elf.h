@@ -16,17 +16,15 @@
 
 #include "mbi.h"
 
-
-struct eh
-{
-  unsigned char  e_ident[16];
+struct eh {
+  unsigned char e_ident[16];
   unsigned short e_type;
   unsigned short e_machine;
-  unsigned int   e_version;
-  unsigned int   e_entry;
-  unsigned int   e_phoff;
-  unsigned int   e_shoff;
-  unsigned int   e_flags;
+  unsigned int e_version;
+  unsigned int e_entry;
+  unsigned int e_phoff;
+  unsigned int e_shoff;
+  unsigned int e_flags;
   unsigned short e_ehsz;
   unsigned short e_phentsize;
   unsigned short e_phnum;
@@ -38,14 +36,13 @@ struct eh
 struct ph {
   unsigned int p_type;
   unsigned int p_offset;
-  char * p_vaddr;
-  char * p_paddr;
+  char *p_vaddr;
+  char *p_paddr;
   unsigned int p_filesz;
   unsigned int p_memsz;
   unsigned int p_flags;
   unsigned int p_align;
 };
-
 
 int start_module(struct mbi *mbi);
 int extract_module(struct mbi *mbi, unsigned *entry_point);

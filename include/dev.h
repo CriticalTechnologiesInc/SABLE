@@ -43,15 +43,14 @@ enum dev_registers {
 };
 
 enum dev_cr {
-  DEV_CR_EN     = 1<<0,
-  DEV_CR_CLEAR  = 1<<1,
-  DEV_CR_IOSPEN = 1<<2,
-  DEV_CR_MCE    = 1<<3,
-  DEV_CR_INVD   = 1<<4,
-  DEV_CR_SLDEV  = 1<<5,
-  DEV_CR_PROBE  = 1<<6,
+  DEV_CR_EN = 1 << 0,
+  DEV_CR_CLEAR = 1 << 1,
+  DEV_CR_IOSPEN = 1 << 2,
+  DEV_CR_MCE = 1 << 3,
+  DEV_CR_INVD = 1 << 4,
+  DEV_CR_SLDEV = 1 << 5,
+  DEV_CR_PROBE = 1 << 6,
 };
-
 
 int disable_dev_protection(void);
 int pci_iterate_devices(void);

@@ -1,17 +1,13 @@
 #include "sha.h"
 
-#define HMAC_BLOCK_SIZE  64
+#define HMAC_BLOCK_SIZE 64
 
-struct HMAC_Context
-{
+struct HMAC_Context {
   struct SHA1_Context ctx;
   BYTE key[HMAC_BLOCK_SIZE];
 };
 
-typedef struct tdHMAC_OPad
-{
-  BYTE pad[HMAC_BLOCK_SIZE];
-} HMAC_OPad;
+typedef struct tdHMAC_OPad { BYTE pad[HMAC_BLOCK_SIZE]; } HMAC_OPad;
 
 typedef HMAC_OPad HMAC_IPad;
 

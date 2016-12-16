@@ -15,7 +15,8 @@ DEFINE_STRING(pci_debug_format_string, "    %c: %#x%x/%#x%x");
 DEFINE_STRING(device_not_found, "device not found");
 DEFINE_STRING(cap_not_found, "cap not found");
 DEFINE_STRING(invalid_DEV_HDR, "invalid DEV_HDR");
-DEFINE_STRING(disable_DEV_and_SLDEV_protection, "disable DEV and SLDEV protection");
+DEFINE_STRING(disable_DEV_and_SLDEV_protection,
+              "disable DEV and SLDEV protection");
 DEFINE_STRING(DEV_not_found, "DEV not found");
 DEFINE_STRING(enable_dev_at, "enable dev at");
 DEFINE_STRING(enable_DEV_protection, "enable DEV protection");
@@ -31,6 +32,9 @@ DEFINE_STRING(ELF_header_incorrect, "ELF header incorrect");
 DEFINE_STRING(ELF_type_incorrect, "ELF type incorrect");
 DEFINE_STRING(e_phentsize_too_small, "e_phentsize to small");
 DEFINE_STRING(jumping_to_next_segment, "jumping to next segment...\n");
+DEFINE_STRING(address_d_not_aligned_or_larger_than_1MB,
+              "address %d not aligned or larger then 1MB");
+DEFINE_STRING(configmagic, "SABLECONFIG");
 #else
 DEFINE_STRING(no_capability_list_support, 0);
 DEFINE_STRING(SHA_data_exceeds_maximum_size, 0);
@@ -60,4 +64,6 @@ DEFINE_STRING(ELF_header_incorrect, 0);
 DEFINE_STRING(ELF_type_incorrect, 0);
 DEFINE_STRING(e_phentsize_too_small, 0);
 DEFINE_STRING(jumping_to_next_segment, 0);
+DEFINE_STRING(address_d_not_aligned_or_larger_than_1MB, 0);
+DEFINE_STRING(configmagic, 0);
 #endif

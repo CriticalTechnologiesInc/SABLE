@@ -12,39 +12,35 @@
  * COPYING file for details.
  */
 
-
 #pragma once
 
-enum mbi_enum
-  {
-    MBI_MAGIC1                  = 0x1badb002,
-    MBI_MAGIC2                  = 0x2badb002,
-    MBI_FLAG_MEM               = 1 << 0,
-    MBI_FLAG_CMDLINE           = 1 << 2,
-    MBI_FLAG_MODS              = 1 << 3,
-    MBI_FLAG_MMAP              = 1 << 6,
-    MBI_FLAG_BOOT_LOADER_NAME  = 1 << 9,
-    MBI_FLAG_VBE               = 1 << 11,
-  };
-
-struct mbh
-{
-	unsigned magic;
-	unsigned flags;
-	unsigned checksum;
-	unsigned header_addr;
-	unsigned load_addr;
-	unsigned load_end_addr;
-	unsigned bss_end_addr;
-	unsigned entry_addr;
-	unsigned mode_type;
-	unsigned width;
-	unsigned height;
-	unsigned depth; 
+enum mbi_enum {
+  MBI_MAGIC1 = 0x1badb002,
+  MBI_MAGIC2 = 0x2badb002,
+  MBI_FLAG_MEM = 1 << 0,
+  MBI_FLAG_CMDLINE = 1 << 2,
+  MBI_FLAG_MODS = 1 << 3,
+  MBI_FLAG_MMAP = 1 << 6,
+  MBI_FLAG_BOOT_LOADER_NAME = 1 << 9,
+  MBI_FLAG_VBE = 1 << 11,
 };
 
-struct mbi
-{
+struct mbh {
+  unsigned magic;
+  unsigned flags;
+  unsigned checksum;
+  unsigned header_addr;
+  unsigned load_addr;
+  unsigned load_end_addr;
+  unsigned bss_end_addr;
+  unsigned entry_addr;
+  unsigned mode_type;
+  unsigned width;
+  unsigned height;
+  unsigned depth;
+};
+
+struct mbi {
   unsigned flags;
   unsigned mem_lower;
   unsigned mem_upper;
@@ -59,20 +55,16 @@ struct mbi
   unsigned boot_loader_name;
 };
 
-
-struct module
-{
+struct module {
   unsigned mod_start;
   unsigned mod_end;
   unsigned string;
   unsigned reserved;
 };
 
-
-struct mmap
-{
+struct mmap {
   unsigned size;
   unsigned long long base __attribute__((packed));
-  unsigned long long length  __attribute__((packed));
+  unsigned long long length __attribute__((packed));
   unsigned type;
 };
