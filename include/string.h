@@ -57,5 +57,23 @@ DECLARE_STRING(PCRs);
 DECLARE_STRING(TPM_PcrRead_failed_with);
 DECLARE_STRING(left_bracket);
 DECLARE_STRING(right_bracket);
+DECLARE_STRING(Fix_DID_VID_bug);
+DECLARE_STRING(STM_rev);
+DECLARE_STRING(Infineon_rev);
+DECLARE_STRING(Ateml_rev);
+DECLARE_STRING(Broadcom_rev);
+DECLARE_STRING(Qemu_TPM_rev);
+DECLARE_STRING(IBM_TPM_rev);
+DECLARE_STRING(TPM_not_found);
+DECLARE_STRING(TPM_unknown!_ID);
+DECLARE_STRING(access_register_not_valid);
+DECLARE_STRING(access_register_invalid);
+DECLARE_STRING(locality_already_active);
+DECLARE_STRING(tis_write()_not_ready);
+DECLARE_STRING(tpm_expects_more_data);
+DECLARE_STRING(sts_not_valid);
+DECLARE_STRING(more_data_available);
+DECLARE_STRING(TIS_write_error);
+DECLARE_STRING(TIS_read_error);
 
 #endif
