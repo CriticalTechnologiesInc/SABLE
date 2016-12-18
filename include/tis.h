@@ -14,6 +14,12 @@
 
 #pragma once
 
+#define TIS_BUFFER_SIZE 1024
+struct tis_buffers_s {
+  unsigned char in[TIS_BUFFER_SIZE];
+  unsigned char out[TIS_BUFFER_SIZE];
+} tis_buffers;
+
 enum tis_init {
   TIS_INIT_NO_TPM = 0,
   TIS_INIT_STM = 1,
@@ -79,5 +85,4 @@ void tis_dump(void);
 enum tis_init tis_init(int tis_base);
 int tis_deactivate_all(void);
 int tis_access(int locality, int force);
-int tis_transmit(const unsigned char *write_buffer, unsigned write_count,
-                 unsigned char *read_buffer, unsigned read_count);
+int tis_transmit(void);
