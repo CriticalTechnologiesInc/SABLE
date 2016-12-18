@@ -354,14 +354,6 @@ typedef struct {
   TPM_TAG tag;
   UINT32 paramSize;
   TPM_COMMAND_CODE ordinal;
-  TPM_PCRINDEX pcrNum;
-  TPM_DIGEST inDigest;
-} stTPM_Extend;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
   TPM_ENTITY_TYPE entityType;
   UINT32 entityValue;
   TPM_NONCE nonceOddOSAP;
@@ -440,8 +432,7 @@ TPM_RESULT TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
                           UINT32 entityValue, SessionCtx *sctx);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
-TPM_RESULT TPM_Extend(BYTE *in_buffer, TPM_PCRINDEX pcr_index,
-                      TPM_DIGEST *hash);
+const TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash);
 TPM_RESULT TPM_Unseal(BYTE *buffer, BYTE *inData, BYTE *secretData,
                       UINT32 secretDataBufSize, UINT32 *secretDataSize,
                       SessionCtx *sctxParent, SessionCtx *sctxEntity);

@@ -16,6 +16,7 @@
 #include "hmac.h"
 #include "sable_tpm.h"
 #include "string.h"
+#include "tpm_command.h"
 #include "util.h"
 
 // out = xor(authData, sha1(sharedSecret ++ nonceEven))
@@ -633,33 +634,23 @@ TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
   return res;
 }
 
-TPM_RESULT
-TPM_Extend(BYTE *in_buffer, TPM_PCRINDEX pcr_index, TPM_DIGEST *hash) {
-  TPM_RESULT res;
-  UINT32 tpm_offset_out = 0;
-  stTPM_Extend *com = alloc(heap, sizeof(stTPM_Extend), 0);
-  UINT32 paramSize = sizeof(stTPM_Extend);
-  BYTE *out_buffer = alloc(heap, paramSize, 0);
+const TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
+  TPM_RQU_COMMAND_EXTEND *in = (TPM_RQU_COMMAND_EXTEND *)tis_buffers.in;
 
-  com->tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com->paramSize = ntohl(paramSize);
+  com->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
+  com->head.paramSize = ntohl(paramSize);
   com->ordinal = ntohl(TPM_ORD_Extend);
   com->pcrNum = ntohl(pcr_index);
-  com->inDigest = *hash;
+  com->inDigest = hash;
 
-  SABLE_TPM_COPY_TO(com, sizeof(stTPM_Extend));
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_Extend_failed_on_transmit);
-  TPM_COPY_FROM(hash->digest, 0, TCG_HASH_SIZE);
+  tis_transmit();
 
-  res = (TPM_RESULT)ntohl(*((UINT32 *)(in_buffer + 6)));
+  const TPM_RSP_COMMAND_EXTEND *out =
+      (const TPM_RSP_COMMAND_EXTEND *)tis_buffers.out;
+  const TPM_EXTEND_RET ret = {.returnCode = out->returnCode,
+                              .outDigest = out->outDigest};
 
-  // cleanup
-  dealloc(heap, com, sizeof(stTPM_Extend));
-  dealloc(heap, out_buffer, paramSize);
-
-  return res;
+  return ret;
 }
 
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,

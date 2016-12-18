@@ -15,7 +15,7 @@
 #pragma once
 
 #define TIS_BUFFER_SIZE 1024
-struct tis_buffers_s {
+typedef struct {
   unsigned char in[TIS_BUFFER_SIZE];
   unsigned char out[TIS_BUFFER_SIZE];
 } tis_buffers;
