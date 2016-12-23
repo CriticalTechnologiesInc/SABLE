@@ -81,6 +81,119 @@ DEFINE_STRING(more_data_available, "more data available");
 DEFINE_STRING(TIS_write_error, "  TIS write error:");
 DEFINE_STRING(TIS_read_error, "  TIS read error:");
 
+DEFINE_STRING(SABLE, "SABLE ");
+DEFINE_STRING(\n, "\n");
+DEFINE_STRING(SABLE:, "SABLE:   ");
+DEFINE_STRING(AMD_CPU_BOOTED_BY_SABLE, "AMD CPU booted by SABLE");
+DEFINE_STRING(.slb.end_of_low, ".slb.end_of_low");
+DEFINE_STRING(.slb.aligned_end_of_low, ".slb.aligned_end_of_low");
+DEFINE_STRING(.slb.start_of_high, ".slb.start_of_high");
+DEFINE_STRING(.slb.end_of_high, ".slb.end_of_high");
+DEFINE_STRING(TPM_Start_OSAP(), "TPM_Start_OSAP()");
+DEFINE_STRING(Erasing_srk_authdata, "\nErasing srk authdata from memory...\n");
+DEFINE_STRING(TPM_Seal(), "TPM_Seal()");
+DEFINE_STRING(Erasing_passphrase_from_memory, "\nErasing passphrase from memory...\n");
+DEFINE_STRING(Erasing_passphrase_authdata, "\nErasing passphrase authdata from memory...\n");
+DEFINE_STRING(Erasing_owner_authdata,"\nErasing owner authdata from memory...\n");
+DEFINE_STRING(TPM_NV_DefineSpace(), "TPM_NV_DefineSpace()");
+DEFINE_STRING(TPM_Start_OIAP(),  "TPM_Start_OIAP()");
+DEFINE_STRING(TPM_NV_WriteValueAuth(), "TPM_NV_WriteValueAuth()");
+DEFINE_STRING(TPM_NV_ReadValueAuth(), "TPM_NV_ReadValueAuth()");
+DEFINE_STRING(TPM_Unseal(), "TPM_Unseal()");
+DEFINE_STRING(Please_confirm_that_the_passphrase, "\nPlease confirm that the passphrase shown below matches the one which was entered during system configuration. If the passphrase does not match, contact your systems administrator immediately.\n\n");
+DEFINE_STRING(Passphrase:, "Passphrase: ");
+DEFINE_STRING(If_this_is_correct, "\n\nIf this is correct, type 'yes' in all capitals: ");
+DEFINE_STRING(YES, "YES");
+DEFINE_STRING(module_flag_missing, "module flag missing");
+DEFINE_STRING(no_module_to_hash, "no module to hash");
+DEFINE_STRING(Hashing_modules_count:, "Hashing modules count:");
+DEFINE_STRING(config_magic_detected, "config magic detected");
+DEFINE_STRING(Please_enter_the_passphrase, "Please enter the passphrase (64 char max): ");
+DEFINE_STRING(mod_end_less_than_start, "mod_end less than start");
+DEFINE_STRING(Module_starts_at, "Module starts at ");
+DEFINE_STRING(Module_ends_at, "Module ends at ");
+DEFINE_STRING(TPM_Extend(), "TPM_Extend()");
+DEFINE_STRING(tis_init_failed, "tis init failed");
+DEFINE_STRING(could_not_gain_tis_ownership, "could not gain TIS ownership");
+DEFINE_STRING(TPM_Startup_Clear(), "TPM_Startup_Clear()");
+DEFINE_STRING(tis_deactivate_failed, "tis_deactivate failed");
+DEFINE_STRING(not_loaded_via_multiboot, "not loaded via multiboot");
+DEFINE_STRING(No_SVM_platform, "No SVM platform");
+DEFINE_STRING(Could_not_prepare_TPM ,"Could not prepare the TPM");
+DEFINE_STRING(start_module_failed, "start module failed");
+DEFINE_STRING(SVM_revision:, "SVM revision:");
+DEFINE_STRING(could_not_enable_SVM, "could not enable SVM");
+DEFINE_STRING(sending_an_INIT_IPI, "sending an INIT IPI to other processors failed");
+DEFINE_STRING(call_skinit, "call skinit");
+DEFINE_STRING(patch_CPU_name_tag, "patch CPU name tag");
+DEFINE_STRING(cpu_name_to_long, "cpu name to long");
+DEFINE_STRING(halt_APs_in_init_state, "halt APs in init state");
+DEFINE_STRING(sending_an_STARTUP_IPI , "sending an STARTUP IPI to other processors failed");
+DEFINE_STRING(could_not_enable_SVM, "could not enable SVM");
+DEFINE_STRING(SVM_revision: ,"SVM revision:");
+DEFINE_STRING(enable_global_interrupt_flag, "enable global interrupt flag");
+DEFINE_STRING(stgi, "stgi");
+DEFINE_STRING(DEV_disable_failed, "DEV disable failed");
+DEFINE_STRING(fixup_failed, "fixup failed");
+DEFINE_STRING(fixup_done, "fixup done");
+DEFINE_STRING(could_not_iterate_over_the_devices ,"could not iterate over the devices");
+DEFINE_STRING(no_mbi_in_sable(), "no mbi in sable()");
+DEFINE_STRING(enter_srkAuthData, "Please enter the srkAuthData (20 char max): ");
+DEFINE_STRING(enter_passPhraseAuthData, "Please enter the passPhraseAuthData (20 char max): ");
+DEFINE_STRING(could_not_gain_TIS_ownership , "could not gain TIS ownership");
+DEFINE_STRING(TPM_PcrRead(), "TPM_PcrRead()");
+DEFINE_STRING(PCR[17]:, "PCR[17]: ");
+DEFINE_STRING(calc_hash_failed, "calc hash failed");
+DEFINE_STRING(PCR[19]:, "PCR[19]: ");
+DEFINE_STRING(Sealing_passPhrase, "\nSealing passphrase: \n\n");
+DEFINE_STRING(to_PCR[19]_with_value, "\n\nto PCR[19] with value \n");
+DEFINE_STRING(enter_ownerAuthData, "Please enter the ownerAuthData (20 char max): ");
+DEFINE_STRING(tis_deactivate_failed, "tis_deactivate failed");
+DEFINE_STRING(Configuration_complete_Rebooting_now, "\nConfiguration complete. Rebooting now...\n");
+DEFINE_STRING(start_module_failed, "start module failed");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

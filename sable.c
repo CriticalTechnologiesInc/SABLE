@@ -25,27 +25,17 @@
 #include "dev.h"
 #include "sable.h"
 
-#ifdef EXEC
-static const char *version_string = "SABLE " VERSION "\n";
-const char * message_label = "SABLE:   ";
+static const char *version_string = s_SABLE + VERSION + s_\n;
+const char * message_label = s_SABLE:;
 const unsigned REALMODE_CODE = 0x20000;
-const char *CPU_NAME =  "AMD CPU booted by SABLE";
-#else
-static const char *version_string;
-const char * message_label;
-const unsigned REALMODE_CODE = 0x20000;
-const char *CPU_NAME;
-#endif
-
+const char *CPU_NAME =  s_AMD_CPU_BOOTED_BY_SABLE;
 static char config = 0;
 
 extern BYTE g_slb_zero;
-#ifdef EXEC
-BYTE g_end_of_low __attribute__((section (".slb.end_of_low"), aligned(4)));
-BYTE g_aligned_end_of_low __attribute__((section (".slb.aligned_end_of_low"), aligned(4096)));
-BYTE g_start_of_high __attribute__((section (".slb.start_of_high"), aligned(4)));
-BYTE g_end_of_high __attribute__((section (".slb.end_of_high"), aligned(4)));
-#endif
+BYTE g_end_of_low __attribute__((section (s_.slb.end_of_low), aligned(4)));
+BYTE g_aligned_end_of_low __attribute__((section (s_.slb.aligned_end_of_low), aligned(4096)));
+BYTE g_start_of_high __attribute__((section (s_.slb.start_of_high), aligned(4)));
+BYTE g_end_of_high __attribute__((section (s_.slb.start_of_high), aligned(4)));
 
 /**
  * Function to output a hash.
@@ -73,77 +63,37 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData, BYTE
     sdTPM_PCR_SELECTION select = { ntohs(PCR_SELECT_SIZE), { 0x0, 0x0, 0xa } };
     
     res = TPM_Start_OSAP(buffer,srkAuthData,TPM_ET_KEYHANDLE,TPM_KH_SRK,sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Start_OSAP()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Start_OSAP());
 
-#ifdef EXEC
-    out_string("\nErasing srk authdata from memory...\n");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_Erasing_srk_authdata);
     memset(srkAuthData, 0, 20);
-
+    
     res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx, passPhraseAuthData);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Seal()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Seal());
 
-#ifdef EXEC
-    out_string("\nErasing passphrase from memory...\n");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_Erasing_passphrase_from_memory);
     memset(passPhrase, 0, lenPassphrase);
     
-#ifdef EXEC
-    out_string("\nErasing passphrase authdata from memory...\n");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_Erasing_passphrase_authdata);
     memset(passPhraseAuthData, 0, 20);
 
     res = TPM_Start_OSAP(buffer,ownerAuthData,TPM_ET_OWNER,0,sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Start_OSAP()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Start_OSAP());
 
-#ifdef EXEC
-    out_string("\nErasing owner authdata from memory...\n");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_Erasing_owner_authdata);
     memset(ownerAuthData, 0, 20);
 
 #ifndef SAVE_TPM
     res = TPM_NV_DefineSpace(buffer, select, sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_NV_DefineSpace()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_NV_DefineSpace());
 #endif
 
     res = TPM_Start_OIAP(buffer,sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Start_OIAP()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Start_OIAP());
 
 #ifndef SAVE_TPM
     res = TPM_NV_WriteValueAuth(buffer,sealedData, 400,sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_NV_WriteValueAuth()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_NV_WriteValueAuth());
 #endif
 
     // cleanup
@@ -171,70 +121,30 @@ unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData)
     
     memcpy(sctxParent->pubAuth.authdata, srkAuthData, 20);
     memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData, 20);
-
+    
     res = TPM_Start_OIAP(buffer, sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Start_OIAP()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Start_OIAP());
 
     res = TPM_NV_ReadValueAuth(buffer, sealedData, 400, sctx);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_NV_ReadValueAuth()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_NV_ReadValueAuth());
 
     res = TPM_Start_OIAP(buffer, sctxParent);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Start_OSAP()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Start_OIAP());
 
     res = TPM_Start_OIAP(buffer, sctxEntity);
-#ifdef EXEC
-    TPM_ERROR(res, "TPM_Start_OIAP()");
-#else
-    TPM_ERROR(res, &string_literal);
-#endif
+    TPM_ERROR(res, s_TPM_Start_OIAP());
 
 #ifndef SAVE_TPM
     res = TPM_Unseal(buffer, sealedData, unsealedData, 100, unsealedDataSize, sctxParent, sctxEntity);
-#ifdef EXEC
-    TPM_WARNING(res, "TPM_Unseal()");
-#else
-    TPM_WARNING(res, &string_literal);
-#endif
+    TPM_WARNING(res, s_TPM_Unseal());
 #endif
 
-#ifdef EXEC
-    out_string("\nPlease confirm that the passphrase shown below matches the one which was entered during system configuration. If the passphrase does not match, contact your systems administrator immediately.\n\n");
-#else
-    out_string(&string_literal);
-#endif
-
-#ifdef EXEC
-    out_string("Passphrase: ");
-#else
-    out_string(&string_literal);
-#endif
-
+    out_string(s_Please_confirm_that_the_passphrase);
+    out_string(s_Passphrase:);
     out_string((char *) unsealedData);
-
-#ifdef EXEC
-    out_string("\n\nIf this is correct, type 'yes' in all capitals: ");
-#else
-    out_string(&string_literal);
-#endif
-
-#ifdef EXEC
-    char *correctEntry = "YES";
-#else
-    char *correctEntry = &string_literal;
-#endif
-
+    
+    out_string(s_If_this_is_correct);
+    char *correctEntry = s_YES;
     unsigned int t = 0;
     char c;
     c = key_stroke_listener(); // for some reason, there's always an 'enter' char
@@ -254,18 +164,10 @@ unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData)
     if (bufcmp(correctEntry, entry, 3))
         reboot();
     
-#ifdef EXEC
-    out_string("\nErasing passphrase authdata from memory...\n");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_Erasing_passphrase_authdata);
     memset(passPhraseAuthData, 0, 20);
 
-#ifdef EXEC
-    out_string("\nErasing srk authdata from memory...\n");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_Erasing_srk_authdata);
     memset(srkAuthData, 0, 20);
 
     // cleanup
@@ -287,16 +189,10 @@ int
 mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT32 *lenPassPhrase, struct SHA1_Context *ctx, TPM_DIGEST *dig)
 {
     TPM_RESULT res;
-
-#ifdef EXEC
-    CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, "module flag missing");
-    CHECK3(-12, !mbi->mods_count, "no module to hash");
-    out_description("Hashing modules count:", mbi->mods_count);
-#else
-    CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, &string_literal);
-    CHECK3(-12, !mbi->mods_count, &string_literal);
-    out_description(&string_literal, mbi->mods_count);
-#endif
+    
+    CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
+    CHECK3(-12, !mbi->mods_count, s_no_module_to_hash);
+    out_description(s_Hashing_modules_count:, mbi->mods_count);
 
     struct module *m  = (struct module *) (mbi->mods_addr);
     //
@@ -305,15 +201,11 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
     //set a flag that config file has been found
     if(!bufcmp((BYTE *)s_configmagic, (BYTE *)m->mod_start, strnlen_sable((BYTE *)s_configmagic, 20))){
 #ifdef DEBUG
-        out_info("config magic detected");
+        out_info(s_config_magic_detected);
 #endif
         config = 1;
 
-#ifdef EXEC
-        out_string("Please enter the passphrase (64 char max): ");
-#else
-        out_string(&string_literal);
-#endif
+        out_string(s_Please_enter_the_passphrase);
 
         UINT32 t = 0;
         char c = key_stroke_listener(); // for some reason, there's always an 'enter' char
@@ -343,35 +235,25 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
     for (unsigned i = 0; i < mbi->mods_count; i++, m++)
     {
         sha1_init(ctx);
-
-#ifdef EXEC
-        CHECK3(-13, m->mod_end < m->mod_start, "mod_end less than start");
-#else
-        CHECK3(-13, m->mod_end < m->mod_start, &string_literal);
-#endif
+	
+        CHECK3(-13, m->mod_end < m->mod_start, s_mod_end_less_than_start);
 
 #ifdef DEBUG
-	out_description("Module starts at ", m->mod_start);
-	out_description("Module ends at ", m->mod_end);
+	out_description(s_Module_starts_at, m->mod_start);
+	out_description(s_Module_ends_at, m->mod_end);
 #endif
 
         sha1(ctx, (BYTE *) m->mod_start, m->mod_end - m->mod_start);
         sha1_finish(ctx);
         memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
         res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig);
-#ifdef EXEC
-        TPM_ERROR(res, "TPM_Extend()");
-#else
-        TPM_ERROR(res, &string_literal);
-#endif
-
+        TPM_ERROR(res, s_TPM_Extend());
     }
 
     wait(10000);
 
     return 0;
 }
-
 
 /**
  * Prepare the TPM for skinit.
@@ -386,35 +268,17 @@ prepare_tpm(BYTE *buffer)
 
     tpm = tis_init(TIS_BASE);
 
-#ifdef EXEC
-    CHECK4(-60, 0 >= tpm, "tis init failed", tpm);
-#else
-    CHECK4(-60, 0 >= tpm, &string_literal, tpm);
-#endif
-
-#ifdef EXEC
-    CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), "could not gain TIS ownership");
-#else
-    CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), &string_literal);
-#endif
+    CHECK4(-60, 0 >= tpm, s_tis_init_failed, tpm);
+    CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), s_could_not_gain_tis_ownership);
 
     res = TPM_Startup_Clear(buffer);
     if (res && res != TPM_E_INVALID_POSTINIT)
-#ifdef EXEC
-        TPM_ERROR(res, "TPM_Startup_Clear()");
-#else
-        TPM_ERROR(res, &string_literal);
-#endif
-
-#ifdef EXEC
-    CHECK3(-62, tis_deactivate_all(), "tis_deactivate failed");
-#else
-    CHECK3(-62, tis_deactivate_all(), &string_literal);
-#endif
-
+        TPM_ERROR(res, s_TPM_Startup_Clear());
+    
+    CHECK3(-62, tis_deactivate_all(), s_tis_deactivate_failed);
+    
     return tpm;
 }
-
 
 /**
  * This function runs before skinit and has to enable SVM in the processor
@@ -422,8 +286,7 @@ prepare_tpm(BYTE *buffer)
  */
 int
 main(struct mbi *mbi, unsigned flags)
-{
-
+{ 
     // initialize the heap
     UINT32 heap_len = 0x00040000;
     init_allocator();
@@ -432,11 +295,7 @@ main(struct mbi *mbi, unsigned flags)
     BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
 
     out_string(version_string);
-#ifdef EXEC
-    ERROR(10, !mbi || flags != MBI_MAGIC2, "not loaded via multiboot");
-#else
-    ERROR(10, !mbi || flags != MBI_MAGIC2, &string_literal);
-#endif
+    ERROR(10, !mbi || flags != MBI_MAGIC2, s_not_loaded_via_multiboot);
 
     // set bootloader name
     mbi->flags |= MBI_FLAG_BOOT_LOADER_NAME;
@@ -446,40 +305,22 @@ main(struct mbi *mbi, unsigned flags)
     if (0 >= prepare_tpm(buffer) || (0 > revision))
     {
         if (0 > revision)
-#ifdef EXEC
-	        out_info("No SVM platform");
-#else
-	        out_info(&string_literal);
-#endif
+	        out_info(s_No_SVM_platform);
         else
-#ifdef EXEC
-	        out_info("Could not prepare the TPM");
-#else
-	        out_info(&string_literal);
-#endif
+	        out_info(s_Could_not_prepare_TPM);
 
-#ifdef EXEC
-        ERROR(11, start_module(mbi), "start module failed");
-#else
-        ERROR(11, start_module(mbi), &string_literal);
-#endif
+        ERROR(11, start_module(mbi), s_start_module_failed);
     }
 
-#ifdef EXEC
-    out_description("SVM revision:", revision);
-    ERROR(12, enable_svm(), "could not enable SVM");
-    ERROR(13, stop_processors(), "sending an INIT IPI to other processors failed");
-#else
-    out_description(&string_literal, revision);
-    ERROR(12, enable_svm(), &string_literal);
-    ERROR(13, stop_processors(), &string_literal);
-#endif
+    out_description(s_SVM_revision:, revision);
+    ERROR(12, enable_svm(), s_SVM_revision:);
+    ERROR(13, stop_processors(), s_sending_an_INIT_IPI);
 
     // cleanup
     dealloc(heap, buffer, TCG_BUFFER_SIZE);
 
 #ifdef DEBUG
-    out_info("call skinit");
+    out_info(s_call_skinit);
     wait(1000);
 #endif
     do_skinit();
@@ -524,58 +365,24 @@ int
 fixup(void)
 {
     unsigned i;
-
-#ifdef EXEC
-    out_info("patch CPU name tag");
-#else
-    out_info(&string_literal);
-#endif
-
-#ifdef EXEC
-    CHECK3(-10, strnlen_sable((BYTE *)CPU_NAME, 1024)>=48,"cpu name to long");
-#else
-    CHECK3(-10, strnlen_sable((BYTE *)CPU_NAME, 1024)>=48,&string_literal);
-#endif
+    out_info(s_patch_CPU_name_tag));
+    CHECK3(-10, strnlen_sable((BYTE *)CPU_NAME, 1024)>=48,s_cpu_name_to_long);
 
     for (i = 0; i<6; i++)
         wrmsr(0xc0010030+i, * (unsigned long long*) (CPU_NAME+i*8));
 
-#ifdef EXEC
-    out_info("halt APs in init state");
-#else
-    out_info(&string_literal);
-#endif
+    out_info(s_halt_APs_in_init_state);
     int revision;
-
     /**
      * Start the stopped APs and execute some fixup code.
      */
     memcpy((char *) REALMODE_CODE, &smp_init_start, &smp_init_end - &smp_init_start);
-#ifdef EXEC
-    CHECK3(-2, start_processors(REALMODE_CODE), "sending an STARTUP IPI to other processors failed");
-#else
-    CHECK3(-2, start_processors(REALMODE_CODE), &string_literal);
-#endif
-
+    CHECK3(-2, start_processors(REALMODE_CODE), s_sending_an_STARTUP_IPI);
     revision = enable_svm();
-#ifdef EXEC
-    CHECK3(12, revision, "could not enable SVM");
-    out_description("SVM revision:", revision);
-#else
-    CHECK3(12, revision, &string_literal);
-    out_description(&string_literal, revision);
-#endif
-
-#ifdef EXEC
-    out_info("enable global interrupt flag");
-#else
-    out_info(&string_literal);
-#endif
-
-#ifdef EXEC
-    asm volatile("stgi");  // Not included in proof!
-#endif
-
+    CHECK3(12, revision, s_could_not_enable_SVM);
+    out_description(s_SVM_revision:, revision);
+    out_info(s_enable_global_interrupt_flag);
+    asm volatile(s_stgi);  // Not included in proof!
     return 0;
 }
 
@@ -584,29 +391,13 @@ int revert_skinit(void)
     if (0 < check_cpuid())
     {
         if (disable_dev_protection())
-#ifdef EXEC
-            out_info("DEV disable failed");
-#else
-            out_info(&string_literal);
-#endif
-
-#ifdef EXEC
-        CHECK3(11, fixup(), "fixup failed");
-#else
-        CHECK3(11, fixup(), &string_literal);
-#endif
-#ifdef EXEC
-        out_info("fixup done");
-#else
-        out_info(&string_literal);
-#endif
+            out_info(s_DEV_disable_failed);
+	
+        CHECK3(11, fixup(), s_fixup_failed);
+        out_info(s_fixup_done);
     }
 
-#ifdef EXEC
-    ERROR(12, pci_iterate_devices(), "could not iterate over the devices");
-#else
-    ERROR(12, pci_iterate_devices(), &string_literal);
-#endif
+    ERROR(12, pci_iterate_devices(), s_could_not_iterate_over_the_devices);
 
     return 0;
 }
@@ -643,19 +434,9 @@ sable(struct mbi *mbi)
     srkAuthLen = 0;
     memset(passPhraseAuthData, 0, 20);
     passAuthLen = 0;
-
-#ifdef EXEC
-    ERROR(20, !mbi, "no mbi in sable()");
-#else
-    ERROR(20, !mbi, &string_literal);
-#endif
     
-#ifdef EXEC
-    out_string("Please enter the srkAuthData (20 char max): ");
-#else
-    out_string(&string_literal);
-#endif
-    
+    ERROR(20, !mbi, s_no_mbi_in_sable());
+    out_string(s_enter_srkAuthData);
     srkAuthLen = keyboardReader(srkAuthData,20);  
 
     if (srkAuthLen > 0) {
@@ -667,11 +448,7 @@ sable(struct mbi *mbi)
       memset(ctxSrk->hash,0,20);
     }
 
-#ifdef EXEC
-    out_string("Please enter the passPhraseAuthData (20 char max): ");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_enter_passPhraseAuthData);
     
     passAuthLen = keyboardReader(passPhraseAuthData, 20);
 
@@ -686,65 +463,31 @@ sable(struct mbi *mbi)
 
     if (tis_init(TIS_BASE))
     {
-
-#ifdef EXEC
-        ERROR(21, !tis_access(TIS_LOCALITY_2, 0), "could not gain TIS ownership");
-#else
-        ERROR(21, !tis_access(TIS_LOCALITY_2, 0), &string_literal);
-#endif
+        ERROR(21, !tis_access(TIS_LOCALITY_2, 0), s_could_not_gain_TIS_ownership);
 
         res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
-#ifdef EXEC
-        TPM_ERROR(res, "TPM_PcrRead()");
-#else
-        TPM_ERROR(res, &string_literal);
-#endif
-
+        TPM_ERROR(res, s_TPM_PcrRead());
+	
 #ifdef DEBUG
-        show_hash("PCR[17]: ", dig);
+        show_hash(s_PCR[17]:, dig);
         wait(1000);
 #endif
 
-#ifdef EXEC
-        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,lenPassphrase, ctx, dig),  "calc hash failed");
-#else
-        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,lenPassphrase, ctx, dig),  &string_literal);
-#endif
+        ERROR(22, mbi_calc_hash(mbi,passPhrase,64,lenPassphrase, ctx, dig),  s_calc_hash_failed);
 
 #ifdef DEBUG
-        show_hash("PCR[19]: ", dig);
+        show_hash(s_PCR[19]:, dig);
         dump_pcrs(ctx->buffer);
 #endif
 
         if (config == 1) {
+            out_string(s_Sealing_passPhrase);
+	    out_string((char *)passPhrase);
+	    out_string(s_to_PCR[19]_with_value);
+            show_hash(s_PCR[19]:, dig);
+	    wait(1000);
 
-#ifdef EXEC
-            out_string("\nSealing passphrase: \n\n");
-#else
-            out_string(&string_literal);
-#endif
-
-	        out_string((char *)passPhrase);
-
-#ifdef EXEC
-	        out_string("\n\nto PCR[19] with value \n");
-#else
-	        out_string(&string_literal);
-#endif
-
-#ifdef EXEC
-            show_hash("PCR[19]: ", dig);
-#else
-            show_hash(&string_literal, dig);
-#endif
-
-	        wait(1000);
-
-            #ifdef EXEC
-    out_string("Please enter the ownerAuthData (20 char max): ");
-#else
-    out_string(&string_literal);
-#endif
+    out_string(s_enter_ownerAuthData);
     
     ownerAuthLen = keyboardReader(ownerAuthData,20);
     
@@ -757,31 +500,17 @@ sable(struct mbi *mbi)
       memset(ctxOwn->hash,0,20);
     }
 
-    configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
-
-#ifdef EXEC
-            ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
-#else
-            ERROR(25, tis_deactivate_all(), &string_literal);
-#endif
-
-#ifdef EXEC
-	        out_string("\nConfiguration complete. Rebooting now...\n");
-#else
-	        out_string(&string_literal);
-#endif
-
-	        wait(5000);
-	        reboot();
+            configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash, ctxPas->hash);
+            ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
+	    out_string(s_Configuration_complete_Rebooting_now);
+	    wait(5000);
+	    reboot();
         }
         else { 
             unsealPassphrase(ctxSrk->hash, ctxPas->hash);
         }
-#ifdef EXEC
-        ERROR(25, tis_deactivate_all(), "tis_deactivate failed");
-#else
-        ERROR(25, tis_deactivate_all(), &string_literal);
-#endif
+	  
+        ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
     }
 
     memset(srkAuthData, 0, 20);
@@ -802,11 +531,7 @@ sable(struct mbi *mbi)
     dealloc(heap, ownerAuthData, 20);
     dealloc(heap, passPhraseAuthData, 20);
 
-#ifdef EXEC
-    ERROR(27, start_module(mbi), "start module failed");
-#else
-    ERROR(27, start_module(mbi), &string_literal);
-#endif
+    ERROR(27, start_module(mbi), s_start_module_failed);
     return 28;
 }
 
