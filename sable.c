@@ -25,17 +25,28 @@
 #include "dev.h"
 #include "sable.h"
 
-static const char *version_string = s_SABLE + VERSION + s_\n;
-const char * message_label = s_SABLE:;
+
+#ifdef EXEC
+static const char *version_string = "SABLE " VERSION "\n";
+const char * message_label = "SABLE:   ";
 const unsigned REALMODE_CODE = 0x20000;
-const char *CPU_NAME =  s_AMD_CPU_BOOTED_BY_SABLE;
+const char *CPU_NAME =  "AMD CPU booted by SABLE";
+#else
+static const char *version_string;
+const char * message_label;
+const unsigned REALMODE_CODE = 0x20000;
+const char *CPU_NAME;
+#endif
+
 static char config = 0;
 
 extern BYTE g_slb_zero;
-BYTE g_end_of_low __attribute__((section (s_.slb.end_of_low), aligned(4)));
-BYTE g_aligned_end_of_low __attribute__((section (s_.slb.aligned_end_of_low), aligned(4096)));
-BYTE g_start_of_high __attribute__((section (s_.slb.start_of_high), aligned(4)));
-BYTE g_end_of_high __attribute__((section (s_.slb.start_of_high), aligned(4)));
+#ifdef EXEC
+BYTE g_end_of_low __attribute__((section (".slb.end_of_low"), aligned(4)));
+BYTE g_aligned_end_of_low __attribute__((section (".slb.aligned_end_of_low"), aligned(4096)));
+BYTE g_start_of_high __attribute__((section (".slb.start_of_high"), aligned(4)));
+BYTE g_end_of_high __attribute__((section (".slb.end_of_high"), aligned(4)));
+#endif
 
 /**
  * Function to output a hash.
@@ -63,13 +74,13 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData, BYTE
     sdTPM_PCR_SELECTION select = { ntohs(PCR_SELECT_SIZE), { 0x0, 0x0, 0xa } };
     
     res = TPM_Start_OSAP(buffer,srkAuthData,TPM_ET_KEYHANDLE,TPM_KH_SRK,sctx);
-    TPM_ERROR(res, s_TPM_Start_OSAP());
+    TPM_ERROR(res, s_TPM_Start_OSAP);
 
     out_string(s_Erasing_srk_authdata);
     memset(srkAuthData, 0, 20);
     
     res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx, passPhraseAuthData);
-    TPM_ERROR(res, s_TPM_Seal());
+    TPM_ERROR(res, s_TPM_Seal);
 
     out_string(s_Erasing_passphrase_from_memory);
     memset(passPhrase, 0, lenPassphrase);
@@ -78,22 +89,22 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData, BYTE
     memset(passPhraseAuthData, 0, 20);
 
     res = TPM_Start_OSAP(buffer,ownerAuthData,TPM_ET_OWNER,0,sctx);
-    TPM_ERROR(res, s_TPM_Start_OSAP());
+    TPM_ERROR(res, s_TPM_Start_OSAP);
 
     out_string(s_Erasing_owner_authdata);
     memset(ownerAuthData, 0, 20);
 
 #ifndef SAVE_TPM
     res = TPM_NV_DefineSpace(buffer, select, sctx);
-    TPM_ERROR(res, s_TPM_NV_DefineSpace());
+    TPM_ERROR(res, s_TPM_NV_DefineSpace);
 #endif
 
     res = TPM_Start_OIAP(buffer,sctx);
-    TPM_ERROR(res, s_TPM_Start_OIAP());
+    TPM_ERROR(res, s_TPM_Start_OIAP);
 
 #ifndef SAVE_TPM
     res = TPM_NV_WriteValueAuth(buffer,sealedData, 400,sctx);
-    TPM_ERROR(res, s_TPM_NV_WriteValueAuth());
+    TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 #endif
 
     // cleanup
@@ -123,24 +134,24 @@ unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData)
     memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData, 20);
     
     res = TPM_Start_OIAP(buffer, sctx);
-    TPM_ERROR(res, s_TPM_Start_OIAP());
+    TPM_ERROR(res, s_TPM_Start_OIAP);
 
     res = TPM_NV_ReadValueAuth(buffer, sealedData, 400, sctx);
-    TPM_ERROR(res, s_TPM_NV_ReadValueAuth());
+    TPM_ERROR(res, s_TPM_NV_ReadValueAuth);
 
     res = TPM_Start_OIAP(buffer, sctxParent);
-    TPM_ERROR(res, s_TPM_Start_OIAP());
+    TPM_ERROR(res, s_TPM_Start_OIAP);
 
     res = TPM_Start_OIAP(buffer, sctxEntity);
-    TPM_ERROR(res, s_TPM_Start_OIAP());
+    TPM_ERROR(res, s_TPM_Start_OIAP);
 
 #ifndef SAVE_TPM
     res = TPM_Unseal(buffer, sealedData, unsealedData, 100, unsealedDataSize, sctxParent, sctxEntity);
-    TPM_WARNING(res, s_TPM_Unseal());
+    TPM_WARNING(res, s_TPM_Unseal);
 #endif
 
     out_string(s_Please_confirm_that_the_passphrase);
-    out_string(s_Passphrase:);
+    out_string(s_Passphrase);
     out_string((char *) unsealedData);
     
     out_string(s_If_this_is_correct);
@@ -192,7 +203,7 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
     
     CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
     CHECK3(-12, !mbi->mods_count, s_no_module_to_hash);
-    out_description(s_Hashing_modules_count:, mbi->mods_count);
+    out_description(s_Hashing_modules_count, mbi->mods_count);
 
     struct module *m  = (struct module *) (mbi->mods_addr);
     //
@@ -247,7 +258,7 @@ mbi_calc_hash(struct mbi *mbi, BYTE* passPhrase, UINT32 passPhraseBufSize, UINT3
         sha1_finish(ctx);
         memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
         res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig);
-        TPM_ERROR(res, s_TPM_Extend());
+        TPM_ERROR(res, s_TPM_Extend);
     }
 
     wait(10000);
@@ -273,7 +284,7 @@ prepare_tpm(BYTE *buffer)
 
     res = TPM_Startup_Clear(buffer);
     if (res && res != TPM_E_INVALID_POSTINIT)
-        TPM_ERROR(res, s_TPM_Startup_Clear());
+        TPM_ERROR(res, s_TPM_Startup_Clear);
     
     CHECK3(-62, tis_deactivate_all(), s_tis_deactivate_failed);
     
@@ -312,8 +323,8 @@ main(struct mbi *mbi, unsigned flags)
         ERROR(11, start_module(mbi), s_start_module_failed);
     }
 
-    out_description(s_SVM_revision:, revision);
-    ERROR(12, enable_svm(), s_SVM_revision:);
+    out_description(s_SVM_revision, revision);
+    ERROR(12, enable_svm(), s_SVM_revision);
     ERROR(13, stop_processors(), s_sending_an_INIT_IPI);
 
     // cleanup
@@ -365,7 +376,7 @@ int
 fixup(void)
 {
     unsigned i;
-    out_info(s_patch_CPU_name_tag));
+    out_info(s_patch_CPU_name_tag);
     CHECK3(-10, strnlen_sable((BYTE *)CPU_NAME, 1024)>=48,s_cpu_name_to_long);
 
     for (i = 0; i<6; i++)
@@ -380,9 +391,13 @@ fixup(void)
     CHECK3(-2, start_processors(REALMODE_CODE), s_sending_an_STARTUP_IPI);
     revision = enable_svm();
     CHECK3(12, revision, s_could_not_enable_SVM);
-    out_description(s_SVM_revision:, revision);
+    out_description(s_SVM_revision, revision);
     out_info(s_enable_global_interrupt_flag);
-    asm volatile(s_stgi);  // Not included in proof!
+
+#ifdef EXEC
+    asm volatile("stgi");  // Not included in proof!
+#endif
+
     return 0;
 }
 
@@ -435,7 +450,7 @@ sable(struct mbi *mbi)
     memset(passPhraseAuthData, 0, 20);
     passAuthLen = 0;
     
-    ERROR(20, !mbi, s_no_mbi_in_sable());
+    ERROR(20, !mbi, s_no_mbi_in_sable);
     out_string(s_enter_srkAuthData);
     srkAuthLen = keyboardReader(srkAuthData,20);  
 
@@ -466,25 +481,25 @@ sable(struct mbi *mbi)
         ERROR(21, !tis_access(TIS_LOCALITY_2, 0), s_could_not_gain_TIS_ownership);
 
         res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
-        TPM_ERROR(res, s_TPM_PcrRead());
+        TPM_ERROR(res, s_TPM_PcrRead);
 	
 #ifdef DEBUG
-        show_hash(s_PCR[17]:, dig);
+        show_hash(s_PCR17, dig);
         wait(1000);
 #endif
 
         ERROR(22, mbi_calc_hash(mbi,passPhrase,64,lenPassphrase, ctx, dig),  s_calc_hash_failed);
 
 #ifdef DEBUG
-        show_hash(s_PCR[19]:, dig);
+        show_hash(s_PCR19, dig);
         dump_pcrs(ctx->buffer);
 #endif
 
         if (config == 1) {
             out_string(s_Sealing_passPhrase);
 	    out_string((char *)passPhrase);
-	    out_string(s_to_PCR[19]_with_value);
-            show_hash(s_PCR[19]:, dig);
+	    out_string(s_to_PCR19_with_value);
+            show_hash(s_PCR19, dig);
 	    wait(1000);
 
     out_string(s_enter_ownerAuthData);
@@ -515,7 +530,7 @@ sable(struct mbi *mbi)
 
     memset(srkAuthData, 0, 20);
     memset(ownerAuthData, 0, 20);
-    memset(passPhraseAuthData, 0, 20);
+    memset(passPhraseAuthData, 0, 20); 
 
     //zero_stack();
 

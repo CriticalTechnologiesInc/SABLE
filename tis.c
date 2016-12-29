@@ -81,7 +81,7 @@ tis_init(int base)
       out_info(s_TPM_not_found);
       return TIS_INIT_NO_TPM;
     default:
-      out_description(s_TPM_unknown!_ID,id->did_vid);
+      out_description(s_TPM_unknown_ID,id->did_vid);
       return TIS_INIT_NO_TPM;
     }
 }
@@ -178,7 +178,7 @@ tis_write(const unsigned char *buffer, unsigned int size)
       mmap->sts_base = TIS_STS_CMD_READY;
       wait_state(mmap, TIS_STS_CMD_READY);
     }
-  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), s_tis_write()_not_ready);
+  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), s_tis_write_not_ready);
 
 
   for(res=0; res < size;res++) {
