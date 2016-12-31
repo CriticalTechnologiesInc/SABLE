@@ -340,7 +340,7 @@ void out_info(const char *msg);
  */
 void memcpy(void *dest, const void *src, UINT32 len);
 void memset(void *s, BYTE c, UINT32 len);
-UINT32 bufcmp(void *buf1, void *buf2, UINT32 size);
+UINT32 bufcmp(const void *buf1, const void *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 UINT32 strnlen_sable(BYTE *value, UINT32 size);
 void wait(int ms);

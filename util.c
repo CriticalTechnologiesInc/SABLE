@@ -51,7 +51,7 @@ strnlen_sable(BYTE *value, UINT32 size) {
 
 // compares two buffers for a certain length
 UINT32
-bufcmp(void *buf1, void *buf2, UINT32 size) {
+bufcmp(const void *buf1, const void *buf2, UINT32 size) {
   UINT32 i;
   for (i = 0; i < size; i++)
     if (*((unsigned char *)buf1 + i) != *((unsigned char *)buf2 + i))
@@ -206,7 +206,7 @@ void out_hex(unsigned value, unsigned bitlen) {
  * message label.
  */
 void out_description(const char *prefix, unsigned int value) {
-  out_string(message_label);
+  out_string(s_message_label);
   out_string(prefix);
   out_char(' ');
   out_hex(value, 0);
@@ -217,7 +217,7 @@ void out_description(const char *prefix, unsigned int value) {
  * Output a string, prefixed with a message label.
  */
 void out_info(const char *msg) {
-  out_string(message_label);
+  out_string(s_message_label);
   out_string(msg);
   out_char('\n');
 }

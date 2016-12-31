@@ -144,5 +144,8 @@ DECLARE_STRING(enter_ownerAuthData);
 DECLARE_STRING(tis_deactivate_failed);
 DECLARE_STRING(Configuration_complete_Rebooting_now);
 DECLARE_STRING(start_module_failed);
+DECLARE_STRING(version_string);
+DECLARE_STRING(message_label);
+DECLARE_STRING(CPU_NAME);
 
 #endif
