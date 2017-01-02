@@ -481,8 +481,6 @@ char key_stroke_listener(void) {
 
   //! test if this is a break code (Original XT Scan Code Set specific)
   if (code & 0x80) { // test bit 7
-    // out_description("Break code", code); DEBUG
-
     //! covert the break code into its make code equivelant
     code -= 0x80;
 
@@ -499,8 +497,6 @@ char key_stroke_listener(void) {
       return kybrd_key_to_ascii(key);
     }
   } else {
-    // out_description("Make code", code); DEBUG
-
     //! this is a make code - set the scan code
     scancode = code;
 

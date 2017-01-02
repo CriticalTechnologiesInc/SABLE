@@ -197,7 +197,7 @@ static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
   // set a flag that config file has been found
   if (!bufcmp((BYTE *)s_configmagic, (BYTE *)m->mod_start,
               strnlen_sable((BYTE *)s_configmagic, 20))) {
-#ifdef DEBUG
+#ifndef NDEBUG
     out_info(s_config_magic_detected);
 #endif
     config = 1;
@@ -234,7 +234,7 @@ static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
 
     CHECK3(-13, m->mod_end < m->mod_start, s_mod_end_less_than_start);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     out_description(s_Module_starts_at, m->mod_start);
     out_description(s_Module_ends_at, m->mod_end);
 #endif
@@ -309,7 +309,7 @@ int main(struct mbi *mbi, unsigned flags) {
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
 
-#ifdef DEBUG
+#ifndef NDEBUG
   out_info(s_call_skinit);
   wait(1000);
 #endif
@@ -454,7 +454,7 @@ int sable(struct mbi *mbi) {
     res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
     TPM_ERROR(res, s_TPM_PcrRead);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     show_hash(s_PCR17, dig);
     wait(1000);
 #endif
@@ -462,7 +462,7 @@ int sable(struct mbi *mbi) {
     ERROR(22, mbi_calc_hash(mbi, passPhrase, 64, lenPassphrase, ctx, dig),
           s_calc_hash_failed);
 
-#ifdef DEBUG
+#ifndef NDEBUG
     show_hash(s_PCR19, dig);
     dump_pcrs(ctx->buffer);
 #endif

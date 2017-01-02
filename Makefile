@@ -2,14 +2,9 @@
 # Makefile for SABLE
 #
 
-LOADER=sable
+.PHONY: clean debug release
 
-CC=gcc
-RM=rm -f
-AS=as
-AR=ar
-LD=ld
-OBJCOPY=objcopy
+LOADER=sable
 
 VERBOSE = @
 
@@ -19,21 +14,23 @@ S_SRCS := $(wildcard *.S)
 OBJS := $(S_SRCS:.S=.o) $(C_SRCS:.c=.o)
 
 checkcc    = $(shell if $(CC) $(1) -c -x c /dev/null -o /dev/null >/dev/null 2>&1; then echo "$(1)"; fi)
-CCFLAGS   += -Wno-main -Wstrict-aliasing=0 -DEXEC -fno-builtin -fpack-struct -m32 -std=gnu99 -mregparm=3 -Iinclude/ -W -Wall -fstrict-aliasing -fomit-frame-pointer -minline-all-stringops -Winline  --param max-inline-insns-single=50
+CCFLAGS   += -Wall -Wno-main -Wstrict-aliasing=0 -DEXEC -fno-builtin -fpack-struct -m32 -std=gnu99 -mregparm=3 -Iinclude/ -W -fstrict-aliasing -fomit-frame-pointer -minline-all-stringops -Winline  --param max-inline-insns-single=50
 CCFLAGS	  += $(call checkcc,-fno-stack-protector)
-
-ifeq ($(DEBUG),TRUE)
-	CCFLAGS += -DDEBUG
-endif
+LDFLAGS   += -m elf_i386 -N
 
 ifeq ($(SAVE_TPM),TRUE)
 	CCFLAGS += -DSAVE_TPM
 endif
 
-sable: $(LOADER).ld $(OBJS)
-	$(LD) -m elf_i386 -N -o $@ -T $^
+release: CCFLAGS += -DNDEBUG
+release: sable
 
-.PHONY: clean
+debug: CCFLAGS += -g
+debug: sable
+
+sable: $(LOADER).ld $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ -T $^
+
 clean:
 	$(VERBOSE) $(RM) $(LOADER) $(OBJS)
 
