@@ -17,7 +17,7 @@ SECTIONS
     /* Note: expression evaulate lazily.  We want to be sure the
      * slb_code contents from asm.S are at very start of the resulting
      * image.  We also need to make sure we don't overflow region low,
-     * which we do manually by specifying what input file's contents 
+     * which we do manually by specifying what input file's contents
      * go where.
      */
   ENTRY(__start)
