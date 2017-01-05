@@ -16,6 +16,10 @@ typedef unsigned long long UINT64;
 typedef unsigned short TSS_UNICODE;
 typedef void *PVOID;
 
+typedef char bool;
+#define true 1
+#define false 0
+
 /* Include this so that applications that use names as defined in the
  * 1.1 TSS specification can still compile
  */
