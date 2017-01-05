@@ -16,10 +16,10 @@
 #include "alloc.h"
 #include "dev.h"
 #include "elf.h"
-#include "tpm.h"
 #include "mp.h"
 #include "sha.h"
 #include "string.h"
+#include "tpm.h"
 #include "tpm_error.h"
 #include "util.h"
 #include "version.h"
@@ -272,7 +272,7 @@ static int prepare_tpm(BYTE *buffer) {
  * This function runs before skinit and has to enable SVM in the processor
  * and disable all localities.
  */
-int main(struct mbi *mbi, unsigned flags) {
+int _main(struct mbi *mbi, unsigned flags) {
   // initialize the heap
   UINT32 heap_len = 0x00040000;
   init_allocator();
@@ -349,7 +349,8 @@ void zero_stack (void)
 int fixup(void) {
   unsigned i;
   out_info(s_patch_CPU_name_tag);
-  CHECK3(-10, strnlen_sable((BYTE *)s_CPU_NAME, 1024) >= 48, s_cpu_name_to_long);
+  CHECK3(-10, strnlen_sable((BYTE *)s_CPU_NAME, 1024) >= 48,
+         s_cpu_name_to_long);
 
   for (i = 0; i < 6; i++)
     wrmsr(0xc0010030 + i, *(unsigned long long *)(s_CPU_NAME + i * 8));

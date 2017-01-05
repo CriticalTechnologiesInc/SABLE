@@ -12,9 +12,9 @@
  * COPYING file for details.
  */
 
+#include "tpm.h"
 #include "alloc.h"
 #include "hmac.h"
-#include "tpm.h"
 #include "string.h"
 #include "tpm_command.h"
 #include "util.h"
