@@ -20,7 +20,7 @@
 #include "util.h"
 #include "sha.h"
 #include "elf.h"
-#include "sable_tpm.h"
+#include "tpm.h"
 #include "mp.h"
 #include "dev.h"
 #include "sable.h"

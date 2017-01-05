@@ -14,7 +14,7 @@
 
 #include "alloc.h"
 #include "hmac.h"
-#include "sable_tpm.h"
+#include "tpm.h"
 #include "string.h"
 #include "tpm_command.h"
 #include "util.h"
@@ -634,16 +634,16 @@ TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
   return res;
 }
 
-const TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
+TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
   TPM_RQU_COMMAND_EXTEND *in = (TPM_RQU_COMMAND_EXTEND *)tis_buffers.in;
 
-  com->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com->head.paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_Extend);
-  com->pcrNum = ntohl(pcr_index);
-  com->inDigest = hash;
+  in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
+  in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_EXTEND));
+  in->ordinal = ntohl(TPM_ORD_Extend);
+  in->pcrNum = ntohl(pcr_index);
+  in->inDigest = hash;
 
-  tis_transmit();
+  tis_transmit_new();
 
   const TPM_RSP_COMMAND_EXTEND *out =
       (const TPM_RSP_COMMAND_EXTEND *)tis_buffers.out;

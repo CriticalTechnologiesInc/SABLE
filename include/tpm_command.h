@@ -1,7 +1,7 @@
 #ifndef TPM_COMMAND_H
 #define TPM_COMMAND_H
 
-#include "tpm.h"
+#include "tcg.h"
 
 typedef struct {
   TPM_TAG tag;

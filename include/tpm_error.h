@@ -6,7 +6,7 @@
 #ifndef __TPM_ERROR_H__
 #define __TPM_ERROR_H__
 
-#include "sable_tpm.h"
+#include "tcg.h"
 
 #ifndef TPM_E_BASE
 #define TPM_E_BASE ((UINT32)0)
