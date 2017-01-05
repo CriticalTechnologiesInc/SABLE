@@ -47,14 +47,4 @@ SECTIONS
     *(COMMON)
   } >null
   */
-
-  .debug :
-  {
-     *(.debug*);
-  }
-
-  /DISCARD/ :
-  {
-    *(.comment)
-  }
 }
