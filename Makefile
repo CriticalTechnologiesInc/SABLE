@@ -16,10 +16,6 @@ CCFLAGS   += -Wall -Wno-main -DEXEC -fno-builtin -fpack-struct -m32 -std=gnu99 -
 CCFLAGS	  += $(call checkcc,-fno-stack-protector)
 LDFLAGS   += -gc-sections -m elf_i386 -N
 
-ifeq ($(SAVE_TPM),TRUE)
-	CCFLAGS += -DSAVE_TPM
-endif
-
 release: CCFLAGS += -DNDEBUG
 release: sable
 

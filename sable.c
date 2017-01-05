@@ -81,18 +81,14 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData,
   out_string(s_Erasing_owner_authdata);
   memset(ownerAuthData, 0, 20);
 
-#ifndef SAVE_TPM
   res = TPM_NV_DefineSpace(buffer, select, sctx);
   TPM_ERROR(res, s_TPM_NV_DefineSpace);
-#endif
 
   res = TPM_Start_OIAP(buffer, sctx);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-#ifndef SAVE_TPM
   res = TPM_NV_WriteValueAuth(buffer, sealedData, 400, sctx);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
-#endif
 
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
@@ -130,11 +126,9 @@ void unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData) {
   res = TPM_Start_OIAP(buffer, sctxEntity);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-#ifndef SAVE_TPM
   res = TPM_Unseal(buffer, sealedData, unsealedData, 100, unsealedDataSize,
                    sctxParent, sctxEntity);
   TPM_WARNING(res, s_TPM_Unseal);
-#endif
 
   out_string(s_Please_confirm_that_the_passphrase);
   out_string(s_Passphrase);

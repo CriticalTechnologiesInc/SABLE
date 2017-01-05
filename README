@@ -1,10 +1,6 @@
 DO NOT include *.o files in the repo! This can easily be avoided by running 'make clean' before making edits.
 DO NOT make commits which throw warnings or errors.
 
-There is one extra compiler flag:
-SAVE_TPM skips the TPM functions which wear down the TPM over time (ie. NVWriteValue())
-Example: make SAVE_TPM=TRUE
-
 You can do either a release or a debug build:
 $ make release
 $ make debug
