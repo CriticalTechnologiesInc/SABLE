@@ -1,6 +1,6 @@
 #include "include/hmac.h"
 #include "include/alloc.h"
-#include "include/sable_tpm.h"
+#include "include/tcg.h"
 #include "include/util.h"
 
 void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size) {
@@ -24,7 +24,7 @@ void hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size) {
     sha1_init(&hctx->ctx);
     sha1(&hctx->ctx, key, key_size);
     sha1_finish(&hctx->ctx);
-    memcpy(hctx->key, hctx->ctx.hash, TCG_HASH_SIZE);
+    memcpy(hctx->key, hctx->ctx.hash, TPM_SHA1_160_HASH_LEN);
   }
 
   do_xor(ipad->pad, hctx->key, ipad->pad, HMAC_BLOCK_SIZE);
@@ -48,11 +48,11 @@ void hmac_finish(struct HMAC_Context *hctx) {
 
   memset(opad->pad, 0x5c, HMAC_BLOCK_SIZE);
   do_xor(opad->pad, hctx->key, opad->pad, HMAC_BLOCK_SIZE);
-  memcpy(hash->digest, hctx->ctx.hash, TCG_HASH_SIZE);
+  memcpy(hash->digest, hctx->ctx.hash, TPM_SHA1_160_HASH_LEN);
 
   sha1_init(&hctx->ctx);
   sha1(&hctx->ctx, opad->pad, HMAC_BLOCK_SIZE);
-  sha1(&hctx->ctx, hash->digest, TCG_HASH_SIZE);
+  sha1(&hctx->ctx, hash->digest, TPM_SHA1_160_HASH_LEN);
   sha1_finish(&hctx->ctx);
 
   // cleanup

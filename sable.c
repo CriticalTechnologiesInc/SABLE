@@ -182,8 +182,9 @@ void unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData) {
  */
 static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
                          UINT32 passPhraseBufSize, UINT32 *lenPassPhrase,
-                         struct SHA1_Context *ctx, TPM_DIGEST *dig) {
-  TPM_RESULT res;
+                         struct SHA1_Context *ctx) {
+  TPM_EXTEND_RET res;
+  TPM_DIGEST dig;
 
   CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
   CHECK3(-12, !mbi->mods_count, s_no_module_to_hash);
@@ -241,9 +242,9 @@ static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
 
     sha1(ctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     sha1_finish(ctx);
-    memcpy(dig->digest, ctx->hash, sizeof(TPM_DIGEST));
-    res = TPM_Extend(ctx->buffer, MODULE_PCR_ORD, dig);
-    TPM_ERROR(res, s_TPM_Extend);
+    memcpy(dig.digest, ctx->hash, sizeof(TPM_DIGEST));
+    res = TPM_Extend(MODULE_PCR_ORD, dig);
+    TPM_ERROR(res.returnCode, s_TPM_Extend);
   }
 
   wait(10000);
@@ -459,7 +460,7 @@ int sable(struct mbi *mbi) {
     wait(1000);
 #endif
 
-    ERROR(22, mbi_calc_hash(mbi, passPhrase, 64, lenPassphrase, ctx, dig),
+    ERROR(22, mbi_calc_hash(mbi, passPhrase, 64, lenPassphrase, ctx),
           s_calc_hash_failed);
 
 #ifndef NDEBUG
