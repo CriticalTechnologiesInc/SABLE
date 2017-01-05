@@ -14,8 +14,8 @@
 
 #pragma once
 
-#ifndef __SABLE_TPM_H__
-#define __SABLE_TPM_H__
+#ifndef __TPM_H__
+#define __TPM_H__
 
 #ifdef __midl
 #define SIZEIS(x) [size_is(x)]

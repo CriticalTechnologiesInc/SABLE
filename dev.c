@@ -209,13 +209,16 @@ int pci_iterate_devices(void) {
       for (unsigned func = 0; func <= maxfunc; func++) {
         unsigned addr = 0x80000000 | bus << 16 | dev << 11 | func << 8;
         unsigned value = pci_read_long(addr);
+#ifndef NDEBUG
+        unsigned class = pci_read_long(addr + 0x8) >> 16;
+#endif
 
         unsigned char header_type = pci_read_byte(addr + 14);
         if (!maxfunc && header_type & 0x80)
           maxfunc = 7;
         if (!value || value == 0xffffffff)
           continue;
-#ifdef DEBUG
+#ifndef NDEBUG
         out_hex(bus, 7);
         out_char(':');
         out_hex(dev, 4);
