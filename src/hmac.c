@@ -1,7 +1,7 @@
-#include "include/hmac.h"
-#include "include/alloc.h"
-#include "include/tcg.h"
-#include "include/util.h"
+#include "hmac.h"
+#include "alloc.h"
+#include "tcg.h"
+#include "util.h"
 
 void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size) {
   for (UINT32 i = 0; i < size; i++)

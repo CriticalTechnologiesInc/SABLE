@@ -23,6 +23,7 @@
 #include "tpm_error.h"
 #include "util.h"
 #include "version.h"
+#include "keyboard.h"
 
 const unsigned REALMODE_CODE = 0x20000;
 static char config = 0;
@@ -47,39 +48,59 @@ static void show_hash(const char *s, TPM_DIGEST *hash) {
   out_char('\n');
 }
 
-void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData,
-               BYTE *srkAuthData, BYTE *passPhraseAuthData) {
+static TPM_AUTHDATA get_authdata(const char *str) {
+  static const TPM_AUTHDATA zero_authdata = {{0}};
+  int res;
+  struct SHA1_Context ctx;
+
+  out_string(str);
+  res = get_string(STRING_BUF_SIZE, false);
+  if (res > 0) {
+    sha1_init(&ctx);
+    sha1(&ctx, (BYTE *)string_buf, res);
+    sha1_finish(&ctx);
+    return *((TPM_AUTHDATA *) ctx.hash);
+  } else {
+    return zero_authdata;
+  }
+}
+
+void configure(BYTE *passPhrase, UINT32 lenPassphrase) {
   BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   TPM_RESULT res;
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
   BYTE *sealedData = alloc(heap, 400, 0);
+
+  TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
+  TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
+  TPM_AUTHDATA ownerAuthData = get_authdata(s_enter_ownerAuthData);
 
   memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
 
   // select PCR 17 and 19
   sdTPM_PCR_SELECTION select = {ntohs(PCR_SELECT_SIZE), {0x0, 0x0, 0xa}};
 
-  res = TPM_Start_OSAP(buffer, srkAuthData, TPM_ET_KEYHANDLE, TPM_KH_SRK, sctx);
+  res = TPM_Start_OSAP(buffer, srkAuthData.authdata, TPM_ET_KEYHANDLE, TPM_KH_SRK, sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
 
   out_string(s_Erasing_srk_authdata);
-  memset(srkAuthData, 0, 20);
+  memset(srkAuthData.authdata, 0, 20);
 
   res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx,
-                 passPhraseAuthData);
+                 passPhraseAuthData.authdata);
   TPM_ERROR(res, s_TPM_Seal);
 
   out_string(s_Erasing_passphrase_from_memory);
   memset(passPhrase, 0, lenPassphrase);
 
   out_string(s_Erasing_passphrase_authdata);
-  memset(passPhraseAuthData, 0, 20);
+  memset(passPhraseAuthData.authdata, 0, 20);
 
-  res = TPM_Start_OSAP(buffer, ownerAuthData, TPM_ET_OWNER, 0, sctx);
+  res = TPM_Start_OSAP(buffer, ownerAuthData.authdata, TPM_ET_OWNER, 0, sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
 
   out_string(s_Erasing_owner_authdata);
-  memset(ownerAuthData, 0, 20);
+  memset(ownerAuthData.authdata, 0, 20);
 
   res = TPM_NV_DefineSpace(buffer, select, sctx);
   TPM_ERROR(res, s_TPM_NV_DefineSpace);
@@ -96,14 +117,15 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase, BYTE *ownerAuthData,
   dealloc(heap, sealedData, 400);
 }
 
-void unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData) {
+void unsealPassphrase(void) {
   TPM_RESULT res;
+  TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
+  TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
 
   BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
   SessionCtx *sctxParent = alloc(heap, sizeof(SessionCtx), 0);
   SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
-  char *entry = alloc(heap, 20 * sizeof(char), 0);
 
   BYTE *sealedData = alloc(heap, 400, 0);
   BYTE *unsealedData = alloc(heap, 100, 0);
@@ -111,8 +133,8 @@ void unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData) {
   UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
   memset(sctx, 0, sizeof(SessionCtx));
 
-  memcpy(sctxParent->pubAuth.authdata, srkAuthData, 20);
-  memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData, 20);
+  memcpy(sctxParent->pubAuth.authdata, srkAuthData.authdata, 20);
+  memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData.authdata, 20);
 
   res = TPM_Start_OIAP(buffer, sctx);
   TPM_ERROR(res, s_TPM_Start_OIAP);
@@ -135,30 +157,16 @@ void unsealPassphrase(BYTE *srkAuthData, BYTE *passPhraseAuthData) {
   out_string((char *)unsealedData);
 
   out_string(s_If_this_is_correct);
-  const char *correctEntry = s_YES;
-  unsigned int t = 0;
-  char c;
-  c = key_stroke_listener(); // for some reason, there's always an 'enter' char
-  while (t < 20) {
-    c = key_stroke_listener();
-    if (c == 0x0D)
-      break; // user hit 'return'
-    if (c != 0) {
-      out_char(c);
-      entry[t] = c;
-      t++;
-    }
-  }
-  out_char('\n');
+  get_string(3, true);
 
-  if (bufcmp(correctEntry, entry, 3))
+  if (bufcmp(s_YES, string_buf, 3))
     reboot();
 
   out_string(s_Erasing_passphrase_authdata);
-  memset(passPhraseAuthData, 0, 20);
+  memset(passPhraseAuthData.authdata, 0, 20);
 
   out_string(s_Erasing_srk_authdata);
-  memset(srkAuthData, 0, 20);
+  memset(srkAuthData.authdata, 0, 20);
 
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
@@ -198,22 +206,8 @@ static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
     config = 1;
 
     out_string(s_Please_enter_the_passphrase);
-
-    UINT32 t = 0;
-    char c = key_stroke_listener(); // for some reason, there's always an
-                                    // 'enter' char
-    while (t < passPhraseBufSize) {
-      c = key_stroke_listener();
-      if (c == 0x0D)
-        break; // user hit 'return'
-      if (c != 0) {
-        out_char(c);
-        passPhrase[t] = c;
-        t++;
-      }
-    }
-    *lenPassPhrase = t + 1;
-    out_char('\n');
+    int res = get_string(STRING_BUF_SIZE, true);
+    memcpy(passPhrase, string_buf, res);
 
     // clear module for security reasons
     memset((BYTE *)m->mod_start, 0, m->mod_end - m->mod_start);
@@ -313,39 +307,6 @@ int _main(struct mbi *mbi, unsigned flags) {
   return 0;
 }
 
-/* Note: This function Assumes a 4KB stack.  A more elegant solution
- * would probably define some symbols and let the linker script
- * determine the stack size.
- */
-/*
-void zero_stack (void) __attribute__ ((section (".text.slb")));
-void zero_stack (void)
-{
-    unsigned int esp;
-    unsigned int stack_base;
-    unsigned int ptr;
-
-    __asm__ __volatile__("movl %%esp, %0 " : "=m" (esp) );
-
-    stack_base = (0xFFFFFFFF << 12) & esp;  // 2^12 = 4k
-
-    if (stack_base <= 0) {
-        // TODO: throw error!!!
-      return;
-    }
-
-    // Zero out the stack 4 bytes at a time
-    for (ptr = stack_base; ptr < esp; ptr+=4) {
-      *((long*) ptr) = 0;
-    }
-
-    // Make sure we get the 0-3 bytes that may remain unzeroed
-    for (ptr = ptr - 4; ptr < esp; ptr++) {
-      *((char*) ptr) = 0;
-    }
-}
-*/
-
 int fixup(void) {
   unsigned i;
   out_info(s_patch_CPU_name_tag);
@@ -396,53 +357,16 @@ int revert_skinit(void) {
 int sable(struct mbi *mbi) {
   TPM_RESULT res;
   struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
-  struct SHA1_Context *ctxSrk = alloc(heap, sizeof(struct SHA1_Context), 0);
-  struct SHA1_Context *ctxOwn = alloc(heap, sizeof(struct SHA1_Context), 0);
-  struct SHA1_Context *ctxPas = alloc(heap, sizeof(struct SHA1_Context), 0);
   TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
-  BYTE *ownerAuthData = alloc(heap, 20, 0);
-  BYTE *srkAuthData = alloc(heap, 20, 0);
-  BYTE *passPhraseAuthData = alloc(heap, 20, 0);
   BYTE *passPhrase = alloc(heap, 64, 0);
   UINT32 *lenPassphrase = alloc(heap, sizeof(UINT32), 0);
-  UINT32 ownerAuthLen;
-  UINT32 srkAuthLen;
-  UINT32 passAuthLen;
 
   revert_skinit();
 
   memset(passPhrase, 0, 64);
   *lenPassphrase = 0;
-  memset(ownerAuthData, 0, 20);
-  ownerAuthLen = 0;
-  memset(srkAuthData, 0, 20);
-  srkAuthLen = 0;
-  memset(passPhraseAuthData, 0, 20);
-  passAuthLen = 0;
 
   ERROR(20, !mbi, s_no_mbi_in_sable);
-  out_string(s_enter_srkAuthData);
-  srkAuthLen = keyboardReader(srkAuthData, 20);
-
-  if (srkAuthLen > 0) {
-    sha1_init(ctxSrk);
-    sha1(ctxSrk, srkAuthData, srkAuthLen);
-    sha1_finish(ctxSrk);
-  } else {
-    memset(ctxSrk->hash, 0, 20);
-  }
-
-  out_string(s_enter_passPhraseAuthData);
-
-  passAuthLen = keyboardReader(passPhraseAuthData, 20);
-
-  if (passAuthLen > 0) {
-    sha1_init(ctxPas);
-    sha1(ctxPas, passPhraseAuthData, passAuthLen);
-    sha1_finish(ctxPas);
-  } else {
-    memset(ctxPas->hash, 0, 20);
-  }
 
   if (tis_init(TIS_BASE)) {
     ERROR(21, !tis_access(TIS_LOCALITY_2, 0), s_could_not_gain_TIS_ownership);
@@ -470,48 +394,23 @@ int sable(struct mbi *mbi) {
       show_hash(s_PCR19, dig);
       wait(1000);
 
-      out_string(s_enter_ownerAuthData);
-
-      ownerAuthLen = keyboardReader(ownerAuthData, 20);
-
-      if (ownerAuthLen > 0) {
-        sha1_init(ctxOwn);
-        sha1(ctxOwn, ownerAuthData, ownerAuthLen);
-        sha1_finish(ctxOwn);
-      } else {
-        memset(ctxOwn->hash, 0, 20);
-      }
-
-      configure(passPhrase, *lenPassphrase, ctxOwn->hash, ctxSrk->hash,
-                ctxPas->hash);
+      configure(passPhrase, *lenPassphrase);
       ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
       out_string(s_Configuration_complete_Rebooting_now);
       wait(5000);
       reboot();
     } else {
-      unsealPassphrase(ctxSrk->hash, ctxPas->hash);
+      unsealPassphrase();
     }
 
     ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
   }
 
-  memset(srkAuthData, 0, 20);
-  memset(ownerAuthData, 0, 20);
-  memset(passPhraseAuthData, 0, 20);
-
-  // zero_stack();
-
   // cleanup
   dealloc(heap, ctx, sizeof(struct SHA1_Context));
-  dealloc(heap, ctxSrk, sizeof(struct SHA1_Context));
-  dealloc(heap, ctxOwn, sizeof(struct SHA1_Context));
-  dealloc(heap, ctxPas, sizeof(struct SHA1_Context));
   dealloc(heap, dig, sizeof(TPM_DIGEST));
   dealloc(heap, passPhrase, 64);
   dealloc(heap, lenPassphrase, sizeof(UINT32));
-  dealloc(heap, srkAuthData, 20);
-  dealloc(heap, ownerAuthData, 20);
-  dealloc(heap, passPhraseAuthData, 20);
 
   ERROR(27, start_module(mbi), s_start_module_failed);
   return 28;

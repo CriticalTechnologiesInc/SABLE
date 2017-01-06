@@ -14,8 +14,8 @@
  * $Id: tpm_error.c 364 2010-02-11 10:24:45Z mast $
  */
 
-#include "include/tpm_error.h"
-#include "include/util.h"
+#include "tpm_error.h"
+#include "util.h"
 
 #ifdef EXEC
 const char *tpm_error_to_string(TPM_RESULT res)
