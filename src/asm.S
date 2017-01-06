@@ -41,13 +41,6 @@
 	\name:
 .endm
 
-    .global g_slb_zero
-g_slb_zero:
-SLB_ZERO:
-slb_header:
-    .word _slb_start - g_slb_zero   // SLB entry point relative to header (bits 0-15)
-    .word g_end_of_low - g_slb_zero // SLB size including this header (bits 31-16)
-
 SLB_FUNCTION __mbheader
 	.align  4, 0x90
 	.long   MBI_MAGIC1              /* magic */
@@ -116,14 +109,10 @@ SLB_FUNCTION jmp_multiboot
 
 
 SLB_FUNCTION do_skinit
-	mov    $g_slb_zero, %eax
+	mov    $g_slb_begin, %eax
 	skinit
 
-
-    .extern g_end_of_low
-    .extern g_aligned_end_of_low
-
-SLB_FUNCTION _slb_start
+SLB_FUNCTION _skinit
     /* Setup ESP to top of 64K */
     leal SLB_STACK_TOP, %esp
 

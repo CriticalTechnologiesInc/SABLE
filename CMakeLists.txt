@@ -38,10 +38,12 @@ set_source_files_properties(src/asm.S PROPERTIES COMPILE_FLAGS "${CMAKE_C_FLAGS}
 set (CMAKE_EXE_LINKER_FLAGS
   "${CMAKE_EXE_LINKER_FLAGS} \
   -gc-sections \
-  -T ${PROJECT_SOURCE_DIR}/sable.ld"
+  -Wl,--build-id=none \
+  -T ${PROJECT_SOURCE_DIR}/src/sable.ld"
   )
 
 add_executable (sable
+  src/sable.ld
   src/alloc.c
   src/asm.S
   src/dev.c

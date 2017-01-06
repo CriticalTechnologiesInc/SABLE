@@ -28,15 +28,6 @@
 const unsigned REALMODE_CODE = 0x20000;
 static char config = 0;
 
-extern BYTE g_slb_zero;
-#ifdef EXEC
-BYTE g_end_of_low __attribute__((section(".slb.end_of_low"), aligned(4)));
-BYTE g_aligned_end_of_low
-    __attribute__((section(".slb.aligned_end_of_low"), aligned(4096)));
-BYTE g_start_of_high __attribute__((section(".slb.start_of_high"), aligned(4)));
-BYTE g_end_of_high __attribute__((section(".slb.end_of_high"), aligned(4)));
-#endif
-
 /**
  * Function to output a hash.
  */

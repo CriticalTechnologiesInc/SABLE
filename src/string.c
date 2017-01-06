@@ -172,6 +172,6 @@ DEFINE_STRING(enter_ownerAuthData,
               "Please enter the ownerAuthData (20 char max): ");
 DEFINE_STRING(Configuration_complete_Rebooting_now,
               "\nConfiguration complete. Rebooting now...\n");
-DEFINE_STRING(version_string, "SABLE " VERSION "\n");
+DEFINE_STRING(version_string, "SABLE v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n");
 DEFINE_STRING(message_label, "SABLE:   ");
 DEFINE_STRING(CPU_NAME, "AMD CPU booted by SABLE");

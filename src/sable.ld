@@ -4,13 +4,6 @@
  * 60-0K  60K of Code
  */
 
-MEMORY
-{
-    low (rwxai)  : ORIGIN = 0x100000, LENGTH = 64K
-    high (rwxai) : ORIGIN = 0x110000, LENGTH = 0x70004
-    null (rwxai) : ORIGIN = 0x180004, LENGTH = 0 /* Intentional 0 length */
-}
-
 
 SECTIONS
 {
@@ -22,23 +15,34 @@ SECTIONS
      */
   ENTRY(__start)
 
-  LOW :
+  . = 0x100000;
+
+  .slb_header :
   {
-    *(.text)
-    *(.data)
-    *(.rodata*)
-    *(.bss)
-    *(.slb.end_of_low) /* not a real variable; only concerned with its address */
-    *(.slb.aligned_end_of_low) /* not a real variable; only concerned with its address */
-  } >low
+    . = ALIGN(0x10000);
+    g_slb_begin = .;
+    SHORT (_skinit - g_slb_begin);
+    SHORT (g_slb_end - g_slb_begin);
+  }
+
+  .slb :
+  {
+    KEEP(*(.text.__mbheader));
+    KEEP(*(.text.__start));
+    KEEP(*(.text._skinit));
+    *(.text .text.*);
+    *(.rodata .rodata.*);
+  }
+  
+  . = ALIGN(0x4);
+  g_slb_end = .;
 
   HIGH :
   {
     *(.slb.start_of_high) /* not a real variable; only concerned with its address */
     FILL(0x00000000);
-    . = ORIGIN(high) + LENGTH(high) - 4;
     *(.slb.end_of_high) /* not a real variable; only concerned with its address */
-  } >high
+  }
   /* Code should be built with -fno-common, but if it's not, complain! */
 
   /*
