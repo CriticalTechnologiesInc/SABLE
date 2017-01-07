@@ -24,6 +24,12 @@ static inline unsigned int ntohl(unsigned int v) {
   return res;
 }
 
+static inline unsigned int htonl(unsigned int v) {
+  unsigned int res;
+  asm volatile("bswap %%eax" : "=a"(res) : "a"(v));
+  return res;
+}
+
 static inline unsigned long long rdtsc(void) {
   unsigned long long res;
 

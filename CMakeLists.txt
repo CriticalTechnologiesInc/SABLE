@@ -17,7 +17,6 @@ set (CMAKE_C_FLAGS
   -Wall \
   -Werror \
   -Wno-main \
-  -DEXEC \
   -fno-builtin \
   -nostdlib \
   -fno-stack-protector \
@@ -28,12 +27,15 @@ set (CMAKE_C_FLAGS
   -fomit-frame-pointer \
   -minline-all-stringops \
   --param max-inline-insns-single=50 \
-  -Os \
   -fstrict-aliasing \
   -Wstrict-aliasing=0"
   )
 
-set_source_files_properties(src/asm.S PROPERTIES COMPILE_FLAGS "${CMAKE_C_FLAGS}")
+add_definitions (
+  "-DEXEC"
+  )
+
+set (CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
 
 set (CMAKE_EXE_LINKER_FLAGS
   "${CMAKE_EXE_LINKER_FLAGS} \

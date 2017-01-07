@@ -112,9 +112,10 @@
   }
 
 /**
- * lowlevel helper functions
+ * Swaps bytes in a short, like ntohl()
  */
-UINT16 ntohs(UINT16 v);
+static inline UINT16 ntohs(UINT16 v) { return (v >> 8) | (v << 8); }
+static inline UINT16 htons(UINT16 v) { return (v >> 8) | (v << 8); }
 
 /**
  * lowlevel output functions

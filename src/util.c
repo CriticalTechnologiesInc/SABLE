@@ -33,12 +33,6 @@ void memset(void *s, BYTE c, UINT32 len) {
   }
 }
 
-/**
- * Swaps bytes in a short, like ntohl()
- */
-UINT16
-ntohs(UINT16 v) { return (v >> 8) | (v << 8); }
-
 // like strlen
 UINT32
 strnlen_sable(BYTE *value, UINT32 size) {

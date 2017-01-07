@@ -158,7 +158,7 @@ static int tis_write_new(void) {
   }
   CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), s_tis_write_not_ready);
 
-  for (res = 0; res < header->paramSize; res++) {
+  for (res = 0; res < htonl(header->paramSize); res++) {
     mmap->data_fifo = *in;
     in++;
   }
@@ -192,7 +192,7 @@ static int tis_read_new(void) {
     *out = mmap->data_fifo;
     out++;
   }
-  for (; res < header->paramSize && mmap->sts_base & TIS_STS_DATA_AVAIL;
+  for (; res < htonl(header->paramSize) && mmap->sts_base & TIS_STS_DATA_AVAIL;
        res++) {
     *out = mmap->data_fifo;
     out++;
