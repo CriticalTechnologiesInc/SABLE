@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
-set (SABLE_VERSION_MINOR 2)
+set (SABLE_VERSION_MINOR 3)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
