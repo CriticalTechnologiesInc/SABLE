@@ -174,7 +174,7 @@ void unsealPassphrase(void) {
  *  Hash all multiboot modules.
  */
 static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
-                         UINT32 passPhraseBufSize, UINT32 *lenPassPhrase,
+                         UINT32 passPhraseBufSize, UINT32 *lenPassphrase,
                          struct SHA1_Context *ctx) {
   TPM_EXTEND_RET res;
   TPM_DIGEST dig;
@@ -197,8 +197,8 @@ static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
     config = 1;
 
     out_string(s_Please_enter_the_passphrase);
-    int res = get_string(STRING_BUF_SIZE, true);
-    memcpy(passPhrase, string_buf, res);
+    *lenPassphrase = get_string(STRING_BUF_SIZE, true);
+    memcpy(passPhrase, string_buf, *lenPassphrase);
 
     // clear module for security reasons
     memset((BYTE *)m->mod_start, 0, m->mod_end - m->mod_start);
