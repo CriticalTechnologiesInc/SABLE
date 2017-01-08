@@ -26,12 +26,11 @@
 #include "keyboard.h"
 
 const unsigned REALMODE_CODE = 0x20000;
-static char config = 0;
 
 /**
  * Function to output a hash.
  */
-static void show_hash(const char *s, TPM_DIGEST *hash) {
+void show_hash(const char *s, TPM_DIGEST *hash) {
   out_string(s_message_label);
   out_string(s);
   for (UINT32 i = 0; i < 20; i++)
@@ -39,7 +38,7 @@ static void show_hash(const char *s, TPM_DIGEST *hash) {
   out_char('\n');
 }
 
-static TPM_AUTHDATA get_authdata(const char *str) {
+TPM_AUTHDATA get_authdata(const char *str) {
   static const TPM_AUTHDATA zero_authdata = {{0}};
   int res;
   struct SHA1_Context ctx;
@@ -56,11 +55,17 @@ static TPM_AUTHDATA get_authdata(const char *str) {
   }
 }
 
-void configure(BYTE *passPhrase, UINT32 lenPassphrase) {
+void configure(void) {
   BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   TPM_RESULT res;
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
   BYTE *sealedData = alloc(heap, 400, 0);
+  BYTE *passPhrase = alloc(heap, 64, 0);
+  memset(passPhrase, 0, 64);
+
+  out_string(s_Please_enter_the_passphrase);
+  UINT32 lenPassphrase = get_string(STRING_BUF_SIZE, true);
+  memcpy(passPhrase, string_buf, lenPassphrase);
 
   TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
   TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
@@ -77,6 +82,8 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase) {
   out_string(s_Erasing_srk_authdata);
   memset(srkAuthData.authdata, 0, 20);
 
+  out_string(s_Sealing_passPhrase);
+  out_string((char *)passPhrase);
   res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx,
                  passPhraseAuthData.authdata);
   TPM_ERROR(res, s_TPM_Seal);
@@ -106,6 +113,7 @@ void configure(BYTE *passPhrase, UINT32 lenPassphrase) {
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
   dealloc(heap, sctx, sizeof(SessionCtx));
   dealloc(heap, sealedData, 400);
+  dealloc(heap, passPhrase, 64);
 }
 
 void unsealPassphrase(void) {
@@ -173,9 +181,7 @@ void unsealPassphrase(void) {
 /**
  *  Hash all multiboot modules.
  */
-static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
-                         UINT32 passPhraseBufSize, UINT32 *lenPassphrase,
-                         struct SHA1_Context *ctx) {
+static int mbi_calc_hash(struct mbi *mbi, struct SHA1_Context *ctx) {
   TPM_EXTEND_RET res;
   TPM_DIGEST dig;
 
@@ -184,31 +190,6 @@ static int mbi_calc_hash(struct mbi *mbi, BYTE *passPhrase,
   out_description(s_Hashing_modules_count, mbi->mods_count);
 
   struct module *m = (struct module *)(mbi->mods_addr);
-  //
-  // check for if this has the magic value in the first module
-  // if it does, then skip the module, make mbi->mods_addr point to this new
-  // module
-  // set a flag that config file has been found
-  if (!bufcmp((BYTE *)s_configmagic, (BYTE *)m->mod_start,
-              strnlen_sable((BYTE *)s_configmagic, 20))) {
-#ifndef NDEBUG
-    out_info(s_config_magic_detected);
-#endif
-    config = 1;
-
-    out_string(s_Please_enter_the_passphrase);
-    *lenPassphrase = get_string(STRING_BUF_SIZE, true);
-    memcpy(passPhrase, string_buf, *lenPassphrase);
-
-    // clear module for security reasons
-    memset((BYTE *)m->mod_start, 0, m->mod_end - m->mod_start);
-
-    // skip the module so it's invisible to future code
-    m++;
-    mbi->mods_addr = (unsigned)m;
-    mbi->mods_count--;
-  }
-
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
     sha1_init(ctx);
 
@@ -346,46 +327,36 @@ int revert_skinit(void) {
  */
 /* int sable(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
 int sable(struct mbi *mbi) {
-  TPM_RESULT res;
   struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
-  TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
-  BYTE *passPhrase = alloc(heap, 64, 0);
-  UINT32 *lenPassphrase = alloc(heap, sizeof(UINT32), 0);
 
   revert_skinit();
-
-  memset(passPhrase, 0, 64);
-  *lenPassphrase = 0;
 
   ERROR(20, !mbi, s_no_mbi_in_sable);
 
   if (tis_init(TIS_BASE)) {
     ERROR(21, !tis_access(TIS_LOCALITY_2, 0), s_could_not_gain_TIS_ownership);
+    ERROR(22, mbi_calc_hash(mbi, ctx), s_calc_hash_failed);
+
+#ifndef NDEBUG
+    TPM_RESULT res;
+    TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
 
     res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
     TPM_ERROR(res, s_TPM_PcrRead);
-
-#ifndef NDEBUG
     show_hash(s_PCR17, dig);
+
+    res = TPM_PcrRead(ctx->buffer, dig, MODULE_PCR_ORD);
+    TPM_ERROR(res, s_TPM_PcrRead);
+    show_hash(s_PCR19, dig);
+
+    dealloc(heap, dig, sizeof(TPM_DIGEST));
     wait(1000);
 #endif
 
-    ERROR(22, mbi_calc_hash(mbi, passPhrase, 64, lenPassphrase, ctx),
-          s_calc_hash_failed);
-
-#ifndef NDEBUG
-    show_hash(s_PCR19, dig);
-    dump_pcrs(ctx->buffer);
-#endif
-
-    if (config == 1) {
-      out_string(s_Sealing_passPhrase);
-      out_string((char *)passPhrase);
-      out_string(s_to_PCR19_with_value);
-      show_hash(s_PCR19, dig);
-      wait(1000);
-
-      configure(passPhrase, *lenPassphrase);
+    out_string("Configure now? [y/n]: ");
+    get_string(1, true);
+    if (!bufcmp("y", string_buf, 1)) {
+      configure();
       ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
       out_string(s_Configuration_complete_Rebooting_now);
       wait(5000);
@@ -399,9 +370,6 @@ int sable(struct mbi *mbi) {
 
   // cleanup
   dealloc(heap, ctx, sizeof(struct SHA1_Context));
-  dealloc(heap, dig, sizeof(TPM_DIGEST));
-  dealloc(heap, passPhrase, 64);
-  dealloc(heap, lenPassphrase, sizeof(UINT32));
 
   ERROR(27, start_module(mbi), s_start_module_failed);
   return 28;
