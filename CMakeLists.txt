@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.0.2)
 project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
 set (SABLE_VERSION_MINOR 3)
@@ -45,7 +45,6 @@ set (CMAKE_EXE_LINKER_FLAGS
   )
 
 add_executable (sable
-  src/sable.ld
   src/alloc.c
   src/asm.S
   src/dev.c
@@ -61,3 +60,5 @@ add_executable (sable
   src/util.c
   src/sable.c
   )
+
+set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
