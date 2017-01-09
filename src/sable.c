@@ -240,7 +240,7 @@ static int prepare_tpm(BYTE *buffer) {
  */
 int _main(struct mbi *mbi, unsigned flags) {
   // initialize the heap
-  UINT32 heap_len = 0x00040000;
+  UINT32 heap_len = 0x00003000;
   init_allocator();
   add_mem_pool(heap, heap->head + sizeof(struct mem_node), heap_len);
 

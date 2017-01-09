@@ -4,7 +4,6 @@
  * 60-0K  60K of Code
  */
 
-
 SECTIONS
 {
     /* Note: expression evaulate lazily.  We want to be sure the
@@ -33,22 +32,17 @@ SECTIONS
     *(.text .text.*);
     *(.rodata .rodata.*);
   }
-  
+
+  .data : { *(.data) }
+  .bss : { *(.bss) }
+
   . = ALIGN(0x4);
   g_slb_end = .;
 
-  HIGH :
+  /DISCARD/ :
   {
-    *(.slb.start_of_high) /* not a real variable; only concerned with its address */
-    FILL(0x00000000);
-    *(.slb.end_of_high) /* not a real variable; only concerned with its address */
+    *(.eh_frame);
+    *(.eh_frame_hdr);
+    *(.comment);
   }
-  /* Code should be built with -fno-common, but if it's not, complain! */
-
-  /*
-  ERRONEOUS :
-  {
-    *(COMMON)
-  } >null
-  */
 }
