@@ -60,11 +60,11 @@ void configure(void) {
   TPM_RESULT res;
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
   BYTE *sealedData = alloc(heap, 400, 0);
-  BYTE *passPhrase = alloc(heap, 64, 0);
-  memset(passPhrase, 0, 64);
+  BYTE *passPhrase = alloc(heap, STRING_BUF_SIZE, 0);
+  memset(passPhrase, 0, STRING_BUF_SIZE);
 
   out_string(s_Please_enter_the_passphrase);
-  UINT32 lenPassphrase = get_string(STRING_BUF_SIZE, true);
+  UINT32 lenPassphrase = get_string(STRING_BUF_SIZE, true) + 1;
   memcpy(passPhrase, string_buf, lenPassphrase);
 
   TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);

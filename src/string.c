@@ -1,11 +1,15 @@
-#include "version.h"
 #include "string.h"
+#include "keyboard.h"
+#include "version.h"
 
 #ifdef EXEC
 #define DEFINE_STRING(name, str) const char *const s_##name = str
 #else
 #define DEFINE_STRING(name, str) const char *const s_##name = 0
 #endif
+
+#define xstr(s) str(s)
+#define str(s) #s
 
 DEFINE_STRING(no_capability_list_support, "no capability list support");
 DEFINE_STRING(SHA_data_exceeds_maximum_size, "SHA data exceeds maximum size");
@@ -126,8 +130,8 @@ DEFINE_STRING(module_flag_missing, "module flag missing");
 DEFINE_STRING(no_module_to_hash, "no module to hash");
 DEFINE_STRING(Hashing_modules_count, "Hashing modules count:");
 DEFINE_STRING(config_magic_detected, "config magic detected");
-DEFINE_STRING(Please_enter_the_passphrase,
-              "Please enter the passphrase (64 char max): ");
+DEFINE_STRING(Please_enter_the_passphrase, "Please enter the passphrase (" xstr(
+                                               STRING_BUF_SIZE) " char max): ");
 DEFINE_STRING(mod_end_less_than_start, "mod_end less than start");
 DEFINE_STRING(Module_starts_at, "Module starts at ");
 DEFINE_STRING(Module_ends_at, "Module ends at ");
@@ -157,10 +161,11 @@ DEFINE_STRING(fixup_done, "fixup done");
 DEFINE_STRING(could_not_iterate_over_the_devices,
               "could not iterate over the devices");
 DEFINE_STRING(no_mbi_in_sable, "no mbi in sable()");
-DEFINE_STRING(enter_srkAuthData,
-              "Please enter the srkAuthData (20 char max): ");
+DEFINE_STRING(enter_srkAuthData, "Please enter the srkAuthData (" xstr(
+                                     STRING_BUF_SIZE) " char max): ");
 DEFINE_STRING(enter_passPhraseAuthData,
-              "Please enter the passPhraseAuthData (20 char max): ");
+              "Please enter the passPhraseAuthData (" xstr(
+                  STRING_BUF_SIZE) " char max): ");
 DEFINE_STRING(could_not_gain_TIS_ownership, "could not gain TIS ownership");
 DEFINE_STRING(TPM_PcrRead, "TPM_PcrRead()");
 DEFINE_STRING(PCR17, "PCR[17]: ");
@@ -168,10 +173,11 @@ DEFINE_STRING(calc_hash_failed, "calc hash failed");
 DEFINE_STRING(PCR19, "PCR[19]: ");
 DEFINE_STRING(Sealing_passPhrase, "\nSealing passphrase: \n\n");
 DEFINE_STRING(to_PCR19_with_value, "\n\nto PCR[19] with value \n");
-DEFINE_STRING(enter_ownerAuthData,
-              "Please enter the ownerAuthData (20 char max): ");
+DEFINE_STRING(enter_ownerAuthData, "Please enter the ownerAuthData (" xstr(
+                                       STRING_BUF_SIZE) " char max): ");
 DEFINE_STRING(Configuration_complete_Rebooting_now,
               "\nConfiguration complete. Rebooting now...\n");
-DEFINE_STRING(version_string, "SABLE v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n");
+DEFINE_STRING(version_string,
+              "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n");
 DEFINE_STRING(message_label, "SABLE:   ");
 DEFINE_STRING(CPU_NAME, "AMD CPU booted by SABLE");

@@ -509,6 +509,7 @@ int get_string(unsigned int max_bytes, bool show) {
       i++;
     }
   }
+  string_buf[i] = '\0';
   out_char('\n');
   return i;
 }
