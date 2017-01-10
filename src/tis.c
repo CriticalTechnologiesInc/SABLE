@@ -194,8 +194,7 @@ static int tis_read_new(void) {
     out++;
   }
   int size = htonl(header->paramSize);
-  for (; res < size && mmap->sts_base & TIS_STS_DATA_AVAIL;
-       res++) {
+  for (; res < size && mmap->sts_base & TIS_STS_DATA_AVAIL; res++) {
     *out = mmap->data_fifo;
     out++;
   }
@@ -211,16 +210,14 @@ static int tis_read_new(void) {
  * Transmit a command to the TPM and wait for the response.
  * This is our high level TIS function used by all TPM commands.
  */
-int tis_transmit_new(void) {
+void tis_transmit_new(void) {
   unsigned int res;
 
   res = tis_write_new();
-  CHECK4(-1, res <= 0, s_TIS_write_error, res);
+  ERROR(-1, res <= 0, s_TIS_write_error);
 
   res = tis_read_new();
-  CHECK4(-2, res <= 0, s_TIS_read_error, res);
-
-  return res;
+  ERROR(-2, res <= 0, s_TIS_read_error);
 }
 
 /**

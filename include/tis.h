@@ -87,7 +87,7 @@ void tis_dump(void);
 enum tis_init tis_init(int tis_base);
 int tis_deactivate_all(void);
 int tis_access(int locality, int force);
-int tis_transmit_new(void);
+void tis_transmit_new(void);
 int tis_transmit(const unsigned char *write_buffer,
      unsigned write_count,
      unsigned char *read_buffer,
