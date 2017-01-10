@@ -157,6 +157,7 @@ DEFINE_STRING(enable_global_interrupt_flag, "enable global interrupt flag");
 DEFINE_STRING(stgi, "stgi");
 DEFINE_STRING(DEV_disable_failed, "DEV disable failed");
 DEFINE_STRING(fixup_failed, "fixup failed");
+DEFINE_STRING(nonce_generation_failed, "nonce generation failed");
 DEFINE_STRING(fixup_done, "fixup done");
 DEFINE_STRING(could_not_iterate_over_the_devices,
               "could not iterate over the devices");

@@ -19,6 +19,8 @@
 #include "tpm_command.h"
 #include "util.h"
 
+TPM_GETRANDOM_GEN(TPM_NONCE)
+
 // out = xor(authData, sha1(sharedSecret ++ nonceEven))
 void encAuth_gen(TPM_AUTHDATA *auth, BYTE *sharedSecret, TPM_NONCE *nonceEven,
                  TPM_ENCAUTH *encAuth) {
@@ -56,7 +58,9 @@ TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx) {
   res = (TPM_RESULT)ntohl(*(in_buffer + 6));
   TPM_COPY_FROM((BYTE *)&sctx->authHandle, 0, 4);
   TPM_COPY_FROM((BYTE *)&sctx->nonceEven, 4, 20);
-  TPM_GetRandom(in_buffer, sctx->nonceOdd.nonce, sizeof(TPM_NONCE));
+  TPM_GETRANDOM_RET_TPM_NONCE nonce = TPM_GetRandom_TPM_NONCE();
+  ERROR(-1, nonce.returnCode, s_nonce_generation_failed);
+  sctx->nonceOdd = nonce.random_TPM_NONCE;
 
   // cleanup
   dealloc(heap, com, sizeof(TPM_COMMAND));
@@ -225,8 +229,9 @@ TPM_RESULT TPM_NV_DefineSpace(BYTE *in_buffer, sdTPM_PCR_SELECTION select,
   sha1_finish(ctx);
 
   se->authHandle = sctx->authHandle;
-  res = TPM_GetRandom(in_buffer, se->nonceOdd.nonce, TCG_HASH_SIZE);
-  CHECK4(108, res, s_could_not_get_random_number_from_TPM, res);
+  TPM_GETRANDOM_RET_TPM_NONCE nonce = TPM_GetRandom_TPM_NONCE();
+  ERROR(108, nonce.returnCode, s_nonce_generation_failed);
+  se->nonceOdd = nonce.random_TPM_NONCE;
   se->continueAuthSession = FALSE;
 
   hmac_init(hctx, sctx->sharedSecret, TCG_HASH_SIZE);
@@ -519,7 +524,9 @@ TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
   sha1_finish(ctx);
 
   se->authHandle = sctx->authHandle;
-  res = TPM_GetRandom(in_buffer, (BYTE *)&se->nonceOdd, sizeof(TPM_NONCE));
+  TPM_GETRANDOM_RET_TPM_NONCE nonce = TPM_GetRandom_TPM_NONCE();
+  ERROR(-1, nonce.returnCode, s_nonce_generation_failed);
+  se->nonceOdd = nonce.random_TPM_NONCE;
   se->continueAuthSession = TRUE;
 
   // prepare elements for HMAC
@@ -569,40 +576,6 @@ TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
 }
 
 TPM_RESULT
-TPM_GetRandom(BYTE *in_buffer, BYTE *dest, UINT32 size) {
-  TPM_RESULT res;
-  stTPM_GETRANDOM *com = alloc(heap, sizeof(stTPM_GETRANDOM), 0);
-  UINT32 tpm_offset_out = 0;
-  UINT32 paramSize = sizeof(stTPM_GETRANDOM);
-  BYTE *out_buffer = alloc(heap, paramSize, 0);
-
-  // construct header
-  com->tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com->paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_GetRandom);
-
-  com->bytesRequested = ntohl(size);
-
-  SABLE_TPM_COPY_TO(com, sizeof(stTPM_GETRANDOM));
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_GetRandom_failed_on_transmit);
-
-  res = (TPM_RESULT)ntohl(*((UINT32 *)(in_buffer + 6)));
-
-  CHECK4(108, ntohl(*((unsigned int *)(in_buffer + 10))) != size,
-         s_could_not_get_enough_random_bytes_from_TPM,
-         ntohl(*((unsigned int *)(in_buffer + 10))));
-  TPM_COPY_FROM(dest, 4, size);
-
-  // cleanup
-  dealloc(heap, com, sizeof(stTPM_GETRANDOM));
-  dealloc(heap, out_buffer, paramSize);
-
-  return res;
-}
-
-TPM_RESULT
 TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
   TPM_RESULT res;
   UINT32 paramSize = sizeof(stTPM_PCRREAD);
@@ -643,7 +616,7 @@ TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
   in->pcrNum = ntohl(pcr_index);
   in->inDigest = hash;
 
-  tis_transmit_new();
+  tis_transmit_new(); // FIXME: check return value
 
   const TPM_RSP_COMMAND_EXTEND *out =
       (const TPM_RSP_COMMAND_EXTEND *)tis_buffers.out;
@@ -670,8 +643,9 @@ TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
   com->ordinal = ntohl(TPM_ORD_OSAP);
   com->entityType = ntohs(entityType);
   com->entityValue = ntohl(entityValue);
-  res = TPM_GetRandom(in_buffer, com->nonceOddOSAP.nonce, sizeof(TPM_NONCE));
-  CHECK4(108, res, s_could_not_get_random_number_from_TPM, res);
+  TPM_GETRANDOM_RET_TPM_NONCE nonce = TPM_GetRandom_TPM_NONCE();
+  ERROR(108, nonce.returnCode, s_nonce_generation_failed);
+  com->nonceOddOSAP = nonce.random_TPM_NONCE;
 
   SABLE_TPM_COPY_TO(com, paramSize);
   ERROR(TPM_TRANSMIT_FAIL,
