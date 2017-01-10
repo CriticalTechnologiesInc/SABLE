@@ -55,7 +55,7 @@ TPM_AUTHDATA get_authdata(const char *str) {
   }
 }
 
-void configure(void) {
+static void configure(void) {
   BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   TPM_RESULT res;
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
@@ -116,7 +116,7 @@ void configure(void) {
   dealloc(heap, passPhrase, 64);
 }
 
-void unsealPassphrase(void) {
+static void unsealPassphrase(void) {
   TPM_RESULT res;
   TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
   TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
@@ -279,7 +279,7 @@ int _main(struct mbi *mbi, unsigned flags) {
   return 0;
 }
 
-int fixup(void) {
+static int fixup(void) {
   unsigned i;
   out_info(s_patch_CPU_name_tag);
   CHECK3(-10, strnlen_sable((BYTE *)s_CPU_NAME, 1024) >= 48,
@@ -308,7 +308,7 @@ int fixup(void) {
   return 0;
 }
 
-int revert_skinit(void) {
+static int revert_skinit(void) {
   if (0 < check_cpuid()) {
     if (disable_dev_protection())
       out_info(s_DEV_disable_failed);
