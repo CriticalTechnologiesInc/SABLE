@@ -104,14 +104,14 @@ DEFINE_STRING(slbaligned_end_of_low, ".slb.aligned_end_of_low");
 DEFINE_STRING(slbstart_of_high, ".slb.start_of_high");
 DEFINE_STRING(slbend_of_high, ".slb.end_of_high");
 DEFINE_STRING(TPM_Start_OSAP, "TPM_Start_OSAP()");
-DEFINE_STRING(Erasing_srk_authdata, "\nErasing srk authdata from memory...\n");
+DEFINE_STRING(Erasing_srk_authdata, "\nErasing srk password from memory...\n");
 DEFINE_STRING(TPM_Seal, "TPM_Seal()");
 DEFINE_STRING(Erasing_passphrase_from_memory,
               "\nErasing passphrase from memory...\n");
 DEFINE_STRING(Erasing_passphrase_authdata,
-              "\nErasing passphrase authdata from memory...\n");
-DEFINE_STRING(Erasing_owner_authdata,
-              "\nErasing owner authdata from memory...\n");
+              "\nErasing passphrase password from memory...\n");
+DEFINE_STRING(Erasing_nv_authdata,
+              "\nErasing NVRAM password from memory...\n");
 DEFINE_STRING(TPM_NV_DefineSpace, "TPM_NV_DefineSpace()");
 DEFINE_STRING(TPM_Start_OIAP, "TPM_Start_OIAP()");
 DEFINE_STRING(TPM_NV_WriteValueAuth, "TPM_NV_WriteValueAuth()");
@@ -174,7 +174,7 @@ DEFINE_STRING(calc_hash_failed, "calc hash failed");
 DEFINE_STRING(PCR19, "PCR[19]: ");
 DEFINE_STRING(Sealing_passPhrase, "\nSealing passphrase: \n\n");
 DEFINE_STRING(to_PCR19_with_value, "\n\nto PCR[19] with value \n");
-DEFINE_STRING(enter_ownerAuthData, "Please enter the ownerAuthData (" xstr(
+DEFINE_STRING(enter_nvAuthData, "Please enter the NVRAM password (" xstr(
                                        STRING_BUF_SIZE) " char max): ");
 DEFINE_STRING(Configuration_complete_Rebooting_now,
               "\nConfiguration complete. Rebooting now...\n");

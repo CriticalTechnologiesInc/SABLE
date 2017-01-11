@@ -251,26 +251,6 @@ typedef struct {
 } stTPM_UNSEAL;
 
 typedef struct {
-  TPM_STRUCTURE_TAG tag;
-  TPM_NV_INDEX nvIndex;
-  sdTPM_PCR_INFO_SHORT pcrInfoRead;
-  sdTPM_PCR_INFO_SHORT pcrInfoWrite;
-  TPM_NV_ATTRIBUTES permission;
-  TPM_BOOL bReadSTClear;
-  TPM_BOOL bWriteSTClear;
-  TPM_BOOL bWriteDefine;
-  UINT32 dataSize;
-} sdTPM_NV_DATA_PUBLIC;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  sdTPM_NV_DATA_PUBLIC pubInfo;
-  TPM_ENCAUTH encAuth;
-} stTPM_NV_DEFINESPACE;
-
-typedef struct {
   TPM_TAG tag;
   UINT32 paramSize;
   TPM_COMMAND_CODE ordinal;
@@ -291,11 +271,9 @@ typedef struct {
 ///////////////////////////////////////////////////////////////////////////
 TPM_RESULT TPM_Flush(BYTE *in_buffer, SessionCtx *sctx);
 TPM_RESULT TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize,
-                                 SessionCtx *sctx);
+                                 TPM_AUTHDATA auth, SessionCtx *sctx);
 TPM_RESULT TPM_NV_ReadValueAuth(BYTE *in_buffer, BYTE *data, UINT32 dataSize,
                                 SessionCtx *sctx);
-TPM_RESULT TPM_NV_DefineSpace(BYTE *buffer, sdTPM_PCR_SELECTION select,
-                              SessionCtx *sctx);
 TPM_RESULT TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash,
                        TPM_PCRINDEX pcrindex);
 TPM_RESULT TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
