@@ -33,7 +33,7 @@
 #ifndef _ALLOC_H_
 #define _ALLOC_H_
 
-extern const unsigned int g_slb_end;
+extern const unsigned int g_bss_end;
 extern struct heap *heap;
 
 #define HEAP_START 0x110000

@@ -33,16 +33,17 @@ SECTIONS
     *(.rodata .rodata.*);
   }
 
+  . = ALIGN(0x4);
+  g_slb_end = .;
+
   .data : { *(.data) }
   .bss : { *(.bss) }
 
   . = ALIGN(0x4);
-  g_slb_end = .;
+  g_bss_end = .;
 
   /DISCARD/ :
   {
-    *(.eh_frame);
-    *(.eh_frame_hdr);
     *(.comment);
   }
 }
