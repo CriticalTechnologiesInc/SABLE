@@ -180,58 +180,26 @@ void getTPM_PCR_INFO_SHORT(BYTE *buffer, sdTPM_PCR_INFO_SHORT *info,
 }
 
 TPM_RESULT
-TPM_NV_ReadValueAuth(BYTE *in_buffer, BYTE *data, UINT32 dataSize,
-                     SessionCtx *sctx) {
+TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize) {
   TPM_RESULT res;
   UINT32 tpm_offset_out = 0;
 
-  // designate buffers
-  UINT32 paramSize = sizeof(stTPM_NV_READVALUE) + sizeof(SessionEnd);
+  UINT32 paramSize = sizeof(stTPM_NV_READVALUE);
   BYTE *out_buffer = alloc(heap, paramSize, 0);
-
-  // declare data structures
-  struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
-  struct HMAC_Context *hctx = alloc(heap, sizeof(struct HMAC_Context), 0);
   stTPM_NV_READVALUE *com = alloc(heap, sizeof(stTPM_NV_READVALUE), 0);
-  SessionEnd *se = alloc(heap, sizeof(SessionEnd), 0);
-  TPM_AUTHDATA *authData = alloc(heap, sizeof(TPM_AUTHDATA), 0);
 
   // populate structures
-  com->tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
+  com->tag = ntohs(TPM_TAG_RQU_COMMAND);
   com->paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_NV_ReadValueAuth);
-  com->nvIndex = ntohl(0x10000); // HARDCODED
+  com->ordinal = ntohl(TPM_ORD_NV_ReadValue);
+  com->nvIndex = ntohl(0x100); // HARDCODED
   com->offset = ntohl(0);        // HARDCODED
   com->dataSize = ntohl(dataSize);
-
-  se->authHandle = sctx->authHandle;
-  se->nonceOdd = sctx->nonceOdd;
-  se->continueAuthSession = FALSE;
-
-  // generate hashes for crypto
-  sha1_init(ctx);
-  sha1(ctx, (BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
-  sha1(ctx, (BYTE *)&com->nvIndex, sizeof(TPM_NV_INDEX));
-  sha1(ctx, (BYTE *)&com->offset, sizeof(UINT32));
-  sha1(ctx, (BYTE *)&com->dataSize, sizeof(UINT32));
-  sha1_finish(ctx);
-
-  memset(authData->authdata, 0, sizeof(TPM_AUTHDATA));
-
-  hmac_init(hctx, authData->authdata, TCG_HASH_SIZE);
-  hmac(hctx, ctx->hash, TCG_HASH_SIZE);
-  hmac(hctx, sctx->nonceEven.nonce, sizeof(TPM_NONCE));
-  hmac(hctx, se->nonceOdd.nonce, sizeof(TPM_NONCE));
-  hmac(hctx, &se->continueAuthSession, sizeof(TPM_BOOL));
-  hmac_finish(hctx);
-
-  memcpy(se->pubAuth.authdata, hctx->ctx.hash, sizeof(TPM_AUTHDATA));
 
   UINT32 receivedDataSize;
 
   // package the entire command into a bytestream
   SABLE_TPM_COPY_TO(com, sizeof(stTPM_NV_READVALUE));
-  SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
 
   // transmit command to TPM
   ERROR(TPM_TRANSMIT_FAIL,
@@ -251,11 +219,7 @@ TPM_NV_ReadValueAuth(BYTE *in_buffer, BYTE *data, UINT32 dataSize,
 
   // cleanup
   dealloc(heap, out_buffer, paramSize);
-  dealloc(heap, ctx, sizeof(struct SHA1_Context));
-  dealloc(heap, hctx, sizeof(struct HMAC_Context));
   dealloc(heap, com, sizeof(stTPM_NV_READVALUE));
-  dealloc(heap, se, sizeof(SessionEnd));
-  dealloc(heap, authData, sizeof(TPM_AUTHDATA));
 
   return res;
 }
