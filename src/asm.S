@@ -30,24 +30,18 @@
 #define VM_CR_MSR 0xc0010114
 
 .macro	FUNCTION name
-	.section .text.nslb
-	.globl \name
-	\name:
-.endm
-
-.macro	SLB_FUNCTION name
 	.section .text
 	.globl \name
 	\name:
 .endm
 
-SLB_FUNCTION __mbheader
+FUNCTION __mbheader
 	.align  4, 0x90
 	.long   MBI_MAGIC1              /* magic */
 	.long   0x00000003              /* feature flags */
 	.long   0 - (MBI_MAGIC1 + 0x3)
 
-SLB_FUNCTION __start
+FUNCTION __start
 	leal    STACK_TOP,%esp
 	xchg    %eax,%edx
 	xchg    %ebx,%eax
@@ -55,7 +49,7 @@ SLB_FUNCTION __start
 	pushl   $exit
 	jmp     _main
 
-SLB_FUNCTION smp_init_start
+FUNCTION smp_init_start
 	.code16
 
 	// Note: we could test here, whether the AP processor also
@@ -89,7 +83,7 @@ SLB_FUNCTION smp_init_start
 smp_init_end:
 
 
-SLB_FUNCTION reboot
+FUNCTION reboot
 	mov	$0x4, %al
 	outb	%al, $0x60
 	mov	$0xFE, %al
@@ -102,17 +96,17 @@ dummy_idt_desc:
 
 
 
-SLB_FUNCTION jmp_multiboot
+FUNCTION jmp_multiboot
 	xchg %eax, %ebx
 	mov $MBI_MAGIC2, %eax
 	jmp *%edx
 
 
-SLB_FUNCTION do_skinit
-	mov    $g_slb_begin, %eax
+FUNCTION do_skinit
+	mov    $g_sl_begin, %eax
 	skinit
 
-SLB_FUNCTION _skinit
+FUNCTION _skinit
     /* Setup ESP to top of 64K */
     leal SLB_STACK_TOP, %esp
 
@@ -141,7 +135,7 @@ SLB_FUNCTION _skinit
 
 /* the gdt to load after skinit */
 .align(8)
-SLB_FUNCTION gdt
+FUNCTION gdt
 	.global pgdt_desc
 	.align(8)
 pgdt_desc:
