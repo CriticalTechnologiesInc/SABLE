@@ -20,6 +20,7 @@ set (CMAKE_C_FLAGS
   -fno-builtin \
   -nostdlib \
   -fno-stack-protector \
+  -fno-asynchronous-unwind-tables \
   -fpack-struct \
   -m32 \
   -std=gnu99 \
