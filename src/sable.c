@@ -25,6 +25,9 @@
 #include "version.h"
 #include "keyboard.h"
 
+#define SEALED_DATA_SIZE 400
+#define UNSEALED_DATA_SIZE 400
+
 const unsigned REALMODE_CODE = 0x20000;
 
 /**
@@ -59,7 +62,7 @@ static void configure(void) {
   BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   TPM_RESULT res;
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
-  BYTE *sealedData = alloc(heap, 0x100, 0);
+  BYTE *sealedData = alloc(heap, SEALED_DATA_SIZE, 0);
   BYTE *passPhrase = alloc(heap, STRING_BUF_SIZE, 0);
   memset(passPhrase, 0, STRING_BUF_SIZE);
 
@@ -97,7 +100,7 @@ static void configure(void) {
   res = TPM_Start_OIAP(buffer, sctx);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_NV_WriteValueAuth(buffer, sealedData, 0x100, nvAuthData, sctx);
+  res = TPM_NV_WriteValueAuth(buffer, sealedData, SEALED_DATA_SIZE, nvAuthData, sctx);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 
   out_string(s_Erasing_nv_authdata);
@@ -106,7 +109,7 @@ static void configure(void) {
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
   dealloc(heap, sctx, sizeof(SessionCtx));
-  dealloc(heap, sealedData, 0x100);
+  dealloc(heap, sealedData, SEALED_DATA_SIZE);
   dealloc(heap, passPhrase, 64);
 }
 
@@ -119,14 +122,14 @@ static void unsealPassphrase(void) {
   SessionCtx *sctxParent = alloc(heap, sizeof(SessionCtx), 0);
   SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
 
-  BYTE *sealedData = alloc(heap, 0x100, 0);
-  BYTE *unsealedData = alloc(heap, 100, 0);
+  BYTE *sealedData = alloc(heap, SEALED_DATA_SIZE, 0);
+  BYTE *unsealedData = alloc(heap, UNSEALED_DATA_SIZE, 0);
   UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
 
   memcpy(sctxParent->pubAuth.authdata, srkAuthData.authdata, 20);
   memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData.authdata, 20);
 
-  res = TPM_NV_ReadValue(buffer, sealedData, 0x100);
+  res = TPM_NV_ReadValue(buffer, sealedData, SEALED_DATA_SIZE);
   TPM_ERROR(res, s_TPM_NV_ReadValueAuth);
 
   res = TPM_Start_OIAP(buffer, sctxParent);
@@ -135,7 +138,7 @@ static void unsealPassphrase(void) {
   res = TPM_Start_OIAP(buffer, sctxEntity);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_Unseal(buffer, sealedData, unsealedData, 100, unsealedDataSize,
+  res = TPM_Unseal(buffer, sealedData, unsealedData, UNSEALED_DATA_SIZE, unsealedDataSize,
                    sctxParent, sctxEntity);
   TPM_WARNING(res, s_TPM_Unseal);
 
@@ -160,8 +163,8 @@ static void unsealPassphrase(void) {
   dealloc(heap, sctxParent, sizeof(SessionCtx));
   dealloc(heap, sctxEntity, sizeof(SessionCtx));
 
-  dealloc(heap, sealedData, 0x100);
-  dealloc(heap, unsealedData, 100);
+  dealloc(heap, sealedData, SEALED_DATA_SIZE);
+  dealloc(heap, unsealedData, UNSEALED_DATA_SIZE);
   dealloc(heap, unsealedDataSize, sizeof(UINT32));
 }
 

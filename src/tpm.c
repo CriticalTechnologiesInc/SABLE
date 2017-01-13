@@ -192,7 +192,7 @@ TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize) {
   com->tag = ntohs(TPM_TAG_RQU_COMMAND);
   com->paramSize = ntohl(paramSize);
   com->ordinal = ntohl(TPM_ORD_NV_ReadValue);
-  com->nvIndex = ntohl(0x100); // HARDCODED
+  com->nvIndex = ntohl(0x4); // HARDCODED
   com->offset = ntohl(0);        // HARDCODED
   com->dataSize = ntohl(dataSize);
 
@@ -245,7 +245,7 @@ TPM_NV_WriteValueAuth(BYTE *in_buffer, BYTE *data, UINT32 dataSize,
   com->tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
   com->paramSize = ntohl(paramSize);
   com->ordinal = ntohl(TPM_ORD_NV_WriteValueAuth);
-  com->nvIndex = ntohl(0x100); // HARDCODED
+  com->nvIndex = ntohl(0x4); // HARDCODED
   com->offset = ntohl(0);      // HARDCODED
   com->dataSize = ntohl(dataSize);
 
