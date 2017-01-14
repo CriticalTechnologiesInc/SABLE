@@ -24,5 +24,5 @@ struct SHA1_Context {
 };
 
 void sha1_init(struct SHA1_Context *ctx);
-void sha1(struct SHA1_Context *ctx, unsigned char *value, unsigned count);
+void sha1(struct SHA1_Context *ctx, const unsigned char *value, unsigned count);
 void sha1_finish(struct SHA1_Context *ctx);

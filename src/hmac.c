@@ -12,7 +12,7 @@ void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize) {
   memset(in + insize, val, outsize - insize);
 }
 
-void hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size) {
+void hmac_init(struct HMAC_Context *hctx, const BYTE *key, UINT32 key_size) {
   HMAC_OPad *ipad = alloc(heap, sizeof(HMAC_OPad), 0);
 
   memset(hctx->key, 0, HMAC_BLOCK_SIZE);
@@ -36,7 +36,7 @@ void hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size) {
   dealloc(heap, ipad, sizeof(HMAC_IPad));
 }
 
-void hmac(struct HMAC_Context *hctx, BYTE *text, BYTE textsize) {
+void hmac(struct HMAC_Context *hctx, const BYTE *text, BYTE textsize) {
   sha1(&hctx->ctx, text, textsize);
 }
 

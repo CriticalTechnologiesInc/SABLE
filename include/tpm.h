@@ -270,12 +270,11 @@ typedef struct {
 
 ///////////////////////////////////////////////////////////////////////////
 TPM_RESULT TPM_Flush(BYTE *in_buffer, SessionCtx *sctx);
-TPM_RESULT TPM_NV_WriteValueAuth(BYTE *buffer, BYTE *data, UINT32 dataSize,
-                                 TPM_AUTHDATA auth, SessionCtx *sctx);
+TPM_RESULT TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset, TPM_AUTHDATA nv_auth, OIAP_Session session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize);
 TPM_RESULT TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash,
                        TPM_PCRINDEX pcrindex);
-TPM_RESULT TPM_Start_OIAP(BYTE *in_buffer, SessionCtx *sctx);
+TPM_START_OIAP_RET TPM_Start_OIAP(void);
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
                           UINT32 entityValue, SessionCtx *sctx);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
@@ -307,7 +306,7 @@ void dump_pcrs(unsigned char *buffer);
                                                                                \
     const TPM_RSP_COMMAND_GETRANDOM_##Type *out =                              \
         (const TPM_RSP_COMMAND_GETRANDOM_##Type *)tis_buffers.out;             \
-    const TPM_GETRANDOM_RET_##Type ret = {.returnCode = out->returnCode,       \
+    const TPM_GETRANDOM_RET_##Type ret = {.returnCode = ntohl(out->returnCode),       \
                                           .random_##Type = out->randomBytes};  \
                                                                                \
     return ret;                                                                \

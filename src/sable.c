@@ -97,10 +97,11 @@ static void configure(void) {
   out_string(s_Erasing_passphrase_authdata);
   memset(passPhraseAuthData.authdata, 0, 20);
 
-  res = TPM_Start_OIAP(buffer, sctx);
-  TPM_ERROR(res, s_TPM_Start_OIAP);
+  TPM_START_OIAP_RET oiap_ret = TPM_Start_OIAP();
+  TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
+  OIAP_Session nv_session = oiap_ret.session;
 
-  res = TPM_NV_WriteValueAuth(buffer, sealedData, SEALED_DATA_SIZE, nvAuthData, sctx);
+  res = TPM_NV_WriteValueAuth(sealedData, 0x04, 0, nvAuthData, nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 
   out_string(s_Erasing_nv_authdata);
@@ -114,6 +115,7 @@ static void configure(void) {
 }
 
 static void unsealPassphrase(void) {
+  /*
   TPM_RESULT res;
   TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
   TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
@@ -166,6 +168,7 @@ static void unsealPassphrase(void) {
   dealloc(heap, sealedData, SEALED_DATA_SIZE);
   dealloc(heap, unsealedData, UNSEALED_DATA_SIZE);
   dealloc(heap, unsealedDataSize, sizeof(UINT32));
+  */
 }
 
 /**

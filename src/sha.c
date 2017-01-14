@@ -96,7 +96,7 @@ void sha1_init(struct SHA1_Context *ctx) {
  * @param value  - a string to hash
  * @param count  - the number of characters in value
  */
-void sha1(struct SHA1_Context *ctx, unsigned char *value, unsigned count) {
+void sha1(struct SHA1_Context *ctx, const unsigned char *value, unsigned count) {
   for (; count + ctx->index >= 64;
        count -= 64 - ctx->index, value += 64 - ctx->index, ctx->index = 0) {
     memcpy(ctx->buffer + ctx->index, value, 64 - ctx->index);

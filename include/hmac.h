@@ -13,6 +13,6 @@ typedef HMAC_OPad HMAC_IPad;
 
 void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size);
 void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize);
-void hmac_init(struct HMAC_Context *hctx, BYTE *key, UINT32 key_size);
-void hmac(struct HMAC_Context *hctx, BYTE *text, BYTE textsize);
+void hmac_init(struct HMAC_Context *hctx, const BYTE *key, UINT32 key_size);
+void hmac(struct HMAC_Context *hctx, const BYTE *text, BYTE textsize);
 void hmac_finish(struct HMAC_Context *hctx);
