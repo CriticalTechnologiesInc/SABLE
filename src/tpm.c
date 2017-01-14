@@ -19,6 +19,51 @@
 #include "tpm_command.h"
 #include "util.h"
 
+/* TPM_GetRandom */
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  UINT32 bytesRequested;
+} TPM_RQU_COMMAND_GETRANDOM;
+
+#define TPM_RSP_COMMAND_GETRANDOM_GEN(Type)                                    \
+  typedef struct {                                                             \
+    TPM_COMMAND_HEADER head;                                                   \
+    TPM_RESULT returnCode;                                                     \
+    UINT32 randomBytesSize;                                                    \
+    Type randomBytes;                                                          \
+  } TPM_RSP_COMMAND_GETRANDOM_##Type
+
+#define TPM_GETRANDOM_RET_GEN(Type)                                            \
+  typedef struct {                                                             \
+    TPM_RESULT returnCode;                                                     \
+    Type random_##Type;                                                        \
+  } TPM_GETRANDOM_RET_##Type
+
+#define TPM_GETRANDOM_GEN(Type)                                                \
+  TPM_RSP_COMMAND_GETRANDOM_GEN(Type);                                         \
+  TPM_GETRANDOM_RET_GEN(Type);                                                 \
+  TPM_GETRANDOM_RET_##Type TPM_GetRandom_##Type(void) {                        \
+    TPM_RQU_COMMAND_GETRANDOM *in =                                            \
+        (TPM_RQU_COMMAND_GETRANDOM *)tis_buffers.in;                           \
+                                                                               \
+    in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);                                 \
+    in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_GETRANDOM));             \
+    in->ordinal = ntohl(TPM_ORD_GetRandom);                                    \
+    in->bytesRequested = ntohl(sizeof(Type));                                  \
+                                                                               \
+    tis_transmit_new();                                                        \
+                                                                               \
+    const TPM_RSP_COMMAND_GETRANDOM_##Type *out =                              \
+        (const TPM_RSP_COMMAND_GETRANDOM_##Type *)tis_buffers.out;             \
+    const TPM_GETRANDOM_RET_##Type ret = {.returnCode =                        \
+                                              ntohl(out->returnCode),          \
+                                          .random_##Type = out->randomBytes};  \
+                                                                               \
+    return ret;                                                                \
+  }
+
 TPM_GETRANDOM_GEN(TPM_NONCE)
 
 // out = xor(authData, sha1(sharedSecret ++ nonceEven))
@@ -31,6 +76,20 @@ void encAuth_gen(TPM_AUTHDATA *auth, BYTE *sharedSecret, TPM_NONCE *nonceEven,
 
   do_xor(auth->bytes, hash.bytes, encAuth->bytes, TCG_HASH_SIZE);
 }
+
+/* TPM_OIAP */
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+} TPM_RQU_COMMAND_OIAP;
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_RESULT returnCode;
+  TPM_AUTHHANDLE authHandle;
+  TPM_NONCE nonceEven;
+} TPM_RSP_COMMAND_OIAP;
 
 TPM_OIAP_RET TPM_OIAP(void) {
   TPM_RQU_COMMAND_OIAP *in = (TPM_RQU_COMMAND_OIAP *)tis_buffers.in;
@@ -421,6 +480,20 @@ TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
   return res;
 }
 
+/* TPM_PCRRead */
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  TPM_PCRINDEX pcrIndex;
+} TPM_RQU_COMMAND_PCRREAD;
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_RESULT returnCode;
+  TPM_DIGEST outDigest;
+} TPM_RSP_COMMAND_PCRREAD;
+
 TPM_PCRREAD_RET
 TPM_PCRRead(TPM_PCRINDEX pcrIndex) {
   TPM_RQU_COMMAND_PCRREAD *in = (TPM_RQU_COMMAND_PCRREAD *)tis_buffers.in;
@@ -440,6 +513,21 @@ TPM_PCRRead(TPM_PCRINDEX pcrIndex) {
 
   return ret;
 }
+
+/* TPM_Extend */
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  TPM_PCRINDEX pcrNum;
+  TPM_DIGEST inDigest;
+} TPM_RQU_COMMAND_EXTEND;
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_RESULT returnCode;
+  TPM_DIGEST outDigest;
+} TPM_RSP_COMMAND_EXTEND;
 
 TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
   TPM_RQU_COMMAND_EXTEND *in = (TPM_RQU_COMMAND_EXTEND *)tis_buffers.in;

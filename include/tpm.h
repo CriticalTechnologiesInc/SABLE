@@ -267,29 +267,4 @@ TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
 int TPM_GetCapability_Pcrs(BYTE buffer[TCG_BUFFER_SIZE], TPM_PCRINDEX *pcrs);
 void dump_pcrs(unsigned char *buffer);
 
-/* Macro definitions */
-
-#define TPM_GETRANDOM_GEN(Type)                                                \
-  TPM_RSP_COMMAND_GETRANDOM_GEN(Type);                                         \
-  TPM_GETRANDOM_RET_GEN(Type);                                                 \
-  TPM_GETRANDOM_RET_##Type TPM_GetRandom_##Type(void) {                        \
-    TPM_RQU_COMMAND_GETRANDOM *in =                                            \
-        (TPM_RQU_COMMAND_GETRANDOM *)tis_buffers.in;                           \
-                                                                               \
-    in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);                                 \
-    in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_GETRANDOM));             \
-    in->ordinal = ntohl(TPM_ORD_GetRandom);                                    \
-    in->bytesRequested = ntohl(sizeof(Type));                                  \
-                                                                               \
-    tis_transmit_new();                                                        \
-                                                                               \
-    const TPM_RSP_COMMAND_GETRANDOM_##Type *out =                              \
-        (const TPM_RSP_COMMAND_GETRANDOM_##Type *)tis_buffers.out;             \
-    const TPM_GETRANDOM_RET_##Type ret = {.returnCode =                        \
-                                              ntohl(out->returnCode),          \
-                                          .random_##Type = out->randomBytes};  \
-                                                                               \
-    return ret;                                                                \
-  }
-
 #endif
