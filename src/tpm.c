@@ -43,9 +43,9 @@ TPM_OIAP_RET TPM_OIAP(void) {
 
   const TPM_RSP_COMMAND_OIAP *out =
       (const TPM_RSP_COMMAND_OIAP *)tis_buffers.out;
-  const TPM_OIAP_RET ret = {
-      .returnCode = ntohl(out->returnCode),
-      .session = {.authHandle = ntohl(out->authHandle), .nonceEven = out->nonceEven}};
+  const TPM_OIAP_RET ret = {.returnCode = ntohl(out->returnCode),
+                            .session = {.authHandle = ntohl(out->authHandle),
+                                        .nonceEven = out->nonceEven}};
 
   return ret;
 }
@@ -140,8 +140,9 @@ void getTPM_PCR_INFO_SHORT(BYTE *buffer, sdTPM_PCR_INFO_SHORT *info,
 
   comp->select = select;
   comp->valueSize = ntohl(2 * sizeof(TPM_COMPOSITE_HASH));
-  TPM_PcrRead(buffer, &comp->hash1, SLB_PCR_ORD);
-  TPM_PcrRead(buffer, &comp->hash2, MODULE_PCR_ORD);
+  // FIXME: check errors
+  comp->hash1 = TPM_PCRRead(SLB_PCR_ORD).outDigest;
+  comp->hash2 = TPM_PCRRead(MODULE_PCR_ORD).outDigest;
 
   info->pcrSelection = select;
   info->localityAtRelease = TPM_LOC_ONE | TPM_LOC_TWO | TPM_LOC_THREE;
@@ -244,7 +245,8 @@ TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset,
       (const TPM_RSP_COMMAND_NV_WRITEVALUEAUTH *)tis_buffers.out;
 
   TPM_RESULT res = ntohl(out->returnCode);
-  if (res) return res;
+  if (res)
+    return res;
 
   sha1_init();
   sha1((BYTE *)&out->returnCode, sizeof(TPM_RESULT));
@@ -271,8 +273,9 @@ void getTPM_PCR_INFO_LONG(BYTE *buffer, sdTPM_PCR_INFO_LONG *info,
 
   comp->select = select;
   comp->valueSize = ntohl(2 * TCG_HASH_SIZE);
-  TPM_PcrRead(buffer, &comp->hash1, SLB_PCR_ORD);
-  TPM_PcrRead(buffer, &comp->hash2, MODULE_PCR_ORD);
+  // FIXME: check for errors
+  comp->hash1 = TPM_PCRRead(SLB_PCR_ORD).outDigest;
+  comp->hash2 = TPM_PCRRead(MODULE_PCR_ORD).outDigest;
 
   sha1_init();
   sha1((BYTE *)comp, sizeof(sdTPM_PCR_COMPOSITE));
@@ -381,36 +384,24 @@ TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
   return res;
 }
 
-TPM_RESULT
-TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash, TPM_PCRINDEX pcrindex) {
-  TPM_RESULT res;
-  UINT32 paramSize = sizeof(stTPM_PCRREAD);
-  UINT32 tpm_offset_out = 0;
-  stTPM_PCRREAD *com = alloc(heap, sizeof(stTPM_PCRREAD), 0);
-  BYTE *out_buffer = alloc(heap, paramSize, 0);
+TPM_PCRREAD_RET
+TPM_PCRRead(TPM_PCRINDEX pcrIndex) {
+  TPM_RQU_COMMAND_PCRREAD *in = (TPM_RQU_COMMAND_PCRREAD *)tis_buffers.in;
 
   // construct the command
-  com->tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com->paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_PcrRead);
-  com->pcrIndex = ntohl(pcrindex);
+  in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
+  in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_PCRREAD));
+  in->ordinal = ntohl(TPM_ORD_PcrRead);
+  in->pcrIndex = ntohl(pcrIndex);
 
-  // transmit command to TPM
-  SABLE_TPM_COPY_TO(com, paramSize);
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_PcrRead_failed_on_transmit);
+  tis_transmit_new();
 
-  res = (TPM_RESULT)ntohl(*((UINT32 *)(in_buffer + 6)));
+  const TPM_RSP_COMMAND_PCRREAD *out =
+      (const TPM_RSP_COMMAND_PCRREAD *)tis_buffers.out;
+  const TPM_PCRREAD_RET ret = {.returnCode = ntohl(out->returnCode),
+                              .outDigest = out->outDigest};
 
-  // if everything succeeded, extract the PCR value
-  TPM_COPY_FROM(hash->bytes, 0, TCG_HASH_SIZE);
-
-  // cleanup
-  dealloc(heap, com, sizeof(stTPM_PCRREAD));
-  dealloc(heap, out_buffer, paramSize);
-
-  return res;
+  return ret;
 }
 
 TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
@@ -523,7 +514,6 @@ TPM_TRANSMIT_FUNC(
 
 void dump_pcrs(BYTE *buffer) {
   TPM_PCRINDEX *pcrs = alloc(heap, sizeof(TPM_PCRINDEX), 0);
-  TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
 
   if (TPM_GetCapability_Pcrs(buffer, pcrs))
     out_info(s_TPM_GetCapability_Pcrs_failed);
@@ -531,21 +521,20 @@ void dump_pcrs(BYTE *buffer) {
     out_description(s_PCRs, *pcrs);
 
   for (TPM_PCRINDEX pcr = 0; pcr < *pcrs; pcr++) {
-    TPM_RESULT res = TPM_PcrRead(buffer, dig, pcr);
-    if (res) {
-      out_description(s_TPM_PcrRead_failed_with, res);
+    TPM_PCRREAD_RET res = TPM_PCRRead(pcr);
+    if (res.returnCode) {
+      out_description(s_TPM_PcrRead_failed_with, res.returnCode);
       break;
     } else {
       out_string(s_left_bracket);
       out_hex(pcr, 0);
       out_string(s_right_bracket);
       for (unsigned i = 0; i < 4; i++)
-        out_hex(dig->bytes[i], 7);
+        out_hex(res.outDigest.bytes[i], 7);
     }
     out_char(pcr % 4 == 3 ? '\n' : ' ');
   }
 
   // cleanup
   dealloc(heap, pcrs, sizeof(TPM_PCRINDEX));
-  dealloc(heap, dig, sizeof(TPM_DIGEST));
 }

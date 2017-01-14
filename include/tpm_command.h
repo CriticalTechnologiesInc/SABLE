@@ -28,6 +28,25 @@ typedef struct {
   TPM_DIGEST outDigest;
 } TPM_EXTEND_RET;
 
+/* TPM_PCRRead */
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  TPM_PCRINDEX pcrIndex;
+} TPM_RQU_COMMAND_PCRREAD;
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_RESULT returnCode;
+  TPM_DIGEST outDigest;
+} TPM_RSP_COMMAND_PCRREAD;
+
+typedef struct {
+  TPM_RESULT returnCode;
+  TPM_DIGEST outDigest;
+} TPM_PCRREAD_RET;
+
 /* TPM_GetRandom */
 
 typedef struct {

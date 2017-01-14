@@ -186,18 +186,11 @@ static int mbi_calc_hash(struct mbi *mbi) {
 
     CHECK3(-13, m->mod_end < m->mod_start, s_mod_end_less_than_start);
 
-#ifndef NDEBUG
-    out_description(s_Module_starts_at, m->mod_start);
-    out_description(s_Module_ends_at, m->mod_end);
-#endif
-
     sha1((BYTE *)m->mod_start, m->mod_end - m->mod_start);
     hash = sha1_finish();
     res = TPM_Extend(MODULE_PCR_ORD, hash);
     TPM_ERROR(res.returnCode, s_TPM_Extend);
   }
-
-  wait(10000);
 
   return 0;
 }
@@ -326,19 +319,17 @@ int sable(struct mbi *mbi) {
     ERROR(22, mbi_calc_hash(mbi), s_calc_hash_failed);
 
 #ifndef NDEBUG
-    /*TPM_RESULT res;
-    TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
+    TPM_PCRREAD_RET res;
 
-    res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
-    TPM_ERROR(res, s_TPM_PcrRead);
-    show_hash(s_PCR17, dig);
+    res = TPM_PCRRead(SLB_PCR_ORD);
+    TPM_ERROR(res.returnCode, s_TPM_PcrRead);
+    show_hash(s_PCR17, &res.outDigest);
 
-    res = TPM_PcrRead(ctx->buffer, dig, MODULE_PCR_ORD);
-    TPM_ERROR(res, s_TPM_PcrRead);
-    show_hash(s_PCR19, dig);
+    res = TPM_PCRRead(MODULE_PCR_ORD);
+    TPM_ERROR(res.returnCode, s_TPM_PcrRead);
+    show_hash(s_PCR19, &res.outDigest);
 
-    dealloc(heap, dig, sizeof(TPM_DIGEST));
-    wait(1000);*/
+    wait(1000);
 #endif
 
     out_string("Configure now? [y/n]: ");
