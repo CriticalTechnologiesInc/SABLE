@@ -25,10 +25,19 @@
 #include "util.h"
 #include "version.h"
 
-#define SEALED_DATA_SIZE 400
-#define UNSEALED_DATA_SIZE 128
+#define REALMODE_CODE 0x20000
 
-const unsigned REALMODE_CODE = 0x20000;
+/* SABLE globals */
+
+struct {
+  TPM_AUTHDATA nv_auth;
+  TPM_AUTHDATA pp_auth;
+  TPM_AUTHDATA srk_auth;
+  char passphrase[STRING_BUF_SIZE];
+} secrets;
+
+#define SEALED_DATA_SIZE 400
+BYTE pp_blob[SEALED_DATA_SIZE];
 
 /**
  * Function to output a hash.
@@ -41,7 +50,7 @@ void show_hash(const char *s, TPM_DIGEST *hash) {
   out_char('\n');
 }
 
-TPM_AUTHDATA get_authdata(const char *str) {
+void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
   static const TPM_AUTHDATA zero_authdata = {{0}};
   int res;
 
@@ -50,9 +59,9 @@ TPM_AUTHDATA get_authdata(const char *str) {
   if (res > 0) {
     sha1_init();
     sha1((BYTE *)string_buf, res);
-    return sha1_finish();
+    *authdata = sha1_finish();
   } else {
-    return zero_authdata;
+    *authdata = zero_authdata;
   }
 }
 
@@ -60,58 +69,41 @@ static void configure(void) {
   BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   TPM_RESULT res;
   SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
-  BYTE *sealedData = alloc(heap, SEALED_DATA_SIZE, 0);
-  BYTE *passPhrase = alloc(heap, STRING_BUF_SIZE, 0);
-  memset(passPhrase, 0, STRING_BUF_SIZE);
 
   out_string(s_Please_enter_the_passphrase);
-  UINT32 lenPassphrase = get_string(STRING_BUF_SIZE, true) + 1;
-  memcpy(passPhrase, string_buf, lenPassphrase);
+  UINT32 lenPassphrase = get_string(sizeof(secrets.passphrase), true) + 1;
+  memcpy(secrets.passphrase, string_buf, lenPassphrase);
 
-  TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
-  TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
-  TPM_AUTHDATA nvAuthData = get_authdata(s_enter_nvAuthData);
+  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
+  get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
+  get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
 
   memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
 
   // select PCR 17 and 19
   sdTPM_PCR_SELECTION select = {ntohs(PCR_SELECT_SIZE), {0x0, 0x0, 0xa}};
 
-  res = TPM_Start_OSAP(buffer, srkAuthData.bytes, TPM_ET_KEYHANDLE, TPM_KH_SRK,
-                       sctx);
+  res = TPM_Start_OSAP(buffer, secrets.srk_auth.bytes, TPM_ET_KEYHANDLE,
+                       TPM_KH_SRK, sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
 
-  out_string(s_Erasing_srk_authdata);
-  memset(srkAuthData.bytes, 0, 20);
-
   out_string(s_Sealing_passPhrase);
-  out_string((char *)passPhrase);
-  res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx,
-                 passPhraseAuthData.bytes);
+  out_string(secrets.passphrase);
+  res = TPM_Seal(buffer, select, (BYTE *)secrets.passphrase, lenPassphrase,
+                 pp_blob, sctx, secrets.pp_auth.bytes);
   TPM_ERROR(res, s_TPM_Seal);
-
-  out_string(s_Erasing_passphrase_from_memory);
-  memset(passPhrase, 0, lenPassphrase);
-
-  out_string(s_Erasing_passphrase_authdata);
-  memset(passPhraseAuthData.bytes, 0, 20);
 
   TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
   TPM_SESSION nv_session = oiap_ret.session;
 
-  res = TPM_NV_WriteValueAuth(sealedData, SEALED_DATA_SIZE, 0x04, 0, nvAuthData,
-                              nv_session);
+  res = TPM_NV_WriteValueAuth(pp_blob, SEALED_DATA_SIZE, 0x04, 0,
+                              secrets.nv_auth, nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
-
-  out_string(s_Erasing_nv_authdata);
-  memset(nvAuthData.bytes, 0, 20);
 
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
   dealloc(heap, sctx, sizeof(SessionCtx));
-  dealloc(heap, sealedData, SEALED_DATA_SIZE);
-  dealloc(heap, passPhrase, 64);
 }
 
 static void unsealPassphrase(void) {
@@ -349,6 +341,9 @@ int sable(struct mbi *mbi) {
 
     ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
   }
+
+  // FIXME: take a closer look at how we could do this better
+  memset(&secrets, 0, sizeof(secrets));
 
   ERROR(27, start_module(mbi), s_start_module_failed);
   return 28;
