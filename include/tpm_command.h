@@ -50,7 +50,7 @@ typedef struct {
     Type random_##Type;                                                        \
   } TPM_GETRANDOM_RET_##Type
 
-/* TPM_Start_OIAP */
+/* TPM_OIAP */
 
 typedef struct {
   TPM_AUTHHANDLE authHandle;
@@ -60,20 +60,19 @@ typedef struct {
 typedef struct {
   TPM_COMMAND_HEADER head;
   TPM_COMMAND_CODE ordinal;
-} TPM_RQU_COMMAND_START_OIAP;
+} TPM_RQU_COMMAND_OIAP;
 
 typedef struct {
   TPM_COMMAND_HEADER head;
   TPM_RESULT returnCode;
-  TPM_DIGEST outDigest;
   TPM_AUTHHANDLE authHandle;
   TPM_NONCE nonceEven;
-} TPM_RSP_COMMAND_START_OIAP;
+} TPM_RSP_COMMAND_OIAP;
 
 typedef struct {
   TPM_RESULT returnCode;
   OIAP_Session session;
-} TPM_START_OIAP_RET;
+} TPM_OIAP_RET;
 
 /* TPM_NV_WriteValueAuth */
 

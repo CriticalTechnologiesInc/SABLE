@@ -274,7 +274,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset
 TPM_RESULT TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize);
 TPM_RESULT TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash,
                        TPM_PCRINDEX pcrindex);
-TPM_START_OIAP_RET TPM_Start_OIAP(void);
+TPM_OIAP_RET TPM_OIAP(void);
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
                           UINT32 entityValue, SessionCtx *sctx);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);

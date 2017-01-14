@@ -37,18 +37,18 @@ void encAuth_gen(TPM_AUTHDATA *auth, BYTE *sharedSecret, TPM_NONCE *nonceEven,
   dealloc(heap, ctx, sizeof(struct SHA1_Context));
 }
 
-TPM_START_OIAP_RET TPM_Start_OIAP(void) {
-  TPM_RQU_COMMAND_START_OIAP *in = (TPM_RQU_COMMAND_START_OIAP *)tis_buffers.in;
+TPM_OIAP_RET TPM_OIAP(void) {
+  TPM_RQU_COMMAND_OIAP *in = (TPM_RQU_COMMAND_OIAP *)tis_buffers.in;
 
   in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
-  in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_START_OIAP));
+  in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_OIAP));
   in->ordinal = ntohl(TPM_ORD_OIAP);
 
   tis_transmit_new();
 
-  const TPM_RSP_COMMAND_START_OIAP *out =
-      (const TPM_RSP_COMMAND_START_OIAP *)tis_buffers.out;
-  const TPM_START_OIAP_RET ret = {
+  const TPM_RSP_COMMAND_OIAP *out =
+      (const TPM_RSP_COMMAND_OIAP *)tis_buffers.out;
+  const TPM_OIAP_RET ret = {
       .returnCode = ntohl(out->returnCode),
       .session = {.authHandle = ntohl(out->authHandle), .nonceEven = out->nonceEven}};
 
@@ -266,6 +266,7 @@ TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset,
   sha1_finish(ctx);
 
   hmac_init(hctx, nv_auth.authdata, sizeof(TPM_AUTHDATA));
+  hmac(hctx, ctx->hash, TCG_HASH_SIZE);
   hmac(hctx, out->nonceEven.nonce, sizeof(TPM_NONCE));
   hmac(hctx, nonceOdd.nonce, sizeof(TPM_NONCE));
   hmac(hctx, &out->continueAuthSession, sizeof(TPM_BOOL));

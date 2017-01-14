@@ -97,7 +97,7 @@ static void configure(void) {
   out_string(s_Erasing_passphrase_authdata);
   memset(passPhraseAuthData.authdata, 0, 20);
 
-  TPM_START_OIAP_RET oiap_ret = TPM_Start_OIAP();
+  TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
   OIAP_Session nv_session = oiap_ret.session;
 
