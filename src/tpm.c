@@ -201,67 +201,104 @@ TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize) {
   return res;
 }
 
+/* TPM_NV_WriteValueAuth */
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  TPM_NV_INDEX nvIndex;
+  UINT32 offset;
+  UINT32 dataSize;
+} TPM_RQU_COMMAND_NV_WRITEVALUEAUTH;
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_RESULT returnCode;
+} TPM_RSP_COMMAND_NV_WRITEVALUEAUTH;
+
 TPM_RESULT
-TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset,
-                      TPM_AUTHDATA nv_auth, OIAP_Session session) {
+TPM_NV_WriteValueAuth(const BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
+                      UINT32 offset, TPM_AUTHDATA nv_auth,
+                      TPM_SESSION nv_session) {
+  TPM_RESULT res;
   TPM_DIGEST inParamDigest, outParamDigest, outParamHMAC;
-  TPM_RQU_COMMAND_NV_WRITEVALUEAUTH *in =
-      (TPM_RQU_COMMAND_NV_WRITEVALUEAUTH *)tis_buffers.in;
+  TPM_RQU_COMMAND_NV_WRITEVALUEAUTH *command_in;
+  const TPM_RSP_COMMAND_NV_WRITEVALUEAUTH *command_out;
+  BYTE *data_in;
+  TPM_SESSION_IN *nv_session_in;
+  const TPM_SESSION_OUT *nv_session_out;
+
+  {
+    UINT32 offset = 0;
+    command_in = (TPM_RQU_COMMAND_NV_WRITEVALUEAUTH *)(tis_buffers.in + offset);
+    offset += sizeof(TPM_RQU_COMMAND_NV_WRITEVALUEAUTH);
+    data_in = (BYTE *)(tis_buffers.in + offset);
+    offset += dataSize;
+    nv_session_in = (TPM_SESSION_IN *)(tis_buffers.in + offset);
+  }
 
   // Generate a fresh nonce
-  TPM_GETRANDOM_RET_TPM_NONCE nonce_ret = TPM_GetRandom_TPM_NONCE();
-  ERROR(-1, nonce_ret.returnCode, s_nonce_generation_failed);
-  TPM_NONCE nonceOdd = nonce_ret.random_TPM_NONCE;
+  TPM_GETRANDOM_RET_TPM_NONCE nonceOdd = TPM_GetRandom_TPM_NONCE();
+  ERROR(-1, nonceOdd.returnCode, s_nonce_generation_failed);
 
-  in->head.tag = htons(TPM_TAG_RQU_AUTH1_COMMAND);
-  in->head.paramSize = htonl(sizeof(TPM_RQU_COMMAND_NV_WRITEVALUEAUTH));
-  in->ordinal = htonl(TPM_ORD_NV_WriteValueAuth);
-  in->nvIndex = htonl(nvIndex);
-  in->offset = htonl(offset);
-  in->dataSize = htonl(400);
-  memcpy(in->data, data, 400);
-  in->authHandle = htonl(session.authHandle);
-  in->nonceOdd = nonceOdd;
-  in->continueAuthSession = FALSE;
+  command_in->head.tag = htons(TPM_TAG_RQU_AUTH1_COMMAND);
+  command_in->head.paramSize = htonl(sizeof(TPM_RQU_COMMAND_NV_WRITEVALUEAUTH) +
+                                     dataSize + sizeof(TPM_SESSION_IN));
+  command_in->ordinal = htonl(TPM_ORD_NV_WriteValueAuth);
+  command_in->nvIndex = htonl(nvIndex);
+  command_in->offset = htonl(offset);
+  command_in->dataSize = htonl(dataSize);
+  memcpy(data_in, data, dataSize);
+  nv_session_in->authHandle = htonl(nv_session.authHandle);
+  nv_session_in->nonceOdd = nonceOdd.random_TPM_NONCE;
+  nv_session_in->continueAuthSession = FALSE;
 
   sha1_init();
-  sha1((BYTE *)&in->ordinal, sizeof(TPM_COMMAND_CODE));
-  sha1((BYTE *)&in->nvIndex, sizeof(TPM_NV_INDEX));
-  sha1((BYTE *)&in->offset, sizeof(UINT32));
-  sha1((BYTE *)&in->dataSize, sizeof(UINT32));
-  sha1(data, 400);
+  sha1((BYTE *)&command_in->ordinal, sizeof(TPM_COMMAND_CODE));
+  sha1((BYTE *)&command_in->nvIndex, sizeof(TPM_NV_INDEX));
+  sha1((BYTE *)&command_in->offset, sizeof(UINT32));
+  sha1((BYTE *)&command_in->dataSize, sizeof(UINT32));
+  sha1(data_in, dataSize);
   inParamDigest = sha1_finish();
 
   hmac_init(nv_auth.bytes, sizeof(TPM_AUTHDATA));
-  hmac(inParamDigest.bytes, TCG_HASH_SIZE);
-  hmac(session.nonceEven.bytes, sizeof(TPM_NONCE));
-  hmac(in->nonceOdd.bytes, sizeof(TPM_NONCE));
-  hmac(&in->continueAuthSession, sizeof(TPM_BOOL));
-  in->authValue = hmac_finish();
+  hmac(inParamDigest.bytes, sizeof(TPM_DIGEST));
+  hmac(nv_session.nonceEven.bytes, sizeof(TPM_NONCE));
+  hmac(nv_session_in->nonceOdd.bytes, sizeof(TPM_NONCE));
+  hmac(&nv_session_in->continueAuthSession, sizeof(TPM_BOOL));
+  nv_session_in->authValue = hmac_finish();
 
   tis_transmit_new();
 
-  const TPM_RSP_COMMAND_NV_WRITEVALUEAUTH *out =
-      (const TPM_RSP_COMMAND_NV_WRITEVALUEAUTH *)tis_buffers.out;
+  {
+    UINT32 offset = 0;
+    command_out =
+        (const TPM_RSP_COMMAND_NV_WRITEVALUEAUTH *)(tis_buffers.out + offset);
+    offset += sizeof(TPM_RSP_COMMAND_NV_WRITEVALUEAUTH);
+    nv_session_out = (const TPM_SESSION_OUT *)(tis_buffers.out + offset);
+  }
 
-  TPM_RESULT res = ntohl(out->returnCode);
+  res = ntohl(command_out->returnCode);
   if (res)
     return res;
 
+  assert(ntohl(command_out->head.paramSize) ==
+         sizeof(TPM_RSP_COMMAND_NV_WRITEVALUEAUTH) + sizeof(TPM_SESSION_OUT));
+
   sha1_init();
-  sha1((BYTE *)&out->returnCode, sizeof(TPM_RESULT));
-  sha1((BYTE *)&in->ordinal, sizeof(TPM_COMMAND_CODE));
+  sha1((BYTE *)&command_out->returnCode, sizeof(TPM_RESULT));
+  sha1((BYTE *)&command_in->ordinal, sizeof(TPM_COMMAND_CODE));
   outParamDigest = sha1_finish();
 
   hmac_init(nv_auth.bytes, sizeof(TPM_AUTHDATA));
-  hmac(outParamDigest.bytes, TCG_HASH_SIZE);
-  hmac(out->nonceEven.bytes, sizeof(TPM_NONCE));
-  hmac(nonceOdd.bytes, sizeof(TPM_NONCE));
-  hmac(&out->continueAuthSession, sizeof(TPM_BOOL));
+  hmac(outParamDigest.bytes, sizeof(TPM_DIGEST));
+  hmac(nv_session_out->nonceEven.bytes, sizeof(TPM_NONCE));
+  hmac(nonceOdd.random_TPM_NONCE.bytes, sizeof(TPM_NONCE));
+  hmac(&nv_session_out->continueAuthSession, sizeof(TPM_BOOL));
   outParamHMAC = hmac_finish();
 
-  ERROR(-1,
-        bufcmp(outParamHMAC.bytes, out->authValue.bytes, sizeof(TPM_AUTHDATA)),
+  ERROR(-1, bufcmp(outParamHMAC.bytes, nv_session_out->authValue.bytes,
+                   sizeof(TPM_AUTHDATA)),
         "Man-in-the-Middle Attack Detected!");
 
   return res;
@@ -377,7 +414,7 @@ TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
 
   // cleanup
   dealloc(heap, out_buffer, paramSize);
-  dealloc(heap, com, sizeof(stTPM_NV_WRITEVALUE));
+  dealloc(heap, com, sizeof(stTPM_SEAL));
   dealloc(heap, se, sizeof(SessionEnd));
   dealloc(heap, entityAuthData, sizeof(TPM_AUTHDATA));
 
@@ -399,7 +436,7 @@ TPM_PCRRead(TPM_PCRINDEX pcrIndex) {
   const TPM_RSP_COMMAND_PCRREAD *out =
       (const TPM_RSP_COMMAND_PCRREAD *)tis_buffers.out;
   const TPM_PCRREAD_RET ret = {.returnCode = ntohl(out->returnCode),
-                              .outDigest = out->outDigest};
+                               .outDigest = out->outDigest};
 
   return ret;
 }

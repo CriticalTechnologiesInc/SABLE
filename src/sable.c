@@ -16,6 +16,7 @@
 #include "alloc.h"
 #include "dev.h"
 #include "elf.h"
+#include "keyboard.h"
 #include "mp.h"
 #include "sha.h"
 #include "string.h"
@@ -23,7 +24,6 @@
 #include "tpm_error.h"
 #include "util.h"
 #include "version.h"
-#include "keyboard.h"
 
 #define SEALED_DATA_SIZE 400
 #define UNSEALED_DATA_SIZE 128
@@ -77,7 +77,8 @@ static void configure(void) {
   // select PCR 17 and 19
   sdTPM_PCR_SELECTION select = {ntohs(PCR_SELECT_SIZE), {0x0, 0x0, 0xa}};
 
-  res = TPM_Start_OSAP(buffer, srkAuthData.bytes, TPM_ET_KEYHANDLE, TPM_KH_SRK, sctx);
+  res = TPM_Start_OSAP(buffer, srkAuthData.bytes, TPM_ET_KEYHANDLE, TPM_KH_SRK,
+                       sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
 
   out_string(s_Erasing_srk_authdata);
@@ -97,9 +98,10 @@ static void configure(void) {
 
   TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
-  OIAP_Session nv_session = oiap_ret.session;
+  TPM_SESSION nv_session = oiap_ret.session;
 
-  res = TPM_NV_WriteValueAuth(sealedData, 0x04, 0, nvAuthData, nv_session);
+  res = TPM_NV_WriteValueAuth(sealedData, SEALED_DATA_SIZE, 0x04, 0, nvAuthData,
+                              nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 
   out_string(s_Erasing_nv_authdata);
@@ -138,7 +140,8 @@ static void unsealPassphrase(void) {
   res = TPM_Start_OIAP(buffer, sctxEntity);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_Unseal(buffer, sealedData, unsealedData, UNSEALED_DATA_SIZE, unsealedDataSize,
+  res = TPM_Unseal(buffer, sealedData, unsealedData, UNSEALED_DATA_SIZE,
+  unsealedDataSize,
                    sctxParent, sctxEntity);
   TPM_WARNING(res, s_TPM_Unseal);
 

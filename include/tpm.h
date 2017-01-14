@@ -39,9 +39,6 @@
 #define SLB_PCR_ORD 17
 #define MODULE_PCR_ORD 19
 
-#define NV_DATA_OFFSET 0x00010000
-#define NV_DATA_SIZE 500
-
 /**
  * Use AND to separate the items in a array construction.
  */
@@ -185,6 +182,19 @@ typedef struct {
 // Custom TPM command structures for SABLE
 //---------------------------------------------------
 
+typedef struct {
+  TPM_AUTHHANDLE authHandle;
+  TPM_NONCE nonceOdd;
+  TPM_BOOL continueAuthSession;
+  TPM_AUTHDATA authValue;
+} TPM_SESSION_IN;
+
+typedef struct {
+  TPM_NONCE nonceEven;
+  TPM_BOOL continueAuthSession;
+  TPM_AUTHDATA authValue;
+} TPM_SESSION_OUT;
+
 // generic command header
 typedef struct {
   TPM_TAG tag;
@@ -198,28 +208,6 @@ typedef struct {
   TPM_COMMAND_CODE ordinal;
   TPM_STARTUP_TYPE startupType;
 } stTPM_STARTUP;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_HANDLE handle;
-  TPM_RESOURCE_TYPE resourceType;
-} stTPM_FLUSH_SPECIFIC;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  UINT32 bytesRequested;
-} stTPM_GETRANDOM;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_PCRINDEX pcrIndex;
-} stTPM_PCRREAD;
 
 typedef struct {
   TPM_TAG tag;
@@ -257,19 +245,12 @@ typedef struct {
   TPM_NV_INDEX nvIndex;
   UINT32 offset;
   UINT32 dataSize;
-} stTPM_NV_WRITEVALUE;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_NV_INDEX nvIndex;
-  UINT32 offset;
-  UINT32 dataSize;
 } stTPM_NV_READVALUE;
 
 ///////////////////////////////////////////////////////////////////////////
-TPM_RESULT TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset, TPM_AUTHDATA nv_auth, OIAP_Session session);
+TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data /* in */, UINT32 dataSize,
+                                 TPM_NV_INDEX nvIndex, UINT32 offset,
+                                 TPM_AUTHDATA nv_auth, TPM_SESSION nv_session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize);
 TPM_PCRREAD_RET TPM_PCRRead(TPM_PCRINDEX pcrIndex);
 TPM_OIAP_RET TPM_OIAP(void);
@@ -304,7 +285,8 @@ void dump_pcrs(unsigned char *buffer);
                                                                                \
     const TPM_RSP_COMMAND_GETRANDOM_##Type *out =                              \
         (const TPM_RSP_COMMAND_GETRANDOM_##Type *)tis_buffers.out;             \
-    const TPM_GETRANDOM_RET_##Type ret = {.returnCode = ntohl(out->returnCode),       \
+    const TPM_GETRANDOM_RET_##Type ret = {.returnCode =                        \
+                                              ntohl(out->returnCode),          \
                                           .random_##Type = out->randomBytes};  \
                                                                                \
     return ret;                                                                \
