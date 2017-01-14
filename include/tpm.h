@@ -269,7 +269,6 @@ typedef struct {
 } stTPM_NV_READVALUE;
 
 ///////////////////////////////////////////////////////////////////////////
-TPM_RESULT TPM_Flush(BYTE *in_buffer, SessionCtx *sctx);
 TPM_RESULT TPM_NV_WriteValueAuth(BYTE *data, TPM_NV_INDEX nvIndex, UINT32 offset, TPM_AUTHDATA nv_auth, OIAP_Session session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize);
 TPM_RESULT TPM_PcrRead(BYTE *in_buffer, TPM_DIGEST *hash,

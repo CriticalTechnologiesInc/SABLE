@@ -18,6 +18,13 @@
 
 #define ROL(VALUE, COUNT) ((VALUE) << COUNT | (VALUE) >> (32 - COUNT))
 
+struct SHA1_Context {
+  UINT32 index;
+  UINT32 blocks;
+  BYTE buffer[64 + 4];
+  TPM_DIGEST hash;
+} ctx;
+
 /*
  * Get a w value.
  *
@@ -41,13 +48,13 @@ inline static unsigned int get_w(unsigned char *value, unsigned int round) {
 /**
  * Process a single block of 512 bits.
  */
-static void process_block(struct SHA1_Context *ctx) {
+static void process_block() {
   unsigned int i;
   unsigned int X[6];
   unsigned int tmp;
 
   for (i = 0; i < 5; i++)
-    X[i + 1] = ntohl(((unsigned int *)ctx->hash)[i]);
+    X[i + 1] = ntohl(((unsigned int *)ctx.hash.bytes)[i]);
 
   for (i = 0; i < 80; i++) {
     tmp = X[3] ^ X[4];
@@ -61,7 +68,7 @@ static void process_block(struct SHA1_Context *ctx) {
     else
       tmp = (X[2] ^ tmp) + 0xCA62C1D6;
 
-    X[0] = tmp + ROL(X[1], 5) + X[5] + get_w(ctx->buffer, i);
+    X[0] = tmp + ROL(X[1], 5) + X[5] + get_w(ctx.buffer, i);
     X[2] = ROL(X[2], 30);
     for (int j = 5; j > 0; j--)
       X[j] = X[j - 1];
@@ -69,23 +76,23 @@ static void process_block(struct SHA1_Context *ctx) {
 
   /* we store the hash in big endian - this avoids a loop at the end... */
   for (i = 0; i < 5; i++)
-    ((unsigned int *)ctx->hash)[i] =
-        ntohl(ntohl(((unsigned int *)ctx->hash)[i]) + X[i + 1]);
+    ((unsigned int *)ctx.hash.bytes)[i] =
+        ntohl(ntohl(((unsigned int *)ctx.hash.bytes)[i]) + X[i + 1]);
 }
 
 /**
  * @param ctx    - store immediate values like unprocessed bytes and the overall
  * length
  */
-void sha1_init(struct SHA1_Context *ctx) {
-  ctx->index = 0;
-  ctx->blocks = 0;
+void sha1_init() {
+  ctx.index = 0;
+  ctx.blocks = 0;
 
-  ((UINT32 *)ctx->hash)[0] = 0x01234567;
-  ((UINT32 *)ctx->hash)[1] = 0x89ABCDEF;
-  ((UINT32 *)ctx->hash)[2] = 0xFEDCBA98;
-  ((UINT32 *)ctx->hash)[3] = 0x76543210;
-  ((UINT32 *)ctx->hash)[4] = 0xf0e1d2c3;
+  ((UINT32 *)ctx.hash.bytes)[0] = 0x01234567;
+  ((UINT32 *)ctx.hash.bytes)[1] = 0x89ABCDEF;
+  ((UINT32 *)ctx.hash.bytes)[2] = 0xFEDCBA98;
+  ((UINT32 *)ctx.hash.bytes)[3] = 0x76543210;
+  ((UINT32 *)ctx.hash.bytes)[4] = 0xf0e1d2c3;
 }
 
 /**
@@ -96,36 +103,38 @@ void sha1_init(struct SHA1_Context *ctx) {
  * @param value  - a string to hash
  * @param count  - the number of characters in value
  */
-void sha1(struct SHA1_Context *ctx, const unsigned char *value, unsigned count) {
-  for (; count + ctx->index >= 64;
-       count -= 64 - ctx->index, value += 64 - ctx->index, ctx->index = 0) {
-    memcpy(ctx->buffer + ctx->index, value, 64 - ctx->index);
-    process_block(ctx);
-    ctx->blocks++;
-    ERROR(-20, ctx->blocks >= 1 << 23, s_SHA_data_exceeds_maximum_size);
+void sha1(const BYTE *value, UINT32 count) {
+  for (; count + ctx.index >= 64;
+       count -= 64 - ctx.index, value += 64 - ctx.index, ctx.index = 0) {
+    memcpy(ctx.buffer + ctx.index, value, 64 - ctx.index);
+    process_block();
+    ctx.blocks++;
+    ERROR(-20, ctx.blocks >= 1 << 23, s_SHA_data_exceeds_maximum_size);
   }
 
-  memcpy(ctx->buffer + ctx->index, value, count);
-  ctx->index += count;
+  memcpy(ctx.buffer + ctx.index, value, count);
+  ctx.index += count;
 }
 
 /**
  * Finish the operation. The output is available in ctx->hash.
  */
-void sha1_finish(struct SHA1_Context *ctx) {
-  ctx->buffer[ctx->index] = 0x80;
-  for (unsigned i = ctx->index + 1; i < 64; i++)
-    ctx->buffer[i] = 0;
+TPM_DIGEST sha1_finish(void) {
+  ctx.buffer[ctx.index] = 0x80;
+  for (unsigned i = ctx.index + 1; i < 64; i++)
+    ctx.buffer[i] = 0;
 
-  if (ctx->index > 55) {
-    process_block(ctx);
+  if (ctx.index > 55) {
+    process_block();
     for (unsigned i = 0; i < 64; i++)
-      ctx->buffer[i] = 0;
+      ctx.buffer[i] = 0;
   }
 
   /* using a 32bit value for blocks and not using the upper bits of
      tmp limits the maximum hash size to 512 MB. */
-  unsigned long long tmp = (ctx->blocks << 9) + (ctx->index << 3);
-  ((unsigned long *)ctx->buffer)[15] = ntohl(tmp & 0xffffffff);
-  process_block(ctx);
+  unsigned long long tmp = (ctx.blocks << 9) + (ctx.index << 3);
+  ((unsigned long *)ctx.buffer)[15] = ntohl(tmp & 0xffffffff);
+  process_block();
+
+  return ctx.hash;
 }

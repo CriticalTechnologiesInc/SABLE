@@ -15,14 +15,8 @@
 #pragma once
 
 #include "platform.h"
+#include "tcg.h"
 
-struct SHA1_Context {
-  UINT32 index;
-  UINT32 blocks;
-  BYTE buffer[64 + 4];
-  BYTE hash[20];
-};
-
-void sha1_init(struct SHA1_Context *ctx);
-void sha1(struct SHA1_Context *ctx, const unsigned char *value, unsigned count);
-void sha1_finish(struct SHA1_Context *ctx);
+void sha1_init(void);
+void sha1(const BYTE *value, UINT32 count);
+TPM_DIGEST sha1_finish(void);

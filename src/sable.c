@@ -26,7 +26,7 @@
 #include "keyboard.h"
 
 #define SEALED_DATA_SIZE 400
-#define UNSEALED_DATA_SIZE 400
+#define UNSEALED_DATA_SIZE 128
 
 const unsigned REALMODE_CODE = 0x20000;
 
@@ -37,22 +37,20 @@ void show_hash(const char *s, TPM_DIGEST *hash) {
   out_string(s_message_label);
   out_string(s);
   for (UINT32 i = 0; i < 20; i++)
-    out_hex(hash->digest[i], 7);
+    out_hex(hash->bytes[i], 7);
   out_char('\n');
 }
 
 TPM_AUTHDATA get_authdata(const char *str) {
   static const TPM_AUTHDATA zero_authdata = {{0}};
   int res;
-  struct SHA1_Context ctx;
 
   out_string(str);
   res = get_string(STRING_BUF_SIZE, false);
   if (res > 0) {
-    sha1_init(&ctx);
-    sha1(&ctx, (BYTE *)string_buf, res);
-    sha1_finish(&ctx);
-    return *((TPM_AUTHDATA *) ctx.hash);
+    sha1_init();
+    sha1((BYTE *)string_buf, res);
+    return sha1_finish();
   } else {
     return zero_authdata;
   }
@@ -79,23 +77,23 @@ static void configure(void) {
   // select PCR 17 and 19
   sdTPM_PCR_SELECTION select = {ntohs(PCR_SELECT_SIZE), {0x0, 0x0, 0xa}};
 
-  res = TPM_Start_OSAP(buffer, srkAuthData.authdata, TPM_ET_KEYHANDLE, TPM_KH_SRK, sctx);
+  res = TPM_Start_OSAP(buffer, srkAuthData.bytes, TPM_ET_KEYHANDLE, TPM_KH_SRK, sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
 
   out_string(s_Erasing_srk_authdata);
-  memset(srkAuthData.authdata, 0, 20);
+  memset(srkAuthData.bytes, 0, 20);
 
   out_string(s_Sealing_passPhrase);
   out_string((char *)passPhrase);
   res = TPM_Seal(buffer, select, passPhrase, lenPassphrase, sealedData, sctx,
-                 passPhraseAuthData.authdata);
+                 passPhraseAuthData.bytes);
   TPM_ERROR(res, s_TPM_Seal);
 
   out_string(s_Erasing_passphrase_from_memory);
   memset(passPhrase, 0, lenPassphrase);
 
   out_string(s_Erasing_passphrase_authdata);
-  memset(passPhraseAuthData.authdata, 0, 20);
+  memset(passPhraseAuthData.bytes, 0, 20);
 
   TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
@@ -105,7 +103,7 @@ static void configure(void) {
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 
   out_string(s_Erasing_nv_authdata);
-  memset(nvAuthData.authdata, 0, 20);
+  memset(nvAuthData.bytes, 0, 20);
 
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
@@ -174,9 +172,9 @@ static void unsealPassphrase(void) {
 /**
  *  Hash all multiboot modules.
  */
-static int mbi_calc_hash(struct mbi *mbi, struct SHA1_Context *ctx) {
+static int mbi_calc_hash(struct mbi *mbi) {
   TPM_EXTEND_RET res;
-  TPM_DIGEST dig;
+  TPM_DIGEST hash;
 
   CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
   CHECK3(-12, !mbi->mods_count, s_no_module_to_hash);
@@ -184,7 +182,7 @@ static int mbi_calc_hash(struct mbi *mbi, struct SHA1_Context *ctx) {
 
   struct module *m = (struct module *)(mbi->mods_addr);
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
-    sha1_init(ctx);
+    sha1_init();
 
     CHECK3(-13, m->mod_end < m->mod_start, s_mod_end_less_than_start);
 
@@ -193,10 +191,9 @@ static int mbi_calc_hash(struct mbi *mbi, struct SHA1_Context *ctx) {
     out_description(s_Module_ends_at, m->mod_end);
 #endif
 
-    sha1(ctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
-    sha1_finish(ctx);
-    memcpy(dig.digest, ctx->hash, sizeof(TPM_DIGEST));
-    res = TPM_Extend(MODULE_PCR_ORD, dig);
+    sha1((BYTE *)m->mod_start, m->mod_end - m->mod_start);
+    hash = sha1_finish();
+    res = TPM_Extend(MODULE_PCR_ORD, hash);
     TPM_ERROR(res.returnCode, s_TPM_Extend);
   }
 
@@ -320,18 +317,16 @@ static int revert_skinit(void) {
  */
 /* int sable(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
 int sable(struct mbi *mbi) {
-  struct SHA1_Context *ctx = alloc(heap, sizeof(struct SHA1_Context), 0);
-
   revert_skinit();
 
   ERROR(20, !mbi, s_no_mbi_in_sable);
 
   if (tis_init(TIS_BASE)) {
     ERROR(21, !tis_access(TIS_LOCALITY_2, 0), s_could_not_gain_TIS_ownership);
-    ERROR(22, mbi_calc_hash(mbi, ctx), s_calc_hash_failed);
+    ERROR(22, mbi_calc_hash(mbi), s_calc_hash_failed);
 
 #ifndef NDEBUG
-    TPM_RESULT res;
+    /*TPM_RESULT res;
     TPM_DIGEST *dig = alloc(heap, sizeof(TPM_DIGEST), 0);
 
     res = TPM_PcrRead(ctx->buffer, dig, SLB_PCR_ORD);
@@ -343,7 +338,7 @@ int sable(struct mbi *mbi) {
     show_hash(s_PCR19, dig);
 
     dealloc(heap, dig, sizeof(TPM_DIGEST));
-    wait(1000);
+    wait(1000);*/
 #endif
 
     out_string("Configure now? [y/n]: ");
@@ -360,9 +355,6 @@ int sable(struct mbi *mbi) {
 
     ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
   }
-
-  // cleanup
-  dealloc(heap, ctx, sizeof(struct SHA1_Context));
 
   ERROR(27, start_module(mbi), s_start_module_failed);
   return 28;
