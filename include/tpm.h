@@ -238,29 +238,22 @@ typedef struct {
   // it's variable size, but remember it's here for command parsing
 } stTPM_UNSEAL;
 
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_NV_INDEX nvIndex;
-  UINT32 offset;
-  UINT32 dataSize;
-} stTPM_NV_READVALUE;
-
 ///////////////////////////////////////////////////////////////////////////
 TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data /* in */, UINT32 dataSize,
                                  TPM_NV_INDEX nvIndex, UINT32 offset,
                                  TPM_AUTHDATA nv_auth, TPM_SESSION nv_session);
-TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize, TPM_NV_INDEX nvIndex, UINT32 offset);
+TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
+                            TPM_NV_INDEX nvIndex, UINT32 offset);
 TPM_PCRREAD_RET TPM_PCRRead(TPM_PCRINDEX pcrIndex);
 TPM_OIAP_RET TPM_OIAP(void);
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
                           UINT32 entityValue, SessionCtx *sctx);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
 TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash);
-TPM_RESULT TPM_Unseal(BYTE *buffer, BYTE *inData, BYTE *secretData,
-                      UINT32 secretDataBufSize, UINT32 *secretDataSize,
-                      SessionCtx *sctxParent, SessionCtx *sctxEntity);
+TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
+                      UINT32 secretDataSize, TPM_AUTHDATA parent_auth,
+                      TPM_SESSION parent_session, TPM_AUTHDATA data_auth,
+                      TPM_SESSION data_session);
 TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
                     UINT32 dataSize, BYTE *stored_data, SessionCtx *sctx,
                     BYTE *passPhraseAuthData);
