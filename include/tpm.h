@@ -251,7 +251,7 @@ typedef struct {
 TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data /* in */, UINT32 dataSize,
                                  TPM_NV_INDEX nvIndex, UINT32 offset,
                                  TPM_AUTHDATA nv_auth, TPM_SESSION nv_session);
-TPM_RESULT TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize);
+TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize, TPM_NV_INDEX nvIndex, UINT32 offset);
 TPM_PCRREAD_RET TPM_PCRRead(TPM_PCRINDEX pcrIndex);
 TPM_OIAP_RET TPM_OIAP(void);
 TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,

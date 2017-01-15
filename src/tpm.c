@@ -215,47 +215,53 @@ void getTPM_PCR_INFO_SHORT(BYTE *buffer, sdTPM_PCR_INFO_SHORT *info,
   dealloc(heap, comp, sizeof(sdTPM_PCR_COMPOSITE));
 }
 
-TPM_RESULT
-TPM_NV_ReadValue(BYTE *in_buffer, BYTE *data, UINT32 dataSize) {
-  TPM_RESULT res;
-  UINT32 tpm_offset_out = 0;
+/******************************************************
+ * TPM_OIAP
+ *****************************************************/
 
-  UINT32 paramSize = sizeof(stTPM_NV_READVALUE);
-  BYTE *out_buffer = alloc(heap, paramSize, 0);
-  stTPM_NV_READVALUE *com = alloc(heap, sizeof(stTPM_NV_READVALUE), 0);
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  TPM_NV_INDEX nvIndex;
+  UINT32 offset;
+  UINT32 dataSize;
+} TPM_RQU_COMMAND_NV_READVALUE;
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_RESULT returnCode;
+  UINT32 dataSize;
+} TPM_RSP_COMMAND_NV_READVALUE;
+
+TPM_RESULT TPM_NV_ReadValue(BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
+                            UINT32 offset) {
+  TPM_RESULT res;
+  TPM_RQU_COMMAND_NV_READVALUE *command_in =
+      (TPM_RQU_COMMAND_NV_READVALUE *)tis_buffers.in;
+  const TPM_RSP_COMMAND_NV_READVALUE *command_out =
+      (const TPM_RSP_COMMAND_NV_READVALUE *)tis_buffers.out;
+  const BYTE *data_out = tis_buffers.out + sizeof(TPM_RSP_COMMAND_NV_READVALUE);
+  UINT32 dataSize_out;
 
   // populate structures
-  com->tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com->paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_NV_ReadValue);
-  com->nvIndex = ntohl(0x4); // HARDCODED
-  com->offset = ntohl(0);    // HARDCODED
-  com->dataSize = ntohl(dataSize);
+  command_in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
+  command_in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_NV_READVALUE));
+  command_in->ordinal = ntohl(TPM_ORD_NV_ReadValue);
+  command_in->nvIndex = ntohl(nvIndex);
+  command_in->offset = ntohl(offset);
+  command_in->dataSize = ntohl(dataSize);
 
-  UINT32 receivedDataSize;
+  tis_transmit_new();
 
-  // package the entire command into a bytestream
-  SABLE_TPM_COPY_TO(com, sizeof(stTPM_NV_READVALUE));
+  res = command_out->returnCode;
+  if (res)
+    return res;
 
-  // transmit command to TPM
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_NV_ReadValueAuth_failed_on_transmit);
-
-  res = (TPM_RESULT)ntohl(*((UINT32 *)(in_buffer + 6)));
-
-  if (res == 0) {
-    receivedDataSize = (int)ntohl(*((UINT32 *)(in_buffer + 10)));
-    if (receivedDataSize > TCG_BUFFER_SIZE) {
-      out_string(s_buffer_overflow_detected);
-      return res;
-    }
-    memcpy(data, in_buffer + 14, receivedDataSize);
-  }
-
-  // cleanup
-  dealloc(heap, out_buffer, paramSize);
-  dealloc(heap, com, sizeof(stTPM_NV_READVALUE));
+  dataSize_out = ntohl(command_out->dataSize);
+  assert(dataSize == dataSize_out);
+  assert(ntohl(command_out->head.paramSize) ==
+         sizeof(TPM_RSP_COMMAND_NV_READVALUE) + dataSize_out);
+  memcpy(data, data_out, dataSize_out);
 
   return res;
 }
