@@ -129,16 +129,6 @@
 // Custom TPM data structures for SABLE
 //---------------------------------------------------
 
-enum tpm_subcaps_size {
-  TPM_NO_SUBCAP = 0,
-  TPM_SUBCAP = 4,
-};
-
-typedef struct {
-  UINT16 sizeOfSelect;
-  BYTE pcrSelect[PCR_SELECT_SIZE];
-} sdTPM_PCR_SELECTION;
-
 typedef struct {
   TPM_AUTHHANDLE authHandle;
   BYTE sharedSecret[20];
@@ -153,22 +143,6 @@ typedef struct {
   TPM_BOOL continueAuthSession;
   TPM_AUTHDATA pubAuth;
 } SessionEnd;
-
-typedef struct {
-  TPM_STRUCTURE_TAG tag;
-  TPM_LOCALITY_SELECTION localityAtCreation;
-  TPM_LOCALITY_SELECTION localityAtRelease;
-  sdTPM_PCR_SELECTION creationPCRSelection;
-  sdTPM_PCR_SELECTION releasePCRSelection;
-  TPM_COMPOSITE_HASH digestAtCreation;
-  TPM_COMPOSITE_HASH digestAtRelease;
-} sdTPM_PCR_INFO_LONG;
-
-typedef struct {
-  sdTPM_PCR_SELECTION pcrSelection;
-  TPM_LOCALITY_SELECTION localityAtRelease;
-  TPM_COMPOSITE_HASH digestAtRelease;
-} sdTPM_PCR_INFO_SHORT;
 
 typedef struct {
   sdTPM_PCR_SELECTION select;

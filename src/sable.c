@@ -29,15 +29,21 @@
 
 /* SABLE globals */
 
-struct {
+/* contains plaintext secrets */
+static struct {
   TPM_AUTHDATA nv_auth;
   TPM_AUTHDATA pp_auth;
   TPM_AUTHDATA srk_auth;
   char passphrase[STRING_BUF_SIZE];
 } secrets;
 
-#define SEALED_DATA_SIZE 400
-BYTE pp_blob[SEALED_DATA_SIZE];
+/* ciphertext passphrase */
+static BYTE pp_blob[400];
+
+/* selection of PCRs 17 and 19 */
+static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
+static const TPM_PCR_SELECTION pcr_select = {
+    .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
 
 /**
  * Function to output a hash.
@@ -80,9 +86,6 @@ static void configure(void) {
 
   memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
 
-  // select PCR 17 and 19
-  sdTPM_PCR_SELECTION select = {ntohs(PCR_SELECT_SIZE), {0x0, 0x0, 0xa}};
-
   res = TPM_Start_OSAP(buffer, secrets.srk_auth.bytes, TPM_ET_KEYHANDLE,
                        TPM_KH_SRK, sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
@@ -111,20 +114,10 @@ static void unsealPassphrase(void) {
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
 
-  //BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
-  SessionCtx *sctxParent = alloc(heap, sizeof(SessionCtx), 0);
-  SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
-
-  //BYTE *unsealedData = alloc(heap, STRING_BUF_SIZE, 0);
-  //UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
-
-  memcpy(sctxParent->pubAuth.bytes, secrets.srk_auth.bytes, 20);
-  memcpy(sctxEntity->pubAuth.bytes, secrets.pp_auth.bytes, 20);
-
   res = TPM_NV_ReadValue(pp_blob, sizeof(pp_blob), 0x04, 0);
   TPM_ERROR(res, s_TPM_NV_ReadValueAuth);
 
-  /*res = TPM_Start_OIAP(buffer, sctxParent);
+  res = TPM_Start_OIAP(buffer, sctxParent);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
   res = TPM_Start_OIAP(buffer, sctxEntity);
@@ -143,16 +136,7 @@ static void unsealPassphrase(void) {
   get_string(3, true);
 
   if (bufcmp(s_YES, string_buf, 3))
-    reboot();*/
-
-  // cleanup
-  //dealloc(heap, buffer, TCG_BUFFER_SIZE);
-  dealloc(heap, sctxParent, sizeof(SessionCtx));
-  dealloc(heap, sctxEntity, sizeof(SessionCtx));
-
-  //dealloc(heap, sealedData, SEALED_DATA_SIZE);
-  //dealloc(heap, unsealedData, STRING_BUF_SIZE);
-  //dealloc(heap, unsealedDataSize, sizeof(UINT32));
+    reboot();
 }
 
 /**

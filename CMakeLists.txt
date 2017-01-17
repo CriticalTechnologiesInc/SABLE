@@ -58,6 +58,7 @@ add_executable (sable
   src/tis.c
   src/tpm.c
   src/tpm_error.c
+  src/tpm_struct.c
   src/util.c
   src/sable.c
   )
