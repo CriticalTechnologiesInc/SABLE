@@ -25,7 +25,25 @@
 #include "version.h"
 #include "keyboard.h"
 
-const unsigned REALMODE_CODE = 0x20000;
+#define REALMODE_CODE 0x20000
+
+/* SABLE globals */
+
+/* contains plaintext secrets */
+static struct {
+  TPM_AUTHDATA nv_auth;
+  TPM_AUTHDATA pp_auth;
+  TPM_AUTHDATA srk_auth;
+  char passphrase[STRING_BUF_SIZE];
+} secrets;
+
+/* ciphertext passphrase */
+static BYTE pp_blob[400];
+
+/* selection of PCRs 17 and 19 */
+static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
+static const TPM_PCR_SELECTION pcr_select = {
+    .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
 
 /**
  * Function to output a hash.
@@ -73,10 +91,8 @@ static void configure(void) {
 
   memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
 
-  // select PCR 17 and 19
-  sdTPM_PCR_SELECTION select = {ntohs(PCR_SELECT_SIZE), {0x0, 0x0, 0xa}};
-
-  res = TPM_Start_OSAP(buffer, srkAuthData.authdata, TPM_ET_KEYHANDLE, TPM_KH_SRK, sctx);
+  res = TPM_Start_OSAP(buffer, secrets.srk_auth.bytes, TPM_ET_KEYHANDLE,
+                       TPM_KH_SRK, sctx);
   TPM_ERROR(res, s_TPM_Start_OSAP);
 
   out_string(s_Erasing_srk_authdata);
@@ -121,19 +137,12 @@ static void unsealPassphrase(void) {
   TPM_AUTHDATA srkAuthData = get_authdata(s_enter_srkAuthData);
   TPM_AUTHDATA passPhraseAuthData = get_authdata(s_enter_passPhraseAuthData);
 
-  BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
-  SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
+  // BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   SessionCtx *sctxParent = alloc(heap, sizeof(SessionCtx), 0);
   SessionCtx *sctxEntity = alloc(heap, sizeof(SessionCtx), 0);
 
-  BYTE *sealedData = alloc(heap, 400, 0);
-  BYTE *unsealedData = alloc(heap, 100, 0);
-
-  UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
-  memset(sctx, 0, sizeof(SessionCtx));
-
-  memcpy(sctxParent->pubAuth.authdata, srkAuthData.authdata, 20);
-  memcpy(sctxEntity->pubAuth.authdata, passPhraseAuthData.authdata, 20);
+  // BYTE *unsealedData = alloc(heap, STRING_BUF_SIZE, 0);
+  // UINT32 *unsealedDataSize = alloc(heap, sizeof(UINT32), 0);
 
   res = TPM_Start_OIAP(buffer, sctx);
   TPM_ERROR(res, s_TPM_Start_OIAP);
@@ -168,14 +177,13 @@ static void unsealPassphrase(void) {
   memset(srkAuthData.authdata, 0, 20);
 
   // cleanup
-  dealloc(heap, buffer, TCG_BUFFER_SIZE);
-  dealloc(heap, sctx, sizeof(SessionCtx));
+  // dealloc(heap, buffer, TCG_BUFFER_SIZE);
   dealloc(heap, sctxParent, sizeof(SessionCtx));
   dealloc(heap, sctxEntity, sizeof(SessionCtx));
 
-  dealloc(heap, sealedData, 400);
-  dealloc(heap, unsealedData, 100);
-  dealloc(heap, unsealedDataSize, sizeof(UINT32));
+  // dealloc(heap, sealedData, SEALED_DATA_SIZE);
+  // dealloc(heap, unsealedData, STRING_BUF_SIZE);
+  // dealloc(heap, unsealedDataSize, sizeof(UINT32));
 }
 
 /**

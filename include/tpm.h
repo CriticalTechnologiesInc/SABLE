@@ -132,16 +132,6 @@
 // Custom TPM data structures for SABLE
 //---------------------------------------------------
 
-enum tpm_subcaps_size {
-  TPM_NO_SUBCAP = 0,
-  TPM_SUBCAP = 4,
-};
-
-typedef struct {
-  UINT16 sizeOfSelect;
-  BYTE pcrSelect[PCR_SELECT_SIZE];
-} sdTPM_PCR_SELECTION;
-
 typedef struct {
   TPM_AUTHHANDLE authHandle;
   BYTE sharedSecret[20];
@@ -156,22 +146,6 @@ typedef struct {
   TPM_BOOL continueAuthSession;
   TPM_AUTHDATA pubAuth;
 } SessionEnd;
-
-typedef struct {
-  TPM_STRUCTURE_TAG tag;
-  TPM_LOCALITY_SELECTION localityAtCreation;
-  TPM_LOCALITY_SELECTION localityAtRelease;
-  sdTPM_PCR_SELECTION creationPCRSelection;
-  sdTPM_PCR_SELECTION releasePCRSelection;
-  TPM_COMPOSITE_HASH digestAtCreation;
-  TPM_COMPOSITE_HASH digestAtRelease;
-} sdTPM_PCR_INFO_LONG;
-
-typedef struct {
-  sdTPM_PCR_SELECTION pcrSelection;
-  TPM_LOCALITY_SELECTION localityAtRelease;
-  TPM_COMPOSITE_HASH digestAtRelease;
-} sdTPM_PCR_INFO_SHORT;
 
 typedef struct {
   sdTPM_PCR_SELECTION select;
@@ -303,7 +277,11 @@ TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
                           UINT32 entityValue, SessionCtx *sctx);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
 TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash);
-TPM_RESULT TPM_Unseal(BYTE *buffer, BYTE *inData, BYTE *secretData,
+//TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
+                      //UINT32 secretDataSize, TPM_AUTHDATA parent_auth,
+                      //TPM_SESSION parent_session, TPM_AUTHDATA data_auth,
+                      //TPM_SESSION data_session);
+TPM_RESULT TPM_Unseal(BYTE *in_buffer, BYTE *inData, BYTE *secretData,
                       UINT32 secretDataBufSize, UINT32 *secretDataSize,
                       SessionCtx *sctxParent, SessionCtx *sctxEntity);
 TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
