@@ -88,12 +88,12 @@ TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   TPM_COMMAND_CODE ordinal_in = TPM_ORD_OSAP;
 
   pack_init(tis_buffers.in, sizeof(tis_buffers.in));
-  pack_UINT16(htons(tag_in));
-  pack_UINT32(htonl(paramSize_in));
-  pack_UINT32(htonl(ordinal_in));
-  pack_UINT16(htons(entityType_in));
-  pack_UINT32(htonl(entityValue_in));
-  pack_TPM_DIGEST(nonceOddOSAP_in);
+  pack_UINT16(tag_in, false);
+  pack_UINT32(paramSize_in, false);
+  pack_UINT32(ordinal_in, false);
+  pack_UINT16(entityType_in, false);
+  pack_UINT32(entityValue_in, false);
+  pack_ptr(nonceOddOSAP_in.bytes, sizeof(TPM_NONCE), false);
   UINT32 bytes_packed = pack_finish();
 
   assert(bytes_packed == paramSize_in);
@@ -101,17 +101,15 @@ TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   tis_transmit_new();
 
   unpack_init(tis_buffers.out, sizeof(tis_buffers.out));
-  TPM_TAG tag_out = ntohs(unpack_UINT16());
-  UINT32 paramSize_out = ntohl(unpack_UINT32());
-  TPM_RESULT returnCode_out = ntohl(unpack_UINT32());
-
+  TPM_TAG tag_out = unpack_UINT16(false);
+  UINT32 paramSize_out = unpack_UINT32(false);
+  TPM_RESULT returnCode_out = unpack_UINT32(false);
   ret.returnCode = returnCode_out;
   if (ret.returnCode)
     return ret;
-
-  TPM_AUTHHANDLE authHandle_out = ntohl(unpack_UINT32());
-  TPM_NONCE nonceEven_out = unpack_TPM_DIGEST();
-  TPM_NONCE nonceEvenOSAP_out = unpack_TPM_DIGEST();
+  TPM_AUTHHANDLE authHandle_out = unpack_UINT32(false);
+  TPM_NONCE nonceEven_out = unpack_TPM_NONCE(false);
+  TPM_NONCE nonceEvenOSAP_out = unpack_TPM_NONCE(false);
   UINT32 bytes_unpacked = unpack_finish();
 
   assert(tag_out == TPM_TAG_RSP_COMMAND);
@@ -420,7 +418,7 @@ void getTPM_PCR_INFO_LONG(BYTE *buffer, TPM_PCR_INFO_LONG *info,
   dealloc(heap, comp, sizeof(TPM_PCR_COMPOSITE));
 }
 
-TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+/*TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                       UINT32 pcrInfoSize_in, const void *pcrInfo_in,
                       UINT32 inDataSize_in, const BYTE *inData_in,
                       TPM_SESSION *session, const TPM_AUTHDATA *key_auth) {
@@ -503,7 +501,7 @@ TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
         "MiM attack detected!");
 
   return ret;
-}
+}*/
 
 /* TPM_PCRRead */
 
@@ -571,52 +569,6 @@ TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
                               .outDigest = out->outDigest};
 
   return ret;
-}
-
-TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
-                          UINT32 entityValue, SessionCtx *sctx) {
-  TPM_RESULT res;
-  UINT32 tpm_offset_out = 0;
-  TPM_OSAP *com = alloc(heap, sizeof(TPM_OSAP), 0);
-  TPM_NONCE *nonceEvenOSAP = alloc(heap, sizeof(TPM_NONCE), 0);
-
-  UINT32 paramSize = sizeof(TPM_OSAP);
-  BYTE *out_buffer = alloc(heap, paramSize, 0);
-
-  // construct header
-  com->tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com->paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_OSAP);
-  com->entityType = ntohs(entityType);
-  com->entityValue = ntohl(entityValue);
-  TPM_GETRANDOM_RET_TPM_NONCE nonce = TPM_GetRandom_TPM_NONCE();
-  ERROR(108, nonce.returnCode, s_nonce_generation_failed);
-  com->nonceOddOSAP = nonce.random_TPM_NONCE;
-
-  SABLE_TPM_COPY_TO(com, paramSize);
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_Start_OSAP_failed_on_transmit);
-
-  res = (TPM_RESULT)ntohl(*((UINT32 *)(in_buffer + 6)));
-
-  TPM_COPY_FROM((BYTE *)&sctx->authHandle, 0, sizeof(TPM_AUTHHANDLE));
-  TPM_COPY_FROM((BYTE *)&sctx->nonceEven, 4, sizeof(TPM_NONCE));
-  TPM_COPY_FROM(nonceEvenOSAP, 24, sizeof(TPM_NONCE));
-
-  hmac_init(usageAuth, sizeof(TPM_AUTHDATA));
-  hmac(nonceEvenOSAP->bytes, sizeof(TPM_NONCE));
-  hmac(com->nonceOddOSAP.bytes, sizeof(TPM_NONCE));
-  TPM_DIGEST hmac = hmac_finish();
-
-  memcpy((BYTE *)&sctx->sharedSecret, hmac.bytes, TCG_HASH_SIZE);
-
-  // cleanup
-  dealloc(heap, com, sizeof(TPM_OSAP));
-  dealloc(heap, nonceEvenOSAP, sizeof(TPM_NONCE));
-  dealloc(heap, out_buffer, paramSize);
-
-  return res;
 }
 
 /**

@@ -16,15 +16,6 @@
 #include "string.h"
 #include "util.h"
 
-#define SHA1_GEN(Type) void sha1_##Type(Type val) { \
-  sha1_ptr(&val, sizeof(Type)); \
-}
-
-SHA1_GEN(BYTE);
-SHA1_GEN(UINT16);
-SHA1_GEN(UINT32);
-SHA1_GEN(TPM_DIGEST);
-
 #define ROL(VALUE, COUNT) ((VALUE) << COUNT | (VALUE) >> (32 - COUNT))
 
 struct SHA1_Context {

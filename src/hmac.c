@@ -3,15 +3,6 @@
 #include "tcg.h"
 #include "util.h"
 
-#define HMAC_GEN(Type) void hmac_##Type(Type val) { \
-  sha1_##Type(val); \
-}
-
-HMAC_GEN(BYTE);
-HMAC_GEN(UINT16);
-HMAC_GEN(UINT32);
-HMAC_GEN(TPM_DIGEST);
-
 struct HMAC_Context {
   BYTE key[HMAC_BLOCK_SIZE];
 } hctx;
@@ -25,8 +16,7 @@ void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize) {
   memset(in + insize, val, outsize - insize);
 }
 
-void hmac_init(const void *key_in, UINT32 key_size) {
-  const BYTE *key = key_in;
+void hmac_init(const BYTE *key, UINT32 key_size) {
   HMAC_OPad *ipad = alloc(heap, sizeof(HMAC_OPad), 0);
 
   memset(hctx.key, 0, HMAC_BLOCK_SIZE);
@@ -36,7 +26,7 @@ void hmac_init(const void *key_in, UINT32 key_size) {
     memcpy(hctx.key, key, key_size);
   else {
     sha1_init();
-    sha1_ptr(key, key_size);
+    sha1(key, key_size);
     TPM_DIGEST hash = sha1_finish();
     memcpy(hctx.key, hash.bytes, TPM_SHA1_160_HASH_LEN);
   }
@@ -44,14 +34,14 @@ void hmac_init(const void *key_in, UINT32 key_size) {
   do_xor(ipad->pad, hctx.key, ipad->pad, HMAC_BLOCK_SIZE);
 
   sha1_init();
-  sha1_ptr(ipad->pad, HMAC_BLOCK_SIZE);
+  sha1(ipad->pad, HMAC_BLOCK_SIZE);
 
   // cleanup
   dealloc(heap, ipad, sizeof(HMAC_IPad));
 }
 
-void hmac_ptr(const void *data, UINT32 dataSize) {
-  sha1_ptr(data, dataSize);
+void hmac(const void *data, UINT32 dataSize) {
+  sha1(data, dataSize);
 }
 
 TPM_DIGEST hmac_finish(void) {
@@ -62,8 +52,8 @@ TPM_DIGEST hmac_finish(void) {
   do_xor(opad->pad, hctx.key, opad->pad, HMAC_BLOCK_SIZE);
 
   sha1_init();
-  sha1_ptr(opad->pad, HMAC_BLOCK_SIZE);
-  sha1_ptr(hash.bytes, TPM_SHA1_160_HASH_LEN);
+  sha1(opad->pad, HMAC_BLOCK_SIZE);
+  sha1(hash.bytes, TPM_SHA1_160_HASH_LEN);
   hash = sha1_finish();
 
   // cleanup

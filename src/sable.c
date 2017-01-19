@@ -41,12 +41,12 @@ static struct {
 } secrets;
 
 /* ciphertext passphrase */
-static BYTE pp_blob[400];
+//static BYTE pp_blob[400];
 
 /* selection of PCRs 17 and 19 */
-static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
-static const TPM_PCR_SELECTION pcr_select = {
-    .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
+//static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
+//static const TPM_PCR_SELECTION pcr_select = {
+    //.sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
 
 /* TPM sessions */
 static TPM_SESSION srk_session;
@@ -78,14 +78,14 @@ void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
 }
 
 static void configure(void) {
-  TPM_RESULT res;
+  //TPM_RESULT res;
 
-  out_string(s_Please_enter_the_passphrase);
+  /*out_string(s_Please_enter_the_passphrase);
   UINT32 lenPassphrase = get_string(sizeof(secrets.passphrase) - 1, true) + 1;
   memcpy(secrets.passphrase, string_buf, lenPassphrase);
 
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
-  get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
+  get_authdata(s_enter_nvAuthData, &secrets.nv_auth);*/
 
   // Initialize an OSAP session for the SRK
   TPM_GETRANDOM_RET_TPM_NONCE nonceOddOSAP = TPM_GetRandom_TPM_NONCE();
@@ -96,7 +96,7 @@ static void configure(void) {
   TPM_ERROR(srk_osap.returnCode, s_TPM_Start_OSAP);
 
   // Generate the shared secret (for SRK authorization)
-  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
+  /*get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
 
   hmac_init(secrets.srk_auth.bytes, sizeof(TPM_AUTHDATA));
   hmac(srk_osap.nonceEvenOSAP.bytes, sizeof(TPM_NONCE));
@@ -122,7 +122,7 @@ static void configure(void) {
 
   // cleanup
   dealloc(heap, buffer, TCG_BUFFER_SIZE);
-  dealloc(heap, sctx, sizeof(SessionCtx));
+  dealloc(heap, sctx, sizeof(SessionCtx));*/
 }
 
 static void unsealPassphrase(void) {
