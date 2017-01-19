@@ -16,6 +16,15 @@
 #include "string.h"
 #include "util.h"
 
+#define SHA1_GEN(Type) void sha1_##Type(Type val) { \
+  sha1_ptr(&val, sizeof(Type)); \
+}
+
+SHA1_GEN(BYTE);
+SHA1_GEN(UINT16);
+SHA1_GEN(UINT32);
+SHA1_GEN(TPM_DIGEST);
+
 #define ROL(VALUE, COUNT) ((VALUE) << COUNT | (VALUE) >> (32 - COUNT))
 
 struct SHA1_Context {
@@ -103,7 +112,8 @@ void sha1_init() {
  * @param value  - a string to hash
  * @param count  - the number of characters in value
  */
-void sha1(const BYTE *value, UINT32 count) {
+void sha1(const void *val, UINT32 count) {
+  const BYTE *value = val;
   for (; count + ctx.index >= 64;
        count -= 64 - ctx.index, value += 64 - ctx.index, ctx.index = 0) {
     memcpy(ctx.buffer + ctx.index, value, 64 - ctx.index);

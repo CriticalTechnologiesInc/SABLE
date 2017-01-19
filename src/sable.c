@@ -19,11 +19,14 @@
 #include "keyboard.h"
 #include "mp.h"
 #include "sha.h"
+#include "hmac.h"
 #include "string.h"
 #include "tpm.h"
 #include "tpm_error.h"
 #include "util.h"
 #include "version.h"
+
+TPM_GETRANDOM_GEN(TPM_NONCE)
 
 #define REALMODE_CODE 0x20000
 
@@ -44,6 +47,9 @@ static BYTE pp_blob[400];
 static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
 static const TPM_PCR_SELECTION pcr_select = {
     .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
+
+/* TPM sessions */
+static TPM_SESSION srk_session;
 
 /**
  * Function to output a hash.
@@ -72,27 +78,37 @@ void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
 }
 
 static void configure(void) {
-  BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
   TPM_RESULT res;
-  SessionCtx *sctx = alloc(heap, sizeof(SessionCtx), 0);
 
   out_string(s_Please_enter_the_passphrase);
   UINT32 lenPassphrase = get_string(sizeof(secrets.passphrase) - 1, true) + 1;
   memcpy(secrets.passphrase, string_buf, lenPassphrase);
 
-  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
   get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
 
-  memset((unsigned char *)sctx, 0, sizeof(SessionCtx));
+  // Initialize an OSAP session for the SRK
+  TPM_GETRANDOM_RET_TPM_NONCE nonceOddOSAP = TPM_GetRandom_TPM_NONCE();
+  ERROR(-1, nonceOddOSAP.returnCode, s_nonce_generation_failed);
 
-  res = TPM_Start_OSAP(buffer, secrets.srk_auth.bytes, TPM_ET_KEYHANDLE,
-                       TPM_KH_SRK, sctx);
-  TPM_ERROR(res, s_TPM_Start_OSAP);
+  TPM_OSAP_RET srk_osap = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK,
+                                   nonceOddOSAP.random_TPM_NONCE, &srk_session);
+  TPM_ERROR(srk_osap.returnCode, s_TPM_Start_OSAP);
 
-  out_string(s_Sealing_passPhrase);
-  out_string(secrets.passphrase);
-  res = TPM_Seal(buffer, select, (BYTE *)secrets.passphrase, lenPassphrase,
+  // Generate the shared secret (for SRK authorization)
+  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
+
+  hmac_init(secrets.srk_auth.bytes, sizeof(TPM_AUTHDATA));
+  hmac(srk_osap.nonceEvenOSAP.bytes, sizeof(TPM_NONCE));
+  hmac(nonceOddOSAP.random_TPM_NONCE.bytes, sizeof(TPM_NONCE));
+  TPM_SECRET sharedSecret = hmac_finish();
+
+  // Seal the passphrase using the SRK
+  TPM_GETRANDOM_RET_TPM_NONCE nonceOdd_srk = TPM_GetRandom_TPM_NONCE();
+  ERROR(-1, nonceOdd_srk.returnCode, s_nonce_generation_failed);
+  srk_session.nonceOdd = nonceOdd_srk.random_TPM_NONCE;
+
+  res = TPM_Seal(buffer, &pcr_select, (BYTE *)secrets.passphrase, lenPassphrase,
                  pp_blob, sctx, secrets.pp_auth.bytes);
   TPM_ERROR(res, s_TPM_Seal);
 
@@ -100,7 +116,7 @@ static void configure(void) {
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
   TPM_SESSION nv_session = oiap_ret.session;
 
-  res = TPM_NV_WriteValueAuth(pp_blob, SEALED_DATA_SIZE, 0x04, 0,
+  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
                               secrets.nv_auth, nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 
@@ -110,7 +126,7 @@ static void configure(void) {
 }
 
 static void unsealPassphrase(void) {
-  TPM_RESULT res;
+  /*TPM_RESULT res;
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
 
@@ -137,6 +153,7 @@ static void unsealPassphrase(void) {
 
   if (bufcmp(s_YES, string_buf, 3))
     reboot();
+    */
 }
 
 /**

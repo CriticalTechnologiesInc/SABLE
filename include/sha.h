@@ -17,6 +17,12 @@
 #include "platform.h"
 #include "tcg.h"
 
+#define SHA1_PROTO_GEN(Type) void sha1_##Type(Type val);
+
 void sha1_init(void);
-void sha1(const BYTE *value, UINT32 count);
+void sha1_ptr(const void *val, UINT32 count);
+SHA1_PROTO_GEN(BYTE);
+SHA1_PROTO_GEN(UINT16);
+SHA1_PROTO_GEN(UINT32);
+SHA1_PROTO_GEN(TPM_DIGEST);
 TPM_DIGEST sha1_finish(void);

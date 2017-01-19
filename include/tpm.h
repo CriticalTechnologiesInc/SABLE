@@ -144,30 +144,9 @@ typedef struct {
   TPM_AUTHDATA pubAuth;
 } SessionEnd;
 
-typedef struct {
-  sdTPM_PCR_SELECTION select;
-  UINT32 valueSize;
-  // only supports 2 PCR values
-  TPM_COMPOSITE_HASH hash1;
-  TPM_COMPOSITE_HASH hash2;
-} sdTPM_PCR_COMPOSITE;
-
 //---------------------------------------------------
 // Custom TPM command structures for SABLE
 //---------------------------------------------------
-
-typedef struct {
-  TPM_AUTHHANDLE authHandle;
-  TPM_NONCE nonceOdd;
-  TPM_BOOL continueAuthSession;
-  TPM_AUTHDATA authValue;
-} TPM_SESSION_IN;
-
-typedef struct {
-  TPM_NONCE nonceEven;
-  TPM_BOOL continueAuthSession;
-  TPM_AUTHDATA authValue;
-} TPM_SESSION_OUT;
 
 // generic command header
 typedef struct {
@@ -187,26 +166,6 @@ typedef struct {
   TPM_TAG tag;
   UINT32 paramSize;
   TPM_COMMAND_CODE ordinal;
-  TPM_ENTITY_TYPE entityType;
-  UINT32 entityValue;
-  TPM_NONCE nonceOddOSAP;
-} TPM_OSAP;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_KEY_HANDLE keyHandle;
-  TPM_ENCAUTH encAuth;
-  UINT32 pcrInfoSize;
-  sdTPM_PCR_INFO_LONG pcrInfo;
-  UINT32 inDataSize;
-} stTPM_SEAL;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
   TPM_KEY_HANDLE parentHandle;
   // TPM_STORED_DATA inData; we can't include this in struct because
   // it's variable size, but remember it's here for command parsing
@@ -220,18 +179,60 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
                             TPM_NV_INDEX nvIndex, UINT32 offset);
 TPM_PCRREAD_RET TPM_PCRRead(TPM_PCRINDEX pcrIndex);
 TPM_OIAP_RET TPM_OIAP(void);
-TPM_RESULT TPM_Start_OSAP(BYTE *in_buffer, BYTE *usageAuth, UINT32 entityType,
-                          UINT32 entityValue, SessionCtx *sctx);
+TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
+                      TPM_NONCE nonceOddOSAP_in, TPM_SESSION *session);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
 TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash);
 TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
                       UINT32 secretDataSize, TPM_AUTHDATA parent_auth,
                       TPM_SESSION parent_session, TPM_AUTHDATA data_auth,
                       TPM_SESSION data_session);
-TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
-                    UINT32 dataSize, BYTE *stored_data, SessionCtx *sctx,
-                    BYTE *passPhraseAuthData);
-int TPM_GetCapability_Pcrs(BYTE buffer[TCG_BUFFER_SIZE], TPM_PCRINDEX *pcrs);
-void dump_pcrs(unsigned char *buffer);
+TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+                      UINT32 pcrInfoSize_in, const void *pcrInfo_in,
+                      UINT32 inDataSize_in, const BYTE *inData_in,
+                      TPM_SESSION *session, const TPM_AUTHDATA *key_auth);
+
+typedef struct {
+  TPM_COMMAND_HEADER head;
+  TPM_COMMAND_CODE ordinal;
+  UINT32 bytesRequested;
+} TPM_RQU_COMMAND_GETRANDOM;
+
+#define TPM_RSP_COMMAND_GETRANDOM_GEN(Type)                                    \
+  typedef struct {                                                             \
+    TPM_COMMAND_HEADER head;                                                   \
+    TPM_RESULT returnCode;                                                     \
+    UINT32 randomBytesSize;                                                    \
+    Type randomBytes;                                                          \
+  } TPM_RSP_COMMAND_GETRANDOM_##Type
+
+#define TPM_GETRANDOM_RET_GEN(Type)                                            \
+  typedef struct {                                                             \
+    TPM_RESULT returnCode;                                                     \
+    Type random_##Type;                                                        \
+  } TPM_GETRANDOM_RET_##Type
+
+#define TPM_GETRANDOM_GEN(Type)                                                \
+  TPM_RSP_COMMAND_GETRANDOM_GEN(Type);                                         \
+  TPM_GETRANDOM_RET_GEN(Type);                                                 \
+  TPM_GETRANDOM_RET_##Type TPM_GetRandom_##Type(void) {                        \
+    TPM_RQU_COMMAND_GETRANDOM *in =                                            \
+        (TPM_RQU_COMMAND_GETRANDOM *)tis_buffers.in;                           \
+                                                                               \
+    in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);                                 \
+    in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_GETRANDOM));             \
+    in->ordinal = ntohl(TPM_ORD_GetRandom);                                    \
+    in->bytesRequested = ntohl(sizeof(Type));                                  \
+                                                                               \
+    tis_transmit_new();                                                        \
+                                                                               \
+    const TPM_RSP_COMMAND_GETRANDOM_##Type *out =                              \
+        (const TPM_RSP_COMMAND_GETRANDOM_##Type *)tis_buffers.out;             \
+    const TPM_GETRANDOM_RET_##Type ret = {.returnCode =                        \
+                                              ntohl(out->returnCode),          \
+                                          .random_##Type = out->randomBytes};  \
+                                                                               \
+    return ret;                                                                \
+  }
 
 #endif

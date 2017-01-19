@@ -11,6 +11,8 @@ typedef struct {
 typedef struct {
   TPM_AUTHHANDLE authHandle;
   TPM_NONCE nonceEven;
+  TPM_NONCE nonceOdd;
+  TPM_BOOL continueAuthSession;
 } TPM_SESSION;
 
 typedef struct {
@@ -27,5 +29,15 @@ typedef struct {
   TPM_RESULT returnCode;
   TPM_SESSION session;
 } TPM_OIAP_RET;
+
+typedef struct {
+  TPM_RESULT returnCode;
+  TPM_NONCE nonceEvenOSAP;
+} TPM_OSAP_RET;
+
+typedef struct {
+  TPM_RESULT returnCode;
+  TPM_STORED_DATA12 sealed_data;
+} TPM_SEAL_RET;
 
 #endif

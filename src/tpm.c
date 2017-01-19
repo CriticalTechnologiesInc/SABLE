@@ -17,55 +17,23 @@
 #include "hmac.h"
 #include "string.h"
 #include "tpm_command.h"
+#include "tpm_struct.h"
 #include "util.h"
 
-/* TPM_GetRandom */
+typedef struct {
+  TPM_AUTHHANDLE authHandle;
+  TPM_NONCE nonceOdd;
+  TPM_BOOL continueAuthSession;
+  TPM_AUTHDATA authValue;
+} TPM_SESSION_IN;
 
 typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_COMMAND_CODE ordinal;
-  UINT32 bytesRequested;
-} TPM_RQU_COMMAND_GETRANDOM;
+  TPM_NONCE nonceEven;
+  TPM_BOOL continueAuthSession;
+  TPM_AUTHDATA authValue;
+} TPM_SESSION_OUT;
 
-#define TPM_RSP_COMMAND_GETRANDOM_GEN(Type)                                    \
-  typedef struct {                                                             \
-    TPM_COMMAND_HEADER head;                                                   \
-    TPM_RESULT returnCode;                                                     \
-    UINT32 randomBytesSize;                                                    \
-    Type randomBytes;                                                          \
-  } TPM_RSP_COMMAND_GETRANDOM_##Type
-
-#define TPM_GETRANDOM_RET_GEN(Type)                                            \
-  typedef struct {                                                             \
-    TPM_RESULT returnCode;                                                     \
-    Type random_##Type;                                                        \
-  } TPM_GETRANDOM_RET_##Type
-
-#define TPM_GETRANDOM_GEN(Type)                                                \
-  TPM_RSP_COMMAND_GETRANDOM_GEN(Type);                                         \
-  TPM_GETRANDOM_RET_GEN(Type);                                                 \
-  TPM_GETRANDOM_RET_##Type TPM_GetRandom_##Type(void) {                        \
-    TPM_RQU_COMMAND_GETRANDOM *in =                                            \
-        (TPM_RQU_COMMAND_GETRANDOM *)tis_buffers.in;                           \
-                                                                               \
-    in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);                                 \
-    in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_GETRANDOM));             \
-    in->ordinal = ntohl(TPM_ORD_GetRandom);                                    \
-    in->bytesRequested = ntohl(sizeof(Type));                                  \
-                                                                               \
-    tis_transmit_new();                                                        \
-                                                                               \
-    const TPM_RSP_COMMAND_GETRANDOM_##Type *out =                              \
-        (const TPM_RSP_COMMAND_GETRANDOM_##Type *)tis_buffers.out;             \
-    const TPM_GETRANDOM_RET_##Type ret = {.returnCode =                        \
-                                              ntohl(out->returnCode),          \
-                                          .random_##Type = out->randomBytes};  \
-                                                                               \
-    return ret;                                                                \
-  }
-
-TPM_GETRANDOM_GEN(TPM_NONCE)
-
+/* TPM_GetRandom */
 // out = xor(authData, sha1(sharedSecret ++ nonceEven))
 void encAuth_gen(TPM_AUTHDATA *auth, BYTE *sharedSecret, TPM_NONCE *nonceEven,
                  TPM_ENCAUTH *encAuth) {
@@ -109,7 +77,55 @@ TPM_OIAP_RET TPM_OIAP(void) {
   return ret;
 }
 
-TPM_RESULT TPM_Unseal(BYTE *in_buffer, BYTE *inData, BYTE *secretData,
+TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
+                      TPM_NONCE nonceOddOSAP_in, TPM_SESSION *session) {
+  TPM_OSAP_RET ret;
+
+  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
+  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
+                        sizeof(TPM_COMMAND_CODE) + sizeof(TPM_ENTITY_TYPE) +
+                        sizeof(UINT32) + sizeof(TPM_NONCE);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_OSAP;
+
+  pack_init(tis_buffers.in, sizeof(tis_buffers.in));
+  pack_UINT16(htons(tag_in));
+  pack_UINT32(htonl(paramSize_in));
+  pack_UINT32(htonl(ordinal_in));
+  pack_UINT16(htons(entityType_in));
+  pack_UINT32(htonl(entityValue_in));
+  pack_TPM_DIGEST(nonceOddOSAP_in);
+  UINT32 bytes_packed = pack_finish();
+
+  assert(bytes_packed == paramSize_in);
+
+  tis_transmit_new();
+
+  unpack_init(tis_buffers.out, sizeof(tis_buffers.out));
+  TPM_TAG tag_out = ntohs(unpack_UINT16());
+  UINT32 paramSize_out = ntohl(unpack_UINT32());
+  TPM_RESULT returnCode_out = ntohl(unpack_UINT32());
+
+  ret.returnCode = returnCode_out;
+  if (ret.returnCode)
+    return ret;
+
+  TPM_AUTHHANDLE authHandle_out = ntohl(unpack_UINT32());
+  TPM_NONCE nonceEven_out = unpack_TPM_DIGEST();
+  TPM_NONCE nonceEvenOSAP_out = unpack_TPM_DIGEST();
+  UINT32 bytes_unpacked = unpack_finish();
+
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytes_unpacked == paramSize_out);
+
+  session->authHandle = authHandle_out;
+  session->nonceEven = nonceEven_out;
+  session->continueAuthSession = FALSE; // default
+  ret.nonceEvenOSAP = nonceEvenOSAP_out;
+
+  return ret;
+}
+
+/*TPM_RESULT TPM_Unseal(BYTE *in_buffer, BYTE *inData, BYTE *secretData,
                       UINT32 secretDataBufSize, UINT32 *secretDataSize,
                       SessionCtx *sctxParent, SessionCtx *sctxEntity) {
   TPM_RESULT res;
@@ -190,33 +206,37 @@ TPM_RESULT TPM_Unseal(BYTE *in_buffer, BYTE *inData, BYTE *secretData,
   dealloc(heap, out_buffer, paramSize);
 
   return res;
-}
+}*/
 
-// this function assumes using PCRs 17 and 19
-void getTPM_PCR_INFO_SHORT(BYTE *buffer, sdTPM_PCR_INFO_SHORT *info,
-                           sdTPM_PCR_SELECTION select) {
-  sdTPM_PCR_COMPOSITE *comp = alloc(heap, sizeof(sdTPM_PCR_COMPOSITE), 0);
+// hardcoded PCRs 17 and 19
+void getTPM_PCR_INFO_SHORT(BYTE *buffer, TPM_PCR_INFO_SHORT *info,
+                           const TPM_PCR_SELECTION *select) {
+  TPM_PCR_COMPOSITE *comp = alloc(heap, sizeof(TPM_PCR_COMPOSITE), 0);
+  TPM_PCRVALUE *digests = alloc(heap, 2 * sizeof(TPM_PCRVALUE), 0);
+  TPM_PCRVALUE *pcr17 = digests;
+  TPM_PCRVALUE *pcr19 = digests + 1;
 
-  comp->select = select;
+  comp->select = *select;
   comp->valueSize = ntohl(2 * sizeof(TPM_COMPOSITE_HASH));
   // FIXME: check errors
-  comp->hash1 = TPM_PCRRead(SLB_PCR_ORD).outDigest;
-  comp->hash2 = TPM_PCRRead(MODULE_PCR_ORD).outDigest;
+  *pcr17 = TPM_PCRRead(SLB_PCR_ORD).outDigest;
+  *pcr19 = TPM_PCRRead(MODULE_PCR_ORD).outDigest;
+  comp->pcrValue = digests;
 
-  info->pcrSelection = select;
+  info->pcrSelection = *select;
   info->localityAtRelease = TPM_LOC_ONE | TPM_LOC_TWO | TPM_LOC_THREE;
 
   sha1_init();
-  sha1((BYTE *)comp, sizeof(sdTPM_PCR_COMPOSITE));
+  sha1((BYTE *)comp, sizeof(TPM_PCR_COMPOSITE));
   TPM_DIGEST hash = sha1_finish();
   memcpy(info->digestAtRelease.bytes, hash.bytes, sizeof(TPM_DIGEST));
 
   // cleanup
-  dealloc(heap, comp, sizeof(sdTPM_PCR_COMPOSITE));
+  dealloc(heap, comp, sizeof(TPM_PCR_COMPOSITE));
 }
 
 /******************************************************
- * TPM_OIAP
+ * TPM_ReadValue
  *****************************************************/
 
 typedef struct {
@@ -281,7 +301,7 @@ typedef struct {
   TPM_RESULT returnCode;
 } TPM_RSP_COMMAND_NV_WRITEVALUEAUTH;
 
-TPM_RESULT
+/*TPM_RESULT
 TPM_NV_WriteValueAuth(const BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
                       UINT32 offset, TPM_AUTHDATA nv_auth,
                       TPM_SESSION nv_session) {
@@ -367,123 +387,122 @@ TPM_NV_WriteValueAuth(const BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
         "Man-in-the-Middle Attack Detected!");
 
   return res;
-}
+}*/
 
-void getTPM_PCR_INFO_LONG(BYTE *buffer, sdTPM_PCR_INFO_LONG *info,
-                          sdTPM_PCR_SELECTION select) {
-  sdTPM_PCR_COMPOSITE *comp = alloc(heap, sizeof(sdTPM_PCR_COMPOSITE), 0);
+void getTPM_PCR_INFO_LONG(BYTE *buffer, TPM_PCR_INFO_LONG *info,
+                          const TPM_PCR_SELECTION *select) {
+  TPM_PCR_COMPOSITE *comp = alloc(heap, sizeof(TPM_PCR_COMPOSITE), 0);
+  TPM_PCRVALUE *digests = alloc(heap, 2 * sizeof(TPM_PCRVALUE), 0);
+  TPM_PCRVALUE *pcr17 = digests;
+  TPM_PCRVALUE *pcr19 = digests + 1;
 
-  comp->select = select;
+  comp->select = *select;
   comp->valueSize = ntohl(2 * TCG_HASH_SIZE);
-  // FIXME: check for errors
-  comp->hash1 = TPM_PCRRead(SLB_PCR_ORD).outDigest;
-  comp->hash2 = TPM_PCRRead(MODULE_PCR_ORD).outDigest;
+  // FIXME: check errors
+  *pcr17 = TPM_PCRRead(SLB_PCR_ORD).outDigest;
+  *pcr19 = TPM_PCRRead(MODULE_PCR_ORD).outDigest;
+  comp->pcrValue = digests;
 
   sha1_init();
-  sha1((BYTE *)comp, sizeof(sdTPM_PCR_COMPOSITE));
+  sha1((BYTE *)comp, sizeof(TPM_PCR_COMPOSITE));
   TPM_DIGEST hash = sha1_finish();
 
   info->tag = ntohs(TPM_TAG_PCR_INFO_LONG);
   info->localityAtCreation = TPM_LOC_TWO;
   info->localityAtRelease =
       TPM_LOC_ZERO | TPM_LOC_ONE | TPM_LOC_TWO | TPM_LOC_THREE | TPM_LOC_FOUR;
-  info->creationPCRSelection = select;
-  info->releasePCRSelection = select;
+  info->creationPCRSelection = *select;
+  info->releasePCRSelection = *select;
   info->digestAtCreation = hash;
   info->digestAtRelease = hash;
 
   // cleanup
-  dealloc(heap, comp, sizeof(sdTPM_PCR_COMPOSITE));
+  dealloc(heap, comp, sizeof(TPM_PCR_COMPOSITE));
 }
 
-TPM_RESULT TPM_Seal(BYTE *in_buffer, sdTPM_PCR_SELECTION select, BYTE *data,
-                    UINT32 dataSize, BYTE *stored_data, SessionCtx *sctx,
-                    BYTE *passPhraseAuthData) {
-  TPM_RESULT res;
-  TPM_DIGEST inParamDigest;
-  SessionEnd *se = alloc(heap, sizeof(SessionEnd), 0);
-  stTPM_SEAL *com = alloc(heap, sizeof(stTPM_SEAL), 0);
-  TPM_AUTHDATA *entityAuthData = alloc(heap, sizeof(TPM_AUTHDATA), 0);
+TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+                      UINT32 pcrInfoSize_in, const void *pcrInfo_in,
+                      UINT32 inDataSize_in, const BYTE *inData_in,
+                      TPM_SESSION *session, const TPM_AUTHDATA *key_auth) {
+  TPM_SEAL_RET ret;
 
-  UINT32 tpm_offset_out = 0;
-  int paramSize = sizeof(stTPM_SEAL) + dataSize + sizeof(SessionEnd);
-  BYTE *out_buffer = alloc(heap, paramSize, 0);
+  TPM_TAG tag_in = TPM_TAG_RQU_AUTH1_COMMAND;
+  UINT32 paramSize_in =
+      sizeof(TPM_TAG) + sizeof(UINT32) + sizeof(TPM_COMMAND_CODE) +
+      sizeof(TPM_KEY_HANDLE) + sizeof(TPM_ENCAUTH) + sizeof(UINT32) +
+      pcrInfoSize_in + sizeof(UINT32) + inDataSize_in + sizeof(TPM_AUTHHANDLE) +
+      sizeof(TPM_NONCE) + sizeof(TSS_BOOL) + sizeof(TPM_AUTHDATA);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_Seal;
 
-  // construct command header
-  com->tag = ntohs(TPM_TAG_RQU_AUTH1_COMMAND);
-  com->paramSize = ntohl(paramSize);
-  com->ordinal = ntohl(TPM_ORD_Seal);
-
-  // handle of the SRK
-  com->keyHandle = ntohl(TPM_KH_SRK);
-
-  /* get encAuth to assign authData needed to Unseal. authData isn't part of our
-   * access control model so we just use a well-known secret of zeroes. */
-  memcpy(entityAuthData->bytes, passPhraseAuthData, sizeof(TPM_AUTHDATA));
-  encAuth_gen(entityAuthData, sctx->sharedSecret, &sctx->nonceEven,
-              &com->encAuth);
-
-  // generate TPM_PCR_INFO
-  getTPM_PCR_INFO_LONG(in_buffer, &com->pcrInfo, select);
-  com->pcrInfoSize = ntohl(sizeof(sdTPM_PCR_INFO_LONG));
-
-  com->inDataSize = ntohl(dataSize);
-
+  // compute inParamDigest
   sha1_init();
-  sha1((BYTE *)&com->ordinal, sizeof(TPM_COMMAND_CODE));
-  sha1(com->encAuth.bytes, sizeof(TPM_ENCAUTH));
-  sha1((BYTE *)&com->pcrInfoSize, sizeof(UINT32));
-  sha1((BYTE *)&com->pcrInfo, sizeof(sdTPM_PCR_INFO_LONG));
-  sha1((BYTE *)&com->inDataSize, sizeof(UINT32));
-  sha1(data, dataSize);
-  inParamDigest = sha1_finish();
+  sha1_UINT32(ordinal_in);
+  sha1_TPM_DIGEST(encAuth_in);
+  sha1_UINT32(pcrInfoSize_in);
+  sha1_ptr(pcrInfo_in, pcrInfoSize_in);
+  sha1_UINT32(inDataSize_in);
+  sha1_ptr(inData_in, inDataSize_in);
+  TPM_DIGEST inParamDigest = sha1_finish();
 
-  se->authHandle = sctx->authHandle;
-  TPM_GETRANDOM_RET_TPM_NONCE nonce = TPM_GetRandom_TPM_NONCE();
-  ERROR(-1, nonce.returnCode, s_nonce_generation_failed);
-  se->nonceOdd = nonce.random_TPM_NONCE;
-  se->continueAuthSession = TRUE;
+  // compute inAuthSetupParams
+  hmac_init(key_auth->bytes, sizeof(TPM_AUTHDATA));
+  hmac_TPM_DIGEST(inParamDigest);
+  hmac_TPM_DIGEST(session->nonceEven);
+  hmac_TPM_DIGEST(session->nonceOdd);
+  hmac_BYTE(session->continueAuthSession);
+  TPM_AUTHDATA pubAuth_in = hmac_finish();
 
-  // prepare elements for HMAC
-  hmac_init(sctx->sharedSecret, TCG_HASH_SIZE);
-  hmac(inParamDigest.bytes, TCG_HASH_SIZE);
-  hmac(sctx->nonceEven.bytes, sizeof(TPM_NONCE));
-  hmac(se->nonceOdd.bytes, sizeof(TPM_NONCE));
-  hmac(&se->continueAuthSession, sizeof(TPM_BOOL));
-  se->pubAuth = hmac_finish();
+  // pack the command
+  pack_init(tis_buffers.in, sizeof(tis_buffers.in));
+  pack_UINT16(htons(tag_in));
+  pack_UINT32(htonl(paramSize_in));
+  pack_UINT32(htonl(ordinal_in));
+  pack_UINT32(ntohl(keyHandle_in));
+  pack_TPM_DIGEST(encAuth_in);
+  pack_UINT32(htonl(pcrInfoSize_in));
+  pack_ptr(pcrInfo_in, pcrInfoSize_in);
+  pack_UINT32(htonl(inDataSize_in));
+  pack_ptr(inData_in, inDataSize_in);
+  pack_UINT32(htonl(session->authHandle));
+  pack_TPM_DIGEST(session->nonceOdd);
+  pack_BYTE(session->continueAuthSession);
+  pack_TPM_DIGEST(pubAuth_in);
+  UINT32 bytes_packed = pack_finish();
 
-  // package the entire command into a bytestream
-  SABLE_TPM_COPY_TO(com, sizeof(stTPM_SEAL));
-  SABLE_TPM_COPY_TO(data, dataSize);
-  SABLE_TPM_COPY_TO(se, sizeof(SessionEnd));
+  assert(bytes_packed == paramSize_in);
 
-  // transmit command to TPM
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_Seal_failed_on_transmit);
+  tis_transmit_new();
 
-  unsigned long sealedDataSize = 0;
-  unsigned long sealInfoSize;
-  unsigned long encDataSize;
+  unpack_init(tis_buffers.out, sizeof(tis_buffers.out));
+  TPM_TAG tag_out = ntohs(unpack_UINT16());
+  UINT32 paramSize_out = ntohl(unpack_UINT32());
+  ret.returnCode = ntohl(unpack_UINT32());
+  if (ret.returnCode)
+    return ret;
+  ret.sealed_data = unpack_TPM_STORED_DATA12();
+  session->nonceEven = unpack_TPM_DIGEST();
+  session->continueAuthSession = unpack_BYTE();
+  TPM_AUTHDATA resAuth_out = unpack_TPM_DIGEST();
+  UINT32 bytes_unpacked = unpack_finish();
 
-  res = (TPM_RESULT)ntohl(*((unsigned int *)(in_buffer + 6)));
-  if (res > 0)
-    return res;
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytes_unpacked == paramSize_out);
+  assert(session->continueAuthSession == FALSE);
 
-  sealInfoSize = ntohl(*((unsigned long *)(in_buffer + 14)));
+  // compute outParamDigest
+  TPM_DIGEST outParamDigest;
 
-  encDataSize = ntohl(*((unsigned long *)(in_buffer + 18 + sealInfoSize)));
-  sealedDataSize = 12 + sealInfoSize + encDataSize;
+  // compute HM
+  hmac_init(key_auth->bytes, sizeof(TPM_AUTHDATA));
+  hmac_TPM_DIGEST(outParamDigest);
+  hmac_TPM_DIGEST(session->nonceEven);
+  hmac_TPM_DIGEST(session->nonceOdd);
+  hmac_BYTE(session->continueAuthSession);
+  TPM_AUTHDATA HM = hmac_finish();
+  ERROR(-1, bufcmp(HM.bytes, resAuth_out.bytes, sizeof(TPM_DIGEST)),
+        "MiM attack detected!");
 
-  memcpy(stored_data, in_buffer + 10, sealedDataSize);
-
-  // cleanup
-  dealloc(heap, out_buffer, paramSize);
-  dealloc(heap, com, sizeof(stTPM_SEAL));
-  dealloc(heap, se, sizeof(SessionEnd));
-  dealloc(heap, entityAuthData, sizeof(TPM_AUTHDATA));
-
-  return res;
+  return ret;
 }
 
 /* TPM_PCRRead */
@@ -631,41 +650,4 @@ TPM_Startup_Clear(BYTE *in_buffer) {
   dealloc(heap, out_buffer, paramSize);
 
   return res;
-}
-
-/*
- * Get the number of suported pcrs.
- */
-TPM_TRANSMIT_FUNC(
-    GetCapability_Pcrs, (BYTE * buffer, TPM_PCRINDEX *value),
-    unsigned long send_buffer[] = {TPM_ORD_GetCapability AND TPM_CAP_PROPERTY
-                                       AND TPM_SUBCAP AND TPM_CAP_PROP_PCR};
-    , if (TPM_EXTRACT_LONG(0) != 4) return -2;
-    *value = (unsigned int)TPM_EXTRACT_LONG(4);)
-
-void dump_pcrs(BYTE *buffer) {
-  TPM_PCRINDEX *pcrs = alloc(heap, sizeof(TPM_PCRINDEX), 0);
-
-  if (TPM_GetCapability_Pcrs(buffer, pcrs))
-    out_info(s_TPM_GetCapability_Pcrs_failed);
-  else
-    out_description(s_PCRs, *pcrs);
-
-  for (TPM_PCRINDEX pcr = 0; pcr < *pcrs; pcr++) {
-    TPM_PCRREAD_RET res = TPM_PCRRead(pcr);
-    if (res.returnCode) {
-      out_description(s_TPM_PcrRead_failed_with, res.returnCode);
-      break;
-    } else {
-      out_string(s_left_bracket);
-      out_hex(pcr, 0);
-      out_string(s_right_bracket);
-      for (unsigned i = 0; i < 4; i++)
-        out_hex(res.outDigest.bytes[i], 7);
-    }
-    out_char(pcr % 4 == 3 ? '\n' : ' ');
-  }
-
-  // cleanup
-  dealloc(heap, pcrs, sizeof(TPM_PCRINDEX));
 }
