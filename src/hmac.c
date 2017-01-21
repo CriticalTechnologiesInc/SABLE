@@ -7,7 +7,7 @@ struct HMAC_Context {
   BYTE key[HMAC_BLOCK_SIZE];
 } hctx;
 
-void do_xor(BYTE *in1, BYTE *in2, BYTE *out, UINT32 size) {
+void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size) {
   for (UINT32 i = 0; i < size; i++)
     out[i] = in1[i] ^ in2[i];
 }
@@ -28,7 +28,7 @@ void hmac_init(const BYTE *key, UINT32 key_size) {
     sha1_init();
     sha1(key, key_size);
     TPM_DIGEST hash = sha1_finish();
-    memcpy(hctx.key, hash.bytes, TPM_SHA1_160_HASH_LEN);
+    memcpy(hctx.key, hash.digest, TPM_SHA1_160_HASH_LEN);
   }
 
   do_xor(ipad->pad, hctx.key, ipad->pad, HMAC_BLOCK_SIZE);
@@ -44,7 +44,7 @@ void hmac(const void *data, UINT32 dataSize) {
   sha1(data, dataSize);
 }
 
-TPM_DIGEST hmac_finish(void) {
+TPM_AUTHDATA hmac_finish(void) {
   HMAC_OPad *opad = alloc(heap, sizeof(HMAC_OPad), 0);
   TPM_DIGEST hash = sha1_finish();
 
@@ -53,11 +53,11 @@ TPM_DIGEST hmac_finish(void) {
 
   sha1_init();
   sha1(opad->pad, HMAC_BLOCK_SIZE);
-  sha1(hash.bytes, TPM_SHA1_160_HASH_LEN);
+  sha1(hash.digest, TPM_SHA1_160_HASH_LEN);
   hash = sha1_finish();
 
   // cleanup
   dealloc(heap, opad, sizeof(HMAC_OPad));
 
-  return hash;
+  return *(TPM_AUTHDATA *)&hash;
 }

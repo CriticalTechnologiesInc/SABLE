@@ -146,13 +146,27 @@ TPM_PCR_SELECTION unpack_TPM_PCR_SELECTION(bool hash) {
   return ret;
 }
 
-void pack_TPM_NONCE(TPM_NONCE nonce, bool hash) {
-  pack_ptr(nonce.bytes, sizeof(TPM_NONCE), hash);
+void pack_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo, bool hash) {
+  pack_UINT16(pcrInfo.tag, hash);
+  pack_BYTE(pcrInfo.localityAtCreation, hash);
+  pack_BYTE(pcrInfo.localityAtRelease, hash);
+  pack_TPM_PCR_SELECTION(pcrInfo.creationPCRSelection, hash);
+  pack_TPM_PCR_SELECTION(pcrInfo.releasePCRSelection, hash);
+  pack_ptr(pcrInfo.digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH), hash);
+  pack_ptr(pcrInfo.digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH), hash);
 }
-TPM_NONCE unpack_TPM_NONCE(bool hash) {
-  TPM_NONCE *ret;
-  ret = unpack_ptr(sizeof(TPM_NONCE), hash);
-  return *ret;
+TPM_PCR_INFO_LONG unpack_TPM_PCR_INFO_LONG(bool hash) {
+  TPM_PCR_INFO_LONG ret;
+  ret.tag = unpack_UINT16(hash);
+  ret.localityAtCreation = unpack_BYTE(hash);
+  ret.localityAtRelease = unpack_BYTE(hash);
+  ret.creationPCRSelection = unpack_TPM_PCR_SELECTION(hash);
+  ret.releasePCRSelection = unpack_TPM_PCR_SELECTION(hash);
+  ret.digestAtCreation =
+      *(TPM_COMPOSITE_HASH *)unpack_ptr(sizeof(TPM_COMPOSITE_HASH), hash);
+  ret.digestAtRelease =
+      *(TPM_COMPOSITE_HASH *)unpack_ptr(sizeof(TPM_COMPOSITE_HASH), hash);
+  return ret;
 }
 
 void pack_TPM_STORED_DATA12(TPM_STORED_DATA12 data, bool hash) {
@@ -172,4 +186,44 @@ TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(bool hash) {
   ret.encDataSize = unpack_UINT32(hash);
   ret.encData = unpack_ptr(ret.encDataSize, hash);
   return ret;
+}
+
+UINT32 sizeof_TPM_PCR_SELECTION(TPM_PCR_SELECTION select) {
+  UINT32 ret = 0;
+  ret += sizeof(select.sizeOfSelect);
+  ret += select.sizeOfSelect;
+  return ret;
+}
+
+UINT32 sizeof_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo) {
+  UINT32 ret = 0;
+  ret += sizeof(TPM_STRUCTURE_TAG);
+  ret += 2 * sizeof(TPM_LOCALITY_SELECTION);
+  ret += sizeof_TPM_PCR_SELECTION(pcrInfo.creationPCRSelection);
+  ret += sizeof_TPM_PCR_SELECTION(pcrInfo.releasePCRSelection);
+  ret += 2 * sizeof(TPM_COMPOSITE_HASH);
+  return ret;
+}
+
+// ret = xor(authData, sha1(sharedSecret ++ nonceEven))
+TPM_ENCAUTH encAuth_gen(const TPM_AUTHDATA *auth,
+                        const TPM_SECRET *sharedSecret,
+                        const TPM_NONCE *nonceEven) {
+  TPM_ENCAUTH encAuth;
+  sha1_init();
+  sha1(sharedSecret, sizeof(TPM_SECRET));
+  sha1(nonceEven->nonce, sizeof(TPM_NONCE));
+  TPM_DIGEST hash = sha1_finish();
+
+  do_xor(auth->authdata, hash.digest, encAuth.authdata, sizeof(TPM_DIGEST));
+  return encAuth;
+}
+
+TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {
+  sha1_init();
+  sha1(&comp.select.sizeOfSelect, sizeof(comp.select.sizeOfSelect));
+  sha1(comp.select.pcrSelect, comp.select.sizeOfSelect);
+  sha1(&comp.valueSize, sizeof(comp.valueSize));
+  sha1(comp.pcrValue, comp.valueSize);
+  return sha1_finish();
 }

@@ -16,13 +16,14 @@
 #include "alloc.h"
 #include "dev.h"
 #include "elf.h"
+#include "hmac.h"
 #include "keyboard.h"
 #include "mp.h"
 #include "sha.h"
-#include "hmac.h"
 #include "string.h"
 #include "tpm.h"
 #include "tpm_error.h"
+#include "tpm_struct.h"
 #include "util.h"
 #include "version.h"
 
@@ -41,12 +42,17 @@ static struct {
 } secrets;
 
 /* ciphertext passphrase */
-//static BYTE pp_blob[400];
+static BYTE pp_blob[400];
 
 /* selection of PCRs 17 and 19 */
-//static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
-//static const TPM_PCR_SELECTION pcr_select = {
-    //.sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
+static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
+static const TPM_PCR_SELECTION pcr_select = {
+    .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
+static TPM_PCRVALUE pcr_values[2];
+static BYTE pcr_info_packed
+    [sizeof(TPM_STRUCTURE_TAG) + 2 * sizeof(TPM_LOCALITY_SELECTION) +
+     2 * (sizeof(pcr_select.sizeOfSelect) + sizeof(pcr_select_bytes)) +
+     sizeof(pcr_select_bytes) + 2 * sizeof(TPM_COMPOSITE_HASH)];
 
 /* TPM sessions */
 static TPM_SESSION srk_session;
@@ -58,7 +64,7 @@ void show_hash(const char *s, TPM_DIGEST *hash) {
   out_string(s_message_label);
   out_string(s);
   for (UINT32 i = 0; i < 20; i++)
-    out_hex(hash->bytes[i], 7);
+    out_hex(hash->digest[i], 7);
   out_char('\n');
 }
 
@@ -71,21 +77,20 @@ void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
   if (res > 0) {
     sha1_init();
     sha1((BYTE *)string_buf, res);
-    *authdata = sha1_finish();
+    TPM_DIGEST hash = sha1_finish();
+    *authdata = *(TPM_AUTHDATA *)&hash;
   } else {
     *authdata = zero_authdata;
   }
 }
 
 static void configure(void) {
-  //TPM_RESULT res;
-
-  /*out_string(s_Please_enter_the_passphrase);
+  out_string(s_Please_enter_the_passphrase);
   UINT32 lenPassphrase = get_string(sizeof(secrets.passphrase) - 1, true) + 1;
   memcpy(secrets.passphrase, string_buf, lenPassphrase);
 
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
-  get_authdata(s_enter_nvAuthData, &secrets.nv_auth);*/
+  // get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
 
   // Initialize an OSAP session for the SRK
   TPM_GETRANDOM_RET_TPM_NONCE nonceOddOSAP = TPM_GetRandom_TPM_NONCE();
@@ -96,23 +101,54 @@ static void configure(void) {
   TPM_ERROR(srk_osap.returnCode, s_TPM_Start_OSAP);
 
   // Generate the shared secret (for SRK authorization)
-  /*get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
+  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
 
-  hmac_init(secrets.srk_auth.bytes, sizeof(TPM_AUTHDATA));
-  hmac(srk_osap.nonceEvenOSAP.bytes, sizeof(TPM_NONCE));
-  hmac(nonceOddOSAP.random_TPM_NONCE.bytes, sizeof(TPM_NONCE));
+  hmac_init(secrets.srk_auth.authdata, sizeof(TPM_AUTHDATA));
+  hmac(srk_osap.nonceEvenOSAP.nonce, sizeof(TPM_NONCE));
+  hmac(nonceOddOSAP.random_TPM_NONCE.nonce, sizeof(TPM_NONCE));
   TPM_SECRET sharedSecret = hmac_finish();
 
   // Seal the passphrase using the SRK
+  TPM_PCRREAD_RET pcr17 = TPM_PCRRead(17);
+  ERROR(-1, pcr17.returnCode, "Failed to read PCR17");
+  pcr_values[0] = pcr17.outDigest;
+  TPM_PCRREAD_RET pcr19 = TPM_PCRRead(19);
+  ERROR(-1, pcr19.returnCode, "Failed to read PCR19");
+  pcr_values[1] = pcr19.outDigest;
+
+  TPM_PCR_COMPOSITE composite = {.select = pcr_select,
+                                 .valueSize = sizeof(pcr_values),
+                                 .pcrValue = pcr_values};
+  TPM_COMPOSITE_HASH composite_hash = get_TPM_COMPOSITE_HASH(composite);
+  TPM_PCR_INFO_LONG pcr_info = {.tag = TPM_TAG_PCR_INFO_LONG,
+                                .localityAtCreation = TPM_LOC_TWO,
+                                .localityAtRelease = TPM_LOC_TWO,
+                                .creationPCRSelection = pcr_select,
+                                .releasePCRSelection = pcr_select,
+                                .digestAtCreation = composite_hash,
+                                .digestAtRelease = composite_hash};
+  pack_init(pcr_info_packed, sizeof(pcr_info_packed));
+  pack_TPM_PCR_INFO_LONG(pcr_info, false);
+  pack_finish();
+
+  TPM_SECRET encAuth =
+      encAuth_gen(&secrets.pp_auth, &sharedSecret, &srk_session.nonceEven);
+
   TPM_GETRANDOM_RET_TPM_NONCE nonceOdd_srk = TPM_GetRandom_TPM_NONCE();
   ERROR(-1, nonceOdd_srk.returnCode, s_nonce_generation_failed);
   srk_session.nonceOdd = nonceOdd_srk.random_TPM_NONCE;
 
-  res = TPM_Seal(buffer, &pcr_select, (BYTE *)secrets.passphrase, lenPassphrase,
-                 pp_blob, sctx, secrets.pp_auth.bytes);
-  TPM_ERROR(res, s_TPM_Seal);
+  TPM_SEAL_RET sealed_pp =
+      TPM_Seal(TPM_KH_SRK, encAuth, pcr_info_packed, sizeof(pcr_info_packed),
+               (const BYTE *)secrets.passphrase, sizeof(secrets.passphrase),
+               &srk_session, &sharedSecret);
+  TPM_ERROR(sealed_pp.returnCode, s_TPM_Seal);
 
-  TPM_OIAP_RET oiap_ret = TPM_OIAP();
+  pack_init(pp_blob, sizeof(pp_blob));
+  pack_TPM_STORED_DATA12(sealed_pp.sealedData, false);
+  pack_finish();
+
+  /*TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
   TPM_SESSION nv_session = oiap_ret.session;
 

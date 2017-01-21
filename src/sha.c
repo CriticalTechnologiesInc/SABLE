@@ -54,7 +54,7 @@ static void process_block() {
   unsigned int tmp;
 
   for (i = 0; i < 5; i++)
-    X[i + 1] = ntohl(((unsigned int *)ctx.hash.bytes)[i]);
+    X[i + 1] = ntohl(((unsigned int *)ctx.hash.digest)[i]);
 
   for (i = 0; i < 80; i++) {
     tmp = X[3] ^ X[4];
@@ -76,8 +76,8 @@ static void process_block() {
 
   /* we store the hash in big endian - this avoids a loop at the end... */
   for (i = 0; i < 5; i++)
-    ((unsigned int *)ctx.hash.bytes)[i] =
-        ntohl(ntohl(((unsigned int *)ctx.hash.bytes)[i]) + X[i + 1]);
+    ((unsigned int *)ctx.hash.digest)[i] =
+        ntohl(ntohl(((unsigned int *)ctx.hash.digest)[i]) + X[i + 1]);
 }
 
 /**
@@ -88,11 +88,11 @@ void sha1_init() {
   ctx.index = 0;
   ctx.blocks = 0;
 
-  ((UINT32 *)ctx.hash.bytes)[0] = 0x01234567;
-  ((UINT32 *)ctx.hash.bytes)[1] = 0x89ABCDEF;
-  ((UINT32 *)ctx.hash.bytes)[2] = 0xFEDCBA98;
-  ((UINT32 *)ctx.hash.bytes)[3] = 0x76543210;
-  ((UINT32 *)ctx.hash.bytes)[4] = 0xf0e1d2c3;
+  ((UINT32 *)ctx.hash.digest)[0] = 0x01234567;
+  ((UINT32 *)ctx.hash.digest)[1] = 0x89ABCDEF;
+  ((UINT32 *)ctx.hash.digest)[2] = 0xFEDCBA98;
+  ((UINT32 *)ctx.hash.digest)[3] = 0x76543210;
+  ((UINT32 *)ctx.hash.digest)[4] = 0xf0e1d2c3;
 }
 
 /**

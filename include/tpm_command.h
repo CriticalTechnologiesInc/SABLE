@@ -22,7 +22,7 @@ typedef struct {
 
 typedef struct {
   TPM_RESULT returnCode;
-  TPM_DIGEST outDigest;
+  TPM_PCRVALUE outDigest;
 } TPM_PCRREAD_RET;
 
 typedef struct {
@@ -37,7 +37,7 @@ typedef struct {
 
 typedef struct {
   TPM_RESULT returnCode;
-  TPM_STORED_DATA12 sealed_data;
+  TPM_STORED_DATA12 sealedData;
 } TPM_SEAL_RET;
 
 #endif

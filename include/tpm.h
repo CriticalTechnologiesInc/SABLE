@@ -177,7 +177,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data /* in */, UINT32 dataSize,
                                  TPM_AUTHDATA nv_auth, TPM_SESSION nv_session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
                             TPM_NV_INDEX nvIndex, UINT32 offset);
-TPM_PCRREAD_RET TPM_PCRRead(TPM_PCRINDEX pcrIndex);
+TPM_PCRREAD_RET TPM_PCRRead(TPM_PCRINDEX pcrIndex_in);
 TPM_OIAP_RET TPM_OIAP(void);
 TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
                       TPM_NONCE nonceOddOSAP_in, TPM_SESSION *session);
@@ -188,8 +188,8 @@ TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
                       TPM_SESSION parent_session, TPM_AUTHDATA data_auth,
                       TPM_SESSION data_session);
 TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
-                      UINT32 pcrInfoSize_in, const void *pcrInfo_in,
-                      UINT32 inDataSize_in, const BYTE *inData_in,
+                      const void *pcrInfo_in, UINT32 pcrInfoSize_in,
+                      const BYTE *inData_in, UINT32 inDataSize_in,
                       TPM_SESSION *session, const TPM_AUTHDATA *key_auth);
 
 typedef struct {
