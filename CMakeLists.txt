@@ -46,7 +46,6 @@ set (CMAKE_EXE_LINKER_FLAGS
   )
 
 add_executable (sable
-  src/alloc.c
   src/asm.S
   src/dev.c
   src/elf.c

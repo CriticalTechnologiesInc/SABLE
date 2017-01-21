@@ -2,12 +2,11 @@
 
 #define HMAC_BLOCK_SIZE 64
 
-typedef struct tdHMAC_OPad { BYTE pad[HMAC_BLOCK_SIZE]; } HMAC_OPad;
+typedef struct {
+  BYTE key[HMAC_BLOCK_SIZE];
+  SHA1_Context sctx;
+} HMAC_Context;
 
-typedef HMAC_OPad HMAC_IPad;
-
-void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size);
-void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize);
-void hmac_init(const BYTE *key, UINT32 key_size);
-void hmac(const void *data, UINT32 dataSize);
-TPM_AUTHDATA hmac_finish(void);
+void hmac_init(HMAC_Context *ctx, const BYTE *key, UINT32 keySize);
+void hmac(HMAC_Context *ctx, const void *data, UINT32 dataSize);
+void hmac_finish(HMAC_Context *ctx);

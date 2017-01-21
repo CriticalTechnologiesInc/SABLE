@@ -131,7 +131,7 @@ DEFINE_STRING(no_module_to_hash, "no module to hash");
 DEFINE_STRING(Hashing_modules_count, "Hashing modules count:");
 DEFINE_STRING(config_magic_detected, "config magic detected");
 DEFINE_STRING(Please_enter_the_passphrase, "Please enter the passphrase (" xstr(
-                                               STRING_BUF_SIZE) " char max): ");
+                                               PASSPHRASE_STR_SIZE) " char max): ");
 DEFINE_STRING(mod_end_less_than_start, "mod_end less than start");
 DEFINE_STRING(Module_starts_at, "Module starts at ");
 DEFINE_STRING(Module_ends_at, "Module ends at ");
@@ -163,10 +163,10 @@ DEFINE_STRING(could_not_iterate_over_the_devices,
               "could not iterate over the devices");
 DEFINE_STRING(no_mbi_in_sable, "no mbi in sable()");
 DEFINE_STRING(enter_srkAuthData, "Please enter the srkAuthData (" xstr(
-                                     STRING_BUF_SIZE) " char max): ");
+                                     AUTHDATA_STR_SIZE) " char max): ");
 DEFINE_STRING(enter_passPhraseAuthData,
               "Please enter the passPhraseAuthData (" xstr(
-                  STRING_BUF_SIZE) " char max): ");
+                  AUTHDATA_STR_SIZE) " char max): ");
 DEFINE_STRING(could_not_gain_TIS_ownership, "could not gain TIS ownership");
 DEFINE_STRING(TPM_PcrRead, "TPM_PcrRead()");
 DEFINE_STRING(PCR17, "PCR[17]: ");
@@ -175,7 +175,7 @@ DEFINE_STRING(PCR19, "PCR[19]: ");
 DEFINE_STRING(Sealing_passPhrase, "\nSealing passphrase: \n\n");
 DEFINE_STRING(to_PCR19_with_value, "\n\nto PCR[19] with value \n");
 DEFINE_STRING(enter_nvAuthData, "Please enter the NVRAM password (" xstr(
-                                       STRING_BUF_SIZE) " char max): ");
+                                       AUTHDATA_STR_SIZE) " char max): ");
 DEFINE_STRING(Configuration_complete_Rebooting_now,
               "\nConfiguration complete. Rebooting now...\n");
 DEFINE_STRING(version_string,

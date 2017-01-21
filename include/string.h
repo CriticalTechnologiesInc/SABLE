@@ -2,6 +2,8 @@
 #define STRING_H
 
 #define DECLARE_STRING(name) extern const char *const s_##name
+#define AUTHDATA_STR_SIZE 64
+#define PASSPHRASE_STR_SIZE 128
 
 DECLARE_STRING(no_capability_list_support);
 DECLARE_STRING(SHA_data_exceeds_maximum_size);

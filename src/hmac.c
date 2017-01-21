@@ -1,63 +1,45 @@
 #include "hmac.h"
-#include "alloc.h"
 #include "tcg.h"
 #include "util.h"
 
-struct HMAC_Context {
-  BYTE key[HMAC_BLOCK_SIZE];
-} hctx;
+typedef struct HMAC_OPad { BYTE pad[HMAC_BLOCK_SIZE]; } HMAC_OPad;
+typedef HMAC_OPad HMAC_IPad;
 
-void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size) {
-  for (UINT32 i = 0; i < size; i++)
-    out[i] = in1[i] ^ in2[i];
-}
+void hmac_init(HMAC_Context *ctx, const BYTE *key, UINT32 keySize) {
+  HMAC_OPad ipad;
 
-void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize) {
-  memset(in + insize, val, outsize - insize);
-}
+  memset(ctx->key, 0, HMAC_BLOCK_SIZE);
+  memset(ipad.pad, 0x36, HMAC_BLOCK_SIZE);
 
-void hmac_init(const BYTE *key, UINT32 key_size) {
-  HMAC_OPad *ipad = alloc(heap, sizeof(HMAC_OPad), 0);
-
-  memset(hctx.key, 0, HMAC_BLOCK_SIZE);
-  memset(ipad->pad, 0x36, HMAC_BLOCK_SIZE);
-
-  if (key_size <= HMAC_BLOCK_SIZE)
-    memcpy(hctx.key, key, key_size);
+  if (keySize <= HMAC_BLOCK_SIZE)
+    memcpy(ctx->key, key, keySize);
   else {
-    sha1_init();
-    sha1(key, key_size);
-    TPM_DIGEST hash = sha1_finish();
-    memcpy(hctx.key, hash.digest, TPM_SHA1_160_HASH_LEN);
+    sha1_init(&ctx->sctx);
+    sha1(&ctx->sctx, key, keySize);
+    sha1_finish(&ctx->sctx);
+    memcpy(ctx->key, ctx->sctx.hash.digest, sizeof(TPM_DIGEST));
   }
 
-  do_xor(ipad->pad, hctx.key, ipad->pad, HMAC_BLOCK_SIZE);
+  do_xor(ipad.pad, ctx->key, ipad.pad, HMAC_BLOCK_SIZE);
 
-  sha1_init();
-  sha1(ipad->pad, HMAC_BLOCK_SIZE);
-
-  // cleanup
-  dealloc(heap, ipad, sizeof(HMAC_IPad));
+  sha1_init(&ctx->sctx);
+  sha1(&ctx->sctx, ipad.pad, HMAC_BLOCK_SIZE);
 }
 
-void hmac(const void *data, UINT32 dataSize) {
-  sha1(data, dataSize);
+void hmac(HMAC_Context *ctx, const void *data, UINT32 dataSize) {
+  sha1(&ctx->sctx, data, dataSize);
 }
 
-TPM_AUTHDATA hmac_finish(void) {
-  HMAC_OPad *opad = alloc(heap, sizeof(HMAC_OPad), 0);
-  TPM_DIGEST hash = sha1_finish();
+void hmac_finish(HMAC_Context *ctx) {
+  HMAC_OPad opad;
+  sha1_finish(&ctx->sctx);
+  TPM_DIGEST hash = ctx->sctx.hash;
 
-  memset(opad->pad, 0x5c, HMAC_BLOCK_SIZE);
-  do_xor(opad->pad, hctx.key, opad->pad, HMAC_BLOCK_SIZE);
+  memset(opad.pad, 0x5c, HMAC_BLOCK_SIZE);
+  do_xor(opad.pad, ctx->key, opad.pad, HMAC_BLOCK_SIZE);
 
-  sha1_init();
-  sha1(opad->pad, HMAC_BLOCK_SIZE);
-  sha1(hash.digest, TPM_SHA1_160_HASH_LEN);
-  hash = sha1_finish();
-
-  // cleanup
-  dealloc(heap, opad, sizeof(HMAC_OPad));
-
-  return *(TPM_AUTHDATA *)&hash;
+  sha1_init(&ctx->sctx);
+  sha1(&ctx->sctx, opad.pad, HMAC_BLOCK_SIZE);
+  sha1(&ctx->sctx, hash.digest, TPM_SHA1_160_HASH_LEN);
+  sha1_finish(&ctx->sctx);
 }

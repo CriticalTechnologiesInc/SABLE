@@ -25,6 +25,15 @@ void memcpy(void *dest, const void *src, UINT32 len) {
   }
 }
 
+void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size) {
+  for (UINT32 i = 0; i < size; i++)
+    out[i] = in1[i] ^ in2[i];
+}
+
+void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize) {
+  memset(in + insize, val, outsize - insize);
+}
+
 void memset(void *s, BYTE c, UINT32 len) {
   BYTE *p = s;
   for (UINT32 i = 0; i < len; i++) {
@@ -33,19 +42,9 @@ void memset(void *s, BYTE c, UINT32 len) {
   }
 }
 
-// like strlen
-UINT32
-strnlen_sable(BYTE *value, UINT32 size) {
-  unsigned long i;
-  for (i = 0; i < size; i++)
-    if (*(value + i) == 0)
-      break;
-  return i;
-}
-
 // compares two buffers for a certain length
 UINT32
-bufcmp(const void *buf1, const void *buf2, UINT32 size) {
+memcmp(const void *buf1, const void *buf2, UINT32 size) {
   UINT32 i;
   for (i = 0; i < size; i++)
     if (*((unsigned char *)buf1 + i) != *((unsigned char *)buf2 + i))
@@ -214,4 +213,38 @@ void out_info(const char *msg) {
   out_string(s_message_label);
   out_string(msg);
   out_char('\n');
+}
+
+/**
+ * Function to output a hash.
+ */
+void show_hash(const char *s, TPM_DIGEST hash) {
+  out_string(s_message_label);
+  out_string(s);
+  for (UINT32 i = 0; i < 20; i++)
+    out_hex(hash.digest[i], 7);
+  out_char('\n');
+}
+
+#include "sha.h"
+#include "keyboard.h"
+
+void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
+  static const TPM_AUTHDATA zero_authdata = {{0}};
+  int res;
+  SHA1_Context sctx;
+  char auth_str[AUTHDATA_STR_SIZE];
+
+  out_string(str);
+  res = get_string(auth_str, AUTHDATA_STR_SIZE, false);
+  if (res > 0) {
+    sha1_init(&sctx);
+    sha1(&sctx, (BYTE *)auth_str, res);
+    sha1_finish(&sctx);
+    *authdata = *(TPM_AUTHDATA *)&sctx.hash;
+    memset(auth_str, 0, res);
+    memset(&sctx.hash, 0, sizeof(TPM_DIGEST));
+  } else {
+    *authdata = zero_authdata;
+  }
 }

@@ -17,6 +17,13 @@
 #include "platform.h"
 #include "tcg.h"
 
-void sha1_init(void);
-void sha1(const void *val, UINT32 count);
-TPM_DIGEST sha1_finish(void);
+typedef struct {
+  UINT32 index;
+  UINT32 blocks;
+  BYTE buffer[64 + 4];
+  TPM_DIGEST hash;
+} SHA1_Context;
+
+void sha1_init(SHA1_Context *ctx);
+void sha1(SHA1_Context *ctx, const void *val, UINT32 count);
+void sha1_finish(SHA1_Context *ctx);

@@ -13,7 +13,6 @@
  */
 
 #include "sable.h"
-#include "alloc.h"
 #include "dev.h"
 #include "elf.h"
 #include "hmac.h"
@@ -31,14 +30,16 @@ TPM_GETRANDOM_GEN(TPM_NONCE)
 
 #define REALMODE_CODE 0x20000
 
-/* SABLE globals */
+/***********************************************************
+ * SABLE globals
+ **********************************************************/
 
 /* contains plaintext secrets */
 static struct {
   TPM_AUTHDATA nv_auth;
   TPM_AUTHDATA pp_auth;
   TPM_AUTHDATA srk_auth;
-  char passphrase[STRING_BUF_SIZE];
+  char passphrase[PASSPHRASE_STR_SIZE];
 } secrets;
 
 /* ciphertext passphrase */
@@ -49,45 +50,20 @@ static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
 static const TPM_PCR_SELECTION pcr_select = {
     .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
 static TPM_PCRVALUE pcr_values[2];
-static BYTE pcr_info_packed
-    [sizeof(TPM_STRUCTURE_TAG) + 2 * sizeof(TPM_LOCALITY_SELECTION) +
-     2 * (sizeof(pcr_select.sizeOfSelect) + sizeof(pcr_select_bytes)) +
-     sizeof(pcr_select_bytes) + 2 * sizeof(TPM_COMPOSITE_HASH)];
+static BYTE pcr_info_packed[sizeof(TPM_STRUCTURE_TAG) +
+                            2 * sizeof(TPM_LOCALITY_SELECTION) +
+                            2 * (sizeof(pcr_select.sizeOfSelect) +
+                                 sizeof(pcr_select_bytes)) +
+                            2 * sizeof(TPM_COMPOSITE_HASH)];
 
 /* TPM sessions */
 static TPM_SESSION srk_session;
 
-/**
- * Function to output a hash.
- */
-void show_hash(const char *s, TPM_DIGEST *hash) {
-  out_string(s_message_label);
-  out_string(s);
-  for (UINT32 i = 0; i < 20; i++)
-    out_hex(hash->digest[i], 7);
-  out_char('\n');
-}
-
-void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
-  static const TPM_AUTHDATA zero_authdata = {{0}};
-  int res;
-
-  out_string(str);
-  res = get_string(STRING_BUF_SIZE, false);
-  if (res > 0) {
-    sha1_init();
-    sha1((BYTE *)string_buf, res);
-    TPM_DIGEST hash = sha1_finish();
-    *authdata = *(TPM_AUTHDATA *)&hash;
-  } else {
-    *authdata = zero_authdata;
-  }
-}
-
 static void configure(void) {
+  Pack_Context pctx;
   out_string(s_Please_enter_the_passphrase);
-  UINT32 lenPassphrase = get_string(sizeof(secrets.passphrase) - 1, true) + 1;
-  memcpy(secrets.passphrase, string_buf, lenPassphrase);
+  UINT32 lenPassphrase =
+      get_string(secrets.passphrase, sizeof(secrets.passphrase) - 1, true) + 1;
 
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
   // get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
@@ -103,10 +79,12 @@ static void configure(void) {
   // Generate the shared secret (for SRK authorization)
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
 
-  hmac_init(secrets.srk_auth.authdata, sizeof(TPM_AUTHDATA));
-  hmac(srk_osap.nonceEvenOSAP.nonce, sizeof(TPM_NONCE));
-  hmac(nonceOddOSAP.random_TPM_NONCE.nonce, sizeof(TPM_NONCE));
-  TPM_SECRET sharedSecret = hmac_finish();
+  HMAC_Context hctx;
+  hmac_init(&hctx, secrets.srk_auth.authdata, sizeof(TPM_AUTHDATA));
+  hmac(&hctx, srk_osap.nonceEvenOSAP.nonce, sizeof(TPM_NONCE));
+  hmac(&hctx, nonceOddOSAP.random_TPM_NONCE.nonce, sizeof(TPM_NONCE));
+  hmac_finish(&hctx);
+  TPM_SECRET sharedSecret = *(TPM_SECRET *)&hctx.sctx.hash;
 
   // Seal the passphrase using the SRK
   TPM_PCRREAD_RET pcr17 = TPM_PCRRead(17);
@@ -127,9 +105,10 @@ static void configure(void) {
                                 .releasePCRSelection = pcr_select,
                                 .digestAtCreation = composite_hash,
                                 .digestAtRelease = composite_hash};
-  pack_init(pcr_info_packed, sizeof(pcr_info_packed));
-  pack_TPM_PCR_INFO_LONG(pcr_info, false);
-  pack_finish();
+  pack_init(&pctx, pcr_info_packed, sizeof(pcr_info_packed));
+  pack_TPM_PCR_INFO_LONG(&pctx, pcr_info, NULL);
+  UINT32 bytes_packed = pack_finish(&pctx);
+  assert(bytes_packed == sizeof(pcr_info_packed));
 
   TPM_SECRET encAuth =
       encAuth_gen(&secrets.pp_auth, &sharedSecret, &srk_session.nonceEven);
@@ -140,13 +119,13 @@ static void configure(void) {
 
   TPM_SEAL_RET sealed_pp =
       TPM_Seal(TPM_KH_SRK, encAuth, pcr_info_packed, sizeof(pcr_info_packed),
-               (const BYTE *)secrets.passphrase, sizeof(secrets.passphrase),
-               &srk_session, &sharedSecret);
+               (const BYTE *)secrets.passphrase, lenPassphrase, &srk_session,
+               &sharedSecret);
   TPM_ERROR(sealed_pp.returnCode, s_TPM_Seal);
 
-  pack_init(pp_blob, sizeof(pp_blob));
-  pack_TPM_STORED_DATA12(sealed_pp.sealedData, false);
-  pack_finish();
+  pack_init(&pctx, pp_blob, sizeof(pp_blob));
+  pack_TPM_STORED_DATA12(&pctx, sealed_pp.sealedData, NULL);
+  pack_finish(&pctx);
 
   /*TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
@@ -197,7 +176,7 @@ static void unsealPassphrase(void) {
  */
 static int mbi_calc_hash(struct mbi *mbi) {
   TPM_EXTEND_RET res;
-  TPM_DIGEST hash;
+  SHA1_Context sctx;
 
   CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
   CHECK3(-12, !mbi->mods_count, s_no_module_to_hash);
@@ -205,13 +184,13 @@ static int mbi_calc_hash(struct mbi *mbi) {
 
   struct module *m = (struct module *)(mbi->mods_addr);
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
-    sha1_init();
+    sha1_init(&sctx);
 
     CHECK3(-13, m->mod_end < m->mod_start, s_mod_end_less_than_start);
 
-    sha1((BYTE *)m->mod_start, m->mod_end - m->mod_start);
-    hash = sha1_finish();
-    res = TPM_Extend(MODULE_PCR_ORD, hash);
+    sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
+    sha1_finish(&sctx);
+    res = TPM_Extend(MODULE_PCR_ORD, sctx.hash);
     TPM_ERROR(res.returnCode, s_TPM_Extend);
   }
 
@@ -245,12 +224,7 @@ static int prepare_tpm(BYTE *buffer) {
  * and disable all localities.
  */
 int _main(struct mbi *mbi, unsigned flags) {
-  // initialize the heap
-  UINT32 heap_len = 0x00003000;
-  init_allocator();
-  add_mem_pool(heap, heap->head + sizeof(struct mem_node), heap_len);
-
-  BYTE *buffer = alloc(heap, TCG_BUFFER_SIZE, 0);
+  BYTE buffer[256];
 
   out_string(s_version_string);
   ERROR(10, !mbi || flags != MBI_MAGIC2, s_not_loaded_via_multiboot);
@@ -273,9 +247,6 @@ int _main(struct mbi *mbi, unsigned flags) {
   ERROR(12, enable_svm(), s_SVM_revision);
   ERROR(13, stop_processors(), s_sending_an_INIT_IPI);
 
-  // cleanup
-  dealloc(heap, buffer, TCG_BUFFER_SIZE);
-
 #ifndef NDEBUG
   out_info(s_call_skinit);
   wait(1000);
@@ -288,8 +259,6 @@ int _main(struct mbi *mbi, unsigned flags) {
 static int fixup(void) {
   unsigned i;
   out_info(s_patch_CPU_name_tag);
-  CHECK3(-10, strnlen_sable((BYTE *)s_CPU_NAME, 1024) >= 48,
-         s_cpu_name_to_long);
 
   for (i = 0; i < 6; i++)
     wrmsr(0xc0010030 + i, *(unsigned long long *)(s_CPU_NAME + i * 8));
@@ -346,18 +315,19 @@ int sable(struct mbi *mbi) {
 
     res = TPM_PCRRead(SLB_PCR_ORD);
     TPM_ERROR(res.returnCode, s_TPM_PcrRead);
-    show_hash(s_PCR17, &res.outDigest);
+    show_hash(s_PCR17, res.outDigest);
 
     res = TPM_PCRRead(MODULE_PCR_ORD);
     TPM_ERROR(res.returnCode, s_TPM_PcrRead);
-    show_hash(s_PCR19, &res.outDigest);
+    show_hash(s_PCR19, res.outDigest);
 
     wait(1000);
 #endif
 
+    char config_str[2];
     out_string("Configure now? [y/n]: ");
-    get_string(1, true);
-    if (!bufcmp("y", string_buf, 1)) {
+    get_string(config_str, sizeof(config_str) - 1, true);
+    if (config_str[0] == 'y') {
       configure();
       ERROR(25, tis_deactivate_all(), s_tis_deactivate_failed);
       out_string(s_Configuration_complete_Rebooting_now);

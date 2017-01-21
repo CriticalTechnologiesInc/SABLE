@@ -13,7 +13,6 @@
  */
 
 #include "dev.h"
-#include "alloc.h"
 #include "string.h"
 #include "util.h"
 
@@ -154,8 +153,8 @@ void myprintf(const char *fmt, char ch, unsigned high_base, unsigned base,
  * Print pci bars.
  */
 void pci_print_bars(unsigned addr, unsigned count) {
-  unsigned *bars = alloc(heap, 6, 0);
-  unsigned *masks = alloc(heap, 6, 0);
+  unsigned bars[6];
+  unsigned masks[6];
 
   // disable device
   short cmd = pci_read_word_aligned(addr + 0x4);
@@ -193,10 +192,6 @@ void pci_print_bars(unsigned addr, unsigned count) {
     if (base)
       myprintf(s_pci_debug_format_string, ch, high_base, base, high_size, size);
   }
-
-  // cleanup
-  dealloc(heap, bars, 6);
-  dealloc(heap, masks, 6);
 }
 
 /**

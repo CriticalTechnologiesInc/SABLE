@@ -15,8 +15,10 @@
 #pragma once
 
 #include "asm.h"
-#include "platform.h"
 #include "string.h"
+#include "tcg.h"
+
+#define NULL 0
 
 #define MSR_EFER 0xC0000080
 #define EFER_SVME 1 << 12
@@ -129,21 +131,22 @@ void out_hex(unsigned int value, unsigned int bitlen);
 /**
  * every message with out_description is prefixed with message_label
  */
-extern const char const *message_label;
+extern const char *const message_label;
 void out_description(const char *prefix, unsigned int value);
 void out_info(const char *msg);
 
 /**
  * Helper functions.
  */
+void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size);
+void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize);
 void memcpy(void *dest, const void *src, UINT32 len);
 void memset(void *s, BYTE c, UINT32 len);
-UINT32 bufcmp(const void *buf1, const void *buf2, UINT32 size);
+UINT32 memcmp(const void *buf1, const void *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
-UINT32 strnlen_sable(BYTE *value, UINT32 size);
 void wait(int ms);
 void exit(unsigned status) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);
-void serial_init(void);
-int keyboardReader(BYTE *entry, UINT32 BufSize);
+void show_hash(const char *s, TPM_DIGEST hash);
+void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */);

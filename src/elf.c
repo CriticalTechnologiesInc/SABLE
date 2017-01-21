@@ -17,7 +17,6 @@
  */
 
 #include "elf.h"
-#include "alloc.h"
 #include "string.h"
 #include "util.h"
 

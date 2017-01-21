@@ -1,7 +1,5 @@
 #include "keyboard.h"
 
-char string_buf[STRING_BUF_SIZE] = {0};
-
 static int scancode;
 static bool shift, capslock;
 
@@ -490,26 +488,23 @@ char getchar(void) {
   return 0;
 }
 
-int get_string(unsigned int max_bytes, bool show) {
-  if (max_bytes > STRING_BUF_SIZE)
-    return -1;
-
+int get_string(char *str, unsigned int strSize, bool show) {
   UINT32 i = 0;
   char c =
       getchar(); // for some reason, there's always an 'enter' char
-  while (i < max_bytes) {
+  while (i < strSize) {
     c = getchar();
     if (c == 0x0D)
       break; // user hit 'return'
 
     if (c != 0) {
-      string_buf[i] = c;
+      str[i] = c;
       if (show)
         out_char(c);
       i++;
     }
   }
-  string_buf[i] = '\0';
+  str[i] = '\0';
   out_char('\n');
   return i;
 }

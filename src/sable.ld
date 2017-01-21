@@ -33,9 +33,6 @@ SECTIONS
   .data : { *(.data) }
   .bss : { *(.bss) }
 
-  . = ALIGN(0x4);
-  g_bss_end = .;
-
   /DISCARD/ :
   {
     *(.comment);
