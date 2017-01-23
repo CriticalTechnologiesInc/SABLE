@@ -131,7 +131,7 @@ void unmarshal_UINT32(UINT32 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
 }
 
 void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
-                SHA1_Context *sctx) {
+                   SHA1_Context *sctx) {
   if (sctx) {
     sha1(sctx, data, size);
   }
@@ -142,7 +142,7 @@ void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
   }
 }
 void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
-                  SHA1_Context *sctx) {
+                     SHA1_Context *sctx) {
   assert(data);
   assert(ctx || sctx);
   if (sctx && !ctx) {
@@ -158,7 +158,7 @@ void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
   }
 }
 void unmarshal_ptr(void *ptr, UINT32 size, Unpack_Context *ctx,
-                  SHA1_Context *sctx) {
+                   SHA1_Context *sctx) {
   assert(ptr);
   assert(ctx);
   void **tmp = (void **)ptr;
@@ -170,44 +170,44 @@ void unmarshal_ptr(void *ptr, UINT32 size, Unpack_Context *ctx,
   }
 }
 
-void marshal_TPM_PCR_SELECTION(const TPM_PCR_SELECTION *select, Pack_Context *ctx,
-                            SHA1_Context *sctx) {
+void marshal_TPM_PCR_SELECTION(const TPM_PCR_SELECTION *select,
+                               Pack_Context *ctx, SHA1_Context *sctx) {
   marshal_UINT16(select->sizeOfSelect, ctx, sctx);
   marshal_array(select->pcrSelect, (UINT32)select->sizeOfSelect, ctx, sctx);
 }
 void unmarshal_TPM_PCR_SELECTION(TPM_PCR_SELECTION *select, Unpack_Context *ctx,
-                              SHA1_Context *sctx) {
+                                 SHA1_Context *sctx) {
   unmarshal_UINT16(&select->sizeOfSelect, ctx, sctx);
   unmarshal_ptr(&select->pcrSelect, select->sizeOfSelect, ctx, sctx);
 }
 
-void marshal_TPM_PCR_INFO_LONG(const TPM_PCR_INFO_LONG *pcrInfo, Pack_Context *ctx,
-                            SHA1_Context *sctx) {
+void marshal_TPM_PCR_INFO_LONG(const TPM_PCR_INFO_LONG *pcrInfo,
+                               Pack_Context *ctx, SHA1_Context *sctx) {
   marshal_UINT16(pcrInfo->tag, ctx, sctx);
   marshal_BYTE(pcrInfo->localityAtCreation, ctx, sctx);
   marshal_BYTE(pcrInfo->localityAtRelease, ctx, sctx);
   marshal_TPM_PCR_SELECTION(&pcrInfo->creationPCRSelection, ctx, sctx);
   marshal_TPM_PCR_SELECTION(&pcrInfo->releasePCRSelection, ctx, sctx);
-  marshal_array(pcrInfo->digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH), ctx,
-             sctx);
-  marshal_array(pcrInfo->digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH), ctx,
-             sctx);
+  marshal_array(pcrInfo->digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH),
+                ctx, sctx);
+  marshal_array(pcrInfo->digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH),
+                ctx, sctx);
 }
-void unmarshal_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG *pcrInfo, Unpack_Context *ctx,
-                              SHA1_Context *sctx) {
+void unmarshal_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG *pcrInfo,
+                                 Unpack_Context *ctx, SHA1_Context *sctx) {
   unmarshal_UINT16(&pcrInfo->tag, ctx, sctx);
   unmarshal_BYTE(&pcrInfo->localityAtCreation, ctx, sctx);
   unmarshal_BYTE(&pcrInfo->localityAtRelease, ctx, sctx);
   unmarshal_TPM_PCR_SELECTION(&pcrInfo->creationPCRSelection, ctx, sctx);
   unmarshal_TPM_PCR_SELECTION(&pcrInfo->releasePCRSelection, ctx, sctx);
   unmarshal_array(&pcrInfo->digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH),
-               ctx, sctx);
+                  ctx, sctx);
   unmarshal_array(&pcrInfo->digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH),
-               ctx, sctx);
+                  ctx, sctx);
 }
 
 void marshal_TPM_STORED_DATA12(const TPM_STORED_DATA12 *data, Pack_Context *ctx,
-                            SHA1_Context *sctx) {
+                               SHA1_Context *sctx) {
   marshal_UINT16(data->tag, ctx, sctx);
   marshal_UINT16(data->et, ctx, sctx);
   marshal_UINT32(data->sealInfoSize, ctx, sctx);
@@ -216,7 +216,7 @@ void marshal_TPM_STORED_DATA12(const TPM_STORED_DATA12 *data, Pack_Context *ctx,
   marshal_array(data->encData, data->encDataSize, ctx, sctx);
 }
 void unmarshal_TPM_STORED_DATA12(TPM_STORED_DATA12 *data, Unpack_Context *ctx,
-                              SHA1_Context *sctx) {
+                                 SHA1_Context *sctx) {
   unmarshal_UINT16(&data->tag, ctx, sctx);
   unmarshal_UINT16(&data->et, ctx, sctx);
   unmarshal_UINT32(&data->sealInfoSize, ctx, sctx);
@@ -243,19 +243,26 @@ UINT32 sizeof_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo) {
 }
 
 // ret = xor(authData, sha1(sharedSecret ++ nonceEven))
-TPM_ENCAUTH encAuth_gen(const TPM_AUTHDATA *auth,
-                        const TPM_SECRET *sharedSecret,
-                        const TPM_NONCE *nonceEven) {
-  TPM_ENCAUTH encAuth;
+void encAuth_gen(TPM_ENCAUTH *encAuth /* out */, const TPM_AUTHDATA *auth,
+                 const TPM_SECRET *sharedSecret, const TPM_NONCE *nonceEven) {
   SHA1_Context sctx;
   sha1_init(&sctx);
   sha1(&sctx, sharedSecret, sizeof(TPM_SECRET));
-  sha1(&sctx, nonceEven->nonce, sizeof(TPM_NONCE));
+  sha1(&sctx, nonceEven, sizeof(TPM_NONCE));
   sha1_finish(&sctx);
 
-  do_xor(auth->authdata, sctx.hash.digest, encAuth.authdata,
+  do_xor(auth->authdata, sctx.hash.digest, encAuth->authdata,
          sizeof(TPM_DIGEST));
-  return encAuth;
+}
+
+void sharedSecret_gen(TPM_SECRET *encAuth /* out */, const TPM_AUTHDATA *auth,
+                 const TPM_NONCE *nonceEvenOSAP, const TPM_NONCE *nonceOddOSAP) {
+  HMAC_Context hctx;
+  hmac_init(&hctx, auth->authdata, sizeof(TPM_AUTHDATA));
+  hmac(&hctx, nonceEvenOSAP, sizeof(TPM_NONCE));
+  hmac(&hctx, nonceOddOSAP, sizeof(TPM_NONCE));
+  hmac_finish(&hctx);
+  *encAuth = *(TPM_SECRET *)&hctx.sctx.hash;
 }
 
 TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {
