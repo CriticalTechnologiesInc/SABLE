@@ -16,6 +16,12 @@ typedef struct {
 } TPM_SESSION;
 
 typedef struct {
+  TPM_SESSION session;
+  TPM_NONCE nonceEvenOSAP;
+  TPM_NONCE nonceOddOSAP;
+} TPM_OSAP_SESSION;
+
+typedef struct {
   TPM_RESULT returnCode;
   TPM_DIGEST outDigest;
 } TPM_EXTEND_RET;
@@ -29,11 +35,6 @@ typedef struct {
   TPM_RESULT returnCode;
   TPM_SESSION session;
 } TPM_OIAP_RET;
-
-typedef struct {
-  TPM_RESULT returnCode;
-  TPM_NONCE nonceEvenOSAP;
-} TPM_OSAP_RET;
 
 typedef struct {
   TPM_RESULT returnCode;

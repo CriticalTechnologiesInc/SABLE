@@ -26,43 +26,45 @@
 #include "util.h"
 #include "version.h"
 
-TPM_GETRANDOM_GEN(TPM_NONCE)
-
 #define REALMODE_CODE 0x20000
 
 /***********************************************************
  * SABLE globals
  **********************************************************/
 
-/* contains plaintext secrets */
+/* plaintext global secrets */
 static struct {
-  TPM_AUTHDATA nv_auth;
   TPM_AUTHDATA pp_auth;
   TPM_AUTHDATA srk_auth;
-  TPM_SECRET sharedSecret;
   char passphrase[PASSPHRASE_STR_SIZE];
 } secrets;
 
-/* ciphertext secrets */
-TPM_SECRET encAuth;
+/* ciphertext global secrets */
 static BYTE pp_blob[400];
 
-/* selection of PCRs 17 and 19 */
-static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
-static const TPM_PCR_SELECTION pcr_select = {
-    .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
-static TPM_PCRVALUE pcr_values[2];
-static BYTE pcr_info_packed[sizeof(TPM_STRUCTURE_TAG) +
-                            2 * sizeof(TPM_LOCALITY_SELECTION) +
-                            2 * (sizeof(pcr_select.sizeOfSelect) +
-                                 sizeof(pcr_select_bytes)) +
-                            2 * sizeof(TPM_COMPOSITE_HASH)];
-
 /* TPM sessions */
-static TPM_SESSION srk_session;
 
 static void configure(void) {
+  /* local secrets */
+  static struct {
+    TPM_AUTHDATA nv_auth;
+    TPM_SECRET sharedSecret;
+  } lsecrets;
+  /* other static locals */
+  static TPM_OSAP_SESSION srk_osap_session;
+  static TPM_SECRET encAuth;
+  static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
+  static const TPM_PCR_SELECTION pcr_select = {
+      .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
+  static TPM_PCRVALUE pcr_values[2];
+  static BYTE pcr_info_packed[sizeof(TPM_STRUCTURE_TAG) +
+                              2 * sizeof(TPM_LOCALITY_SELECTION) +
+                              2 * (sizeof(pcr_select.sizeOfSelect) +
+                                   sizeof(pcr_select_bytes)) +
+                              2 * sizeof(TPM_COMPOSITE_HASH)];
+  /* auto locals */
   Pack_Context pctx;
+  TPM_RESULT res;
 
   // get the passphrase and passphrase authdata
   out_string(s_Please_enter_the_passphrase);
@@ -71,25 +73,23 @@ static void configure(void) {
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
 
   // Initialize an OSAP session for the SRK
-  TPM_GETRANDOM_RET_TPM_NONCE nonceOddOSAP = TPM_GetRandom_TPM_NONCE();
-  ERROR(-1, nonceOddOSAP.returnCode, s_nonce_generation_failed);
-  TPM_OSAP_RET srk_osap = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK,
-                                   nonceOddOSAP.random_TPM_NONCE, &srk_session);
-  TPM_ERROR(srk_osap.returnCode, s_TPM_Start_OSAP);
+  res = TPM_GetRandom(srk_osap_session.nonceOddOSAP.nonce, sizeof(TPM_NONCE));
+  TPM_ERROR(res, s_nonce_generation_failed);
+  res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, &srk_osap_session);
+  TPM_ERROR(res, s_TPM_Start_OSAP);
 
   // Generate the shared secret (for SRK authorization)
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
-  sharedSecret_gen(&secrets.sharedSecret, &secrets.srk_auth,
-                   &srk_osap.nonceEvenOSAP, &nonceOddOSAP.random_TPM_NONCE);
+  sharedSecret_gen(&lsecrets.sharedSecret, &secrets.srk_auth,
+                   &srk_osap_session.nonceEvenOSAP,
+                   &srk_osap_session.nonceOddOSAP);
 
   // Construct pcr_info, which contains the TPM state conditions under which
   // the passphrase may be sealed/unsealed
-  TPM_PCRREAD_RET pcr17 = TPM_PCRRead(17);
-  ERROR(-1, pcr17.returnCode, "Failed to read PCR17");
-  pcr_values[0] = pcr17.outDigest;
-  TPM_PCRREAD_RET pcr19 = TPM_PCRRead(19);
-  ERROR(-1, pcr19.returnCode, "Failed to read PCR19");
-  pcr_values[1] = pcr19.outDigest;
+  res = TPM_PCRRead(17, &pcr_values[0]);
+  TPM_ERROR(res, "Failed to read PCR17");
+  res = TPM_PCRRead(19, &pcr_values[1]);
+  TPM_ERROR(res, "Failed to read PCR19");
   TPM_PCR_COMPOSITE composite = {.select = pcr_select,
                                  .valueSize = sizeof(pcr_values),
                                  .pcrValue = pcr_values};
@@ -107,17 +107,17 @@ static void configure(void) {
   assert(bytes_packed == sizeof(pcr_info_packed));
 
   // Encrypt the new passphrase authdata
-  encAuth_gen(&encAuth, &secrets.pp_auth, &secrets.sharedSecret,
-              &srk_session.nonceEven);
+  encAuth_gen(&encAuth, &secrets.pp_auth, &lsecrets.sharedSecret,
+              &srk_osap_session.session.nonceEven);
 
   // Encrypt the passphrase using the SRK
-  TPM_GETRANDOM_RET_TPM_NONCE nonceOdd_srk = TPM_GetRandom_TPM_NONCE();
-  ERROR(-1, nonceOdd_srk.returnCode, s_nonce_generation_failed);
-  srk_session.nonceOdd = nonceOdd_srk.random_TPM_NONCE;
+  res =
+      TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
+  TPM_ERROR(res, s_nonce_generation_failed);
   TPM_SEAL_RET sealed_pp =
       TPM_Seal(TPM_KH_SRK, encAuth, pcr_info_packed, sizeof(pcr_info_packed),
-               (const BYTE *)secrets.passphrase, lenPassphrase, &srk_session,
-               &secrets.sharedSecret);
+               (const BYTE *)secrets.passphrase, lenPassphrase,
+               &srk_osap_session.session, &lsecrets.sharedSecret);
   TPM_ERROR(sealed_pp.returnCode, s_TPM_Seal);
 
   // Pack the sealed passphrase into a buffer
@@ -125,18 +125,14 @@ static void configure(void) {
   marshal_TPM_STORED_DATA12(&sealed_pp.sealedData, &pctx, NULL);
   pack_finish(&pctx);
 
-  // get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
-  /*TPM_OIAP_RET oiap_ret = TPM_OIAP();
+  /*get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
+  TPM_OIAP_RET oiap_ret = TPM_OIAP();
   TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
   TPM_SESSION nv_session = oiap_ret.session;
 
   res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
                               secrets.nv_auth, nv_session);
-  TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
-
-  // cleanup
-  dealloc(heap, buffer, TCG_BUFFER_SIZE);
-  dealloc(heap, sctx, sizeof(SessionCtx));*/
+  TPM_ERROR(res, s_TPM_NV_WriteValueAuth);*/
 }
 
 static void unsealPassphrase(void) {
@@ -310,15 +306,16 @@ int sable(struct mbi *mbi) {
     ERROR(22, mbi_calc_hash(mbi), s_calc_hash_failed);
 
 #ifndef NDEBUG
-    TPM_PCRREAD_RET res;
+    TPM_RESULT res;
+    TPM_PCRVALUE pcr;
 
-    res = TPM_PCRRead(SLB_PCR_ORD);
-    TPM_ERROR(res.returnCode, s_TPM_PcrRead);
-    show_hash(s_PCR17, res.outDigest);
+    res = TPM_PCRRead(SLB_PCR_ORD, &pcr);
+    TPM_ERROR(res, s_TPM_PcrRead);
+    show_hash(s_PCR17, pcr);
 
-    res = TPM_PCRRead(MODULE_PCR_ORD);
-    TPM_ERROR(res.returnCode, s_TPM_PcrRead);
-    show_hash(s_PCR19, res.outDigest);
+    res = TPM_PCRRead(MODULE_PCR_ORD, &pcr);
+    TPM_ERROR(res, s_TPM_PcrRead);
+    show_hash(s_PCR19, pcr);
 
     wait(1000);
 #endif

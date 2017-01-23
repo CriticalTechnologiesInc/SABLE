@@ -19,6 +19,90 @@
 #include "tpm_struct.h"
 #include "util.h"
 
+TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */, UINT32 bytesRequested_in) {
+  TPM_RESULT res;
+  Pack_Context pctx;
+  Unpack_Context uctx;
+
+  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
+  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
+                        sizeof(TPM_COMMAND_CODE) + sizeof(UINT32);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_GetRandom;
+  TPM_TAG tag_out;
+  UINT32 paramSize_out;
+  UINT32 randomBytesSize_out;
+
+  pack_init(&pctx, tis_buffers.in, sizeof(tis_buffers.in));
+
+  marshal_UINT16(tag_in, &pctx, NULL);
+  marshal_UINT32(paramSize_in, &pctx, NULL);
+  marshal_UINT32(ordinal_in, &pctx, NULL);
+  marshal_UINT32(bytesRequested_in, &pctx, NULL);
+
+  UINT32 bytes_packed = pack_finish(&pctx);
+  assert(bytes_packed == paramSize_in);
+
+  tis_transmit_new();
+
+  unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
+
+  unmarshal_UINT16(&tag_out, &uctx, NULL);
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+  if (res)
+    return res;
+  unmarshal_UINT32(&randomBytesSize_out, &uctx, NULL);
+  unmarshal_array(randomBytes_out, randomBytesSize_out, &uctx, NULL);
+
+  UINT32 bytes_unpacked = unpack_finish(&uctx);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytesRequested_in == randomBytesSize_out);
+  assert(bytes_unpacked == paramSize_out);
+
+  return res;
+}
+
+TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
+                       TPM_PCRVALUE *outDigest_out /* out */) {
+  TPM_RESULT res;
+  Pack_Context pctx;
+  Unpack_Context uctx;
+
+  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
+  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
+                        sizeof(TPM_COMMAND_CODE) + sizeof(TPM_PCRINDEX);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_PcrRead;
+  TPM_TAG tag_out;
+  UINT32 paramSize_out;
+
+  pack_init(&pctx, tis_buffers.in, sizeof(tis_buffers.in));
+
+  marshal_UINT16(tag_in, &pctx, NULL);
+  marshal_UINT32(paramSize_in, &pctx, NULL);
+  marshal_UINT32(ordinal_in, &pctx, NULL);
+  marshal_UINT32(pcrIndex_in, &pctx, NULL);
+
+  UINT32 bytes_packed = pack_finish(&pctx);
+  assert(bytes_packed == paramSize_in);
+
+  tis_transmit_new();
+
+  unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
+
+  unmarshal_UINT16(&tag_out, &uctx, NULL);
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+  if (res)
+    return res;
+  unmarshal_array(outDigest_out, sizeof(TPM_PCRVALUE), &uctx, NULL);
+
+  UINT32 bytes_unpacked = unpack_finish(&uctx);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytes_unpacked == paramSize_out);
+
+  return res;
+}
+
 typedef struct {
   TPM_AUTHHANDLE authHandle;
   TPM_NONCE nonceOdd;
@@ -64,9 +148,9 @@ TPM_OIAP_RET TPM_OIAP(void) {
   return ret;
 }
 
-TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
-                      TPM_NONCE nonceOddOSAP_in, TPM_SESSION *session) {
-  TPM_OSAP_RET ret;
+TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
+                    TPM_OSAP_SESSION *osap_session /* out */) {
+  TPM_RESULT ret;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -85,7 +169,7 @@ TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   marshal_UINT32(ordinal_in, &pctx, NULL);
   marshal_UINT16(entityType_in, &pctx, NULL);
   marshal_UINT32(entityValue_in, &pctx, NULL);
-  marshal_array(nonceOddOSAP_in.nonce, sizeof(TPM_NONCE), &pctx, NULL);
+  marshal_array(&osap_session->nonceOddOSAP, sizeof(TPM_NONCE), &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
@@ -96,12 +180,13 @@ TPM_OSAP_RET TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret.returnCode, &uctx, NULL);
-  if (ret.returnCode)
+  unmarshal_UINT32(&ret, &uctx, NULL);
+  if (ret)
     return ret;
-  unmarshal_UINT32(&session->authHandle, &uctx, NULL);
-  unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
-  unmarshal_array(&ret.nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
+  unmarshal_UINT32(&osap_session->session.authHandle, &uctx, NULL);
+  unmarshal_array(&osap_session->session.nonceEven, sizeof(TPM_NONCE), &uctx,
+                  NULL);
+  unmarshal_array(&osap_session->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(tag_out == TPM_TAG_RSP_COMMAND);
@@ -429,47 +514,6 @@ TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
 
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");
-
-  return ret;
-}
-
-TPM_PCRREAD_RET
-TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
-  TPM_PCRREAD_RET ret;
-  Pack_Context pctx;
-  Unpack_Context uctx;
-
-  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
-  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
-                        sizeof(TPM_COMMAND_CODE) + sizeof(TPM_PCRINDEX);
-  TPM_COMMAND_CODE ordinal_in = TPM_ORD_PcrRead;
-  TPM_TAG tag_out;
-  UINT32 paramSize_out;
-
-  pack_init(&pctx, tis_buffers.in, sizeof(tis_buffers.in));
-
-  marshal_UINT16(tag_in, &pctx, NULL);
-  marshal_UINT32(paramSize_in, &pctx, NULL);
-  marshal_UINT32(ordinal_in, &pctx, NULL);
-  marshal_UINT32(pcrIndex_in, &pctx, NULL);
-
-  UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
-
-  tis_transmit_new();
-
-  unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
-
-  unmarshal_UINT16(&tag_out, &uctx, NULL);
-  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret.returnCode, &uctx, NULL);
-  if (ret.returnCode)
-    return ret;
-  unmarshal_array(&ret.outDigest, sizeof(TPM_PCRVALUE), &uctx, NULL);
-
-  UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
-  assert(bytes_unpacked == paramSize_out);
 
   return ret;
 }
