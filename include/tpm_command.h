@@ -28,16 +28,6 @@ typedef struct {
 
 typedef struct {
   TPM_RESULT returnCode;
-  TPM_PCRVALUE outDigest;
-} TPM_PCRREAD_RET;
-
-typedef struct {
-  TPM_RESULT returnCode;
-  TPM_SESSION session;
-} TPM_OIAP_RET;
-
-typedef struct {
-  TPM_RESULT returnCode;
   TPM_STORED_DATA12 sealedData;
 } TPM_SEAL_RET;
 

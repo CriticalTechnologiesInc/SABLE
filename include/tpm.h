@@ -157,14 +157,14 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
                          UINT32 bytesRequested_in);
 TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
                        TPM_PCRVALUE *outDigest_out /* out */);
+TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */);
+TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
+                    TPM_OSAP_SESSION *osap_session /* out */);
 TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data /* in */, UINT32 dataSize,
                                  TPM_NV_INDEX nvIndex, UINT32 offset,
                                  TPM_AUTHDATA nv_auth, TPM_SESSION nv_session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
                             TPM_NV_INDEX nvIndex, UINT32 offset);
-TPM_OIAP_RET TPM_OIAP(void);
-TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
-                    TPM_OSAP_SESSION *osap_session /* out */);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
 TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash);
 TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,

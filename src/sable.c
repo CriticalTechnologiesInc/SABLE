@@ -52,6 +52,7 @@ static void configure(void) {
   } lsecrets;
   /* other static locals */
   static TPM_OSAP_SESSION srk_osap_session;
+  static TPM_SESSION nv_session;
   static TPM_SECRET encAuth;
   static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
   static const TPM_PCR_SELECTION pcr_select = {
@@ -125,12 +126,11 @@ static void configure(void) {
   marshal_TPM_STORED_DATA12(&sealed_pp.sealedData, &pctx, NULL);
   pack_finish(&pctx);
 
-  /*get_authdata(s_enter_nvAuthData, &secrets.nv_auth);
-  TPM_OIAP_RET oiap_ret = TPM_OIAP();
-  TPM_ERROR(oiap_ret.returnCode, s_TPM_Start_OIAP);
-  TPM_SESSION nv_session = oiap_ret.session;
+  get_authdata(s_enter_nvAuthData, &lsecrets.nv_auth);
+  res = TPM_OIAP(&nv_session);
+  TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
+  /*res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
                               secrets.nv_auth, nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);*/
 }

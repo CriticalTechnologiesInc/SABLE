@@ -103,49 +103,48 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
   return res;
 }
 
-typedef struct {
-  TPM_AUTHHANDLE authHandle;
-  TPM_NONCE nonceOdd;
-  TPM_BOOL continueAuthSession;
-  TPM_AUTHDATA authValue;
-} TPM_SESSION_IN;
+TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
+  TPM_RESULT res;
+  Pack_Context pctx;
+  Unpack_Context uctx;
 
-typedef struct {
-  TPM_NONCE nonceEven;
-  TPM_BOOL continueAuthSession;
-  TPM_AUTHDATA authValue;
-} TPM_SESSION_OUT;
+  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
+  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
+                        sizeof(TPM_COMMAND_CODE);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_OIAP;
+  TPM_TAG tag_out;
+  UINT32 paramSize_out;
 
-/* TPM_OIAP */
+  pack_init(&pctx, tis_buffers.in, sizeof(tis_buffers.in));
 
-typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_COMMAND_CODE ordinal;
-} TPM_RQU_COMMAND_OIAP;
+  marshal_UINT16(tag_in, &pctx, NULL);
+  marshal_UINT32(paramSize_in, &pctx, NULL);
+  marshal_UINT32(ordinal_in, &pctx, NULL);
 
-typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_RESULT returnCode;
-  TPM_AUTHHANDLE authHandle;
-  TPM_NONCE nonceEven;
-} TPM_RSP_COMMAND_OIAP;
-
-TPM_OIAP_RET TPM_OIAP(void) {
-  TPM_RQU_COMMAND_OIAP *in = (TPM_RQU_COMMAND_OIAP *)tis_buffers.in;
-
-  in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
-  in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_OIAP));
-  in->ordinal = ntohl(TPM_ORD_OIAP);
+  UINT32 bytes_packed = pack_finish(&pctx);
+  assert(bytes_packed == paramSize_in);
 
   tis_transmit_new();
 
-  const TPM_RSP_COMMAND_OIAP *out =
-      (const TPM_RSP_COMMAND_OIAP *)tis_buffers.out;
-  const TPM_OIAP_RET ret = {.returnCode = ntohl(out->returnCode),
-                            .session = {.authHandle = ntohl(out->authHandle),
-                                        .nonceEven = out->nonceEven}};
+  unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
-  return ret;
+  unmarshal_UINT16(&tag_out, &uctx, NULL);
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+  if (res)
+    return res;
+  unmarshal_UINT32(&session->authHandle, &uctx, NULL);
+  unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
+
+  UINT32 bytes_unpacked = unpack_finish(&uctx);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytes_unpacked == paramSize_out);
+
+  // Initialize the remainder of the session with default values
+  memset(&session->nonceOdd, 0, sizeof(TPM_NONCE));
+  session->continueAuthSession = FALSE;
+
+  return res;
 }
 
 TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
@@ -191,6 +190,11 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
+
+  // Initialize the remainder of the session with default values
+  memset(&osap_session->session.nonceOdd, 0, sizeof(TPM_NONCE));
+  osap_session->session.continueAuthSession = FALSE;
+  memset(&osap_session->nonceOddOSAP, 0, sizeof(TPM_NONCE));
 
   return ret;
 }
