@@ -160,9 +160,10 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */);
 TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
                     TPM_OSAP_SESSION *osap_session /* out */);
-TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data /* in */, UINT32 dataSize,
-                                 TPM_NV_INDEX nvIndex, UINT32 offset,
-                                 TPM_AUTHDATA nv_auth, TPM_SESSION nv_session);
+TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
+                                 TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
+                                 const TPM_AUTHDATA *nv_auth,
+                                 TPM_SESSION *session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
                             TPM_NV_INDEX nvIndex, UINT32 offset);
 TPM_RESULT TPM_Startup_Clear(BYTE *buffer);

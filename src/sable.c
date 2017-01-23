@@ -130,9 +130,9 @@ static void configure(void) {
   res = TPM_OIAP(&nv_session);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  /*res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
-                              secrets.nv_auth, nv_session);
-  TPM_ERROR(res, s_TPM_NV_WriteValueAuth);*/
+  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
+                              &lsecrets.nv_auth, &nv_session);
+  TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 }
 
 static void unsealPassphrase(void) {
