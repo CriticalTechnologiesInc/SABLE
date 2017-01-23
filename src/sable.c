@@ -106,7 +106,7 @@ static void configure(void) {
                                 .digestAtCreation = composite_hash,
                                 .digestAtRelease = composite_hash};
   pack_init(&pctx, pcr_info_packed, sizeof(pcr_info_packed));
-  pack_TPM_PCR_INFO_LONG(&pctx, pcr_info, NULL);
+  marshal_TPM_PCR_INFO_LONG(&pcr_info, &pctx, NULL);
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == sizeof(pcr_info_packed));
 
@@ -124,7 +124,7 @@ static void configure(void) {
   TPM_ERROR(sealed_pp.returnCode, s_TPM_Seal);
 
   pack_init(&pctx, pp_blob, sizeof(pp_blob));
-  pack_TPM_STORED_DATA12(&pctx, sealed_pp.sealedData, NULL);
+  marshal_TPM_STORED_DATA12(&sealed_pp.sealedData, &pctx, NULL);
   pack_finish(&pctx);
 
   /*TPM_OIAP_RET oiap_ret = TPM_OIAP();

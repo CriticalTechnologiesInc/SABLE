@@ -1,10 +1,10 @@
 #ifndef TPM_STRUCT_H
 #define TPM_STRUCT_H
 
-#include "tcg.h"
 #include "sha.h"
+#include "tcg.h"
 
-/* APIs to pack/unpack TPM data structures to/from a buffer */
+/* APIs to marshal/unmarshal TPM data structures to/from a buffer */
 
 typedef struct {
   BYTE *pack_buffer;
@@ -23,21 +23,33 @@ void unpack_init(Unpack_Context *ctx, const BYTE *buffer, UINT32 bufferSize);
 UINT32 pack_finish(Pack_Context *ctx);
 UINT32 unpack_finish(Unpack_Context *ctx);
 
-void pack_BYTE(Pack_Context *ctx, BYTE val, SHA1_Context *sctx);
-BYTE unpack_BYTE(Unpack_Context *ctx, SHA1_Context *sctx);
-void pack_UINT16(Pack_Context *ctx, UINT16 val, SHA1_Context *sctx);
-UINT16 unpack_UINT16(Unpack_Context *ctx, SHA1_Context *sctx);
-void pack_UINT32(Pack_Context *ctx, UINT32 val, SHA1_Context *sctx);
-UINT32 unpack_UINT32(Unpack_Context *ctx, SHA1_Context *sctx);
+void marshal_BYTE(BYTE val, Pack_Context *ctx, SHA1_Context *sctx);
+void unmarshal_BYTE(BYTE *val /* in/out */, Unpack_Context *ctx, SHA1_Context *sctx);
+void marshal_UINT16(UINT16 val, Pack_Context *ctx, SHA1_Context *sctx);
+void unmarshal_UINT16(UINT16 *val /* in/out */, Unpack_Context *ctx,
+                   SHA1_Context *sctx);
+void marshal_UINT32(UINT32 val, Pack_Context *ctx, SHA1_Context *sctx);
+void unmarshal_UINT32(UINT32 *val /* in/out */, Unpack_Context *ctx,
+                   SHA1_Context *sctx);
 
-void pack_array(Pack_Context *ctx, const void *data, UINT32 size, SHA1_Context *sctx);
-void *unpack_array(Unpack_Context *ctx, UINT32 size, SHA1_Context *sctx);
-void pack_TPM_PCR_SELECTION(Pack_Context *ctx, TPM_PCR_SELECTION select, SHA1_Context *sctx);
-TPM_PCR_SELECTION unpack_TPM_PCR_SELECTION(Unpack_Context *ctx, SHA1_Context *sctx);
-void pack_TPM_PCR_INFO_LONG(Pack_Context *ctx, TPM_PCR_INFO_LONG pcrInfo, SHA1_Context *sctx);
-TPM_PCR_INFO_LONG unpack_TPM_PCR_INFO_LONG(Unpack_Context *ctx, SHA1_Context *sctx);
-void pack_TPM_STORED_DATA12(Pack_Context *ctx, TPM_STORED_DATA12 data, SHA1_Context *sctx);
-TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(Unpack_Context *ctx, SHA1_Context *sctx);
+void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
+                SHA1_Context *sctx);
+void unmarshal_array(void *data /* in/out */, UINT32 size, Unpack_Context *ctx,
+                  SHA1_Context *sctx);
+void unmarshal_ptr(void *ptr /* in/out */, UINT32 size, Unpack_Context *ctx,
+                  SHA1_Context *sctx);
+void marshal_TPM_PCR_SELECTION(const TPM_PCR_SELECTION *select, Pack_Context *ctx,
+                            SHA1_Context *sctx);
+void unmarshal_TPM_PCR_SELECTION(TPM_PCR_SELECTION *select /* in/out */,
+                              Unpack_Context *ctx, SHA1_Context *sctx);
+void marshal_TPM_PCR_INFO_LONG(const TPM_PCR_INFO_LONG *pcrInfo, Pack_Context *ctx,
+                            SHA1_Context *sctx);
+void unmarshal_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG *pcrInfo /* in/out */,
+                              Unpack_Context *ctx, SHA1_Context *sctx);
+void marshal_TPM_STORED_DATA12(const TPM_STORED_DATA12 *data, Pack_Context *ctx,
+                            SHA1_Context *sctx);
+void unmarshal_TPM_STORED_DATA12(TPM_STORED_DATA12 *data /* in/out */,
+                              Unpack_Context *ctx, SHA1_Context *sctx);
 
 /* Helper functions to compute the size of TPM structs */
 

@@ -43,138 +43,186 @@ static void check_unpack_overflow(Unpack_Context *ctx, UINT32 sizeOfUnpack) {
  * 6) return the unpacked value
  */
 
-void pack_BYTE(Pack_Context *ctx, BYTE val, SHA1_Context *sctx) {
-  check_pack_overflow(ctx, sizeof(BYTE));
-  if (sctx)
+void marshal_BYTE(BYTE val, Pack_Context *ctx, SHA1_Context *sctx) {
+  if (sctx) {
     sha1(sctx, &val, sizeof(BYTE));
-  BYTE *tmp = (BYTE *)(ctx->pack_buffer + ctx->bytes_packed);
-  *tmp = val;
-  ctx->bytes_packed += sizeof(BYTE);
+  }
+  if (ctx) {
+    check_pack_overflow(ctx, sizeof(BYTE));
+    BYTE *tmp = (BYTE *)(ctx->pack_buffer + ctx->bytes_packed);
+    *tmp = val;
+    ctx->bytes_packed += sizeof(BYTE);
+  }
 }
-BYTE unpack_BYTE(Unpack_Context *ctx, SHA1_Context *sctx) {
-  BYTE ret;
+void unmarshal_BYTE(BYTE *val, Unpack_Context *ctx, SHA1_Context *sctx) {
+  assert(val);
+  assert(ctx || sctx);
+  if (sctx && !ctx) {
+    sha1(sctx, val, sizeof(BYTE));
+    return;
+  }
+  const BYTE *tmp = (const BYTE *)(ctx->unpack_buffer + ctx->bytes_unpacked);
   check_unpack_overflow(ctx, sizeof(BYTE));
-  const BYTE *tmp =
-      (const BYTE *)(ctx->unpack_buffer + ctx->bytes_unpacked);
-  ret = *tmp;
-  if (sctx)
-    sha1(sctx, &ret, sizeof(BYTE));
+  *val = *tmp;
   ctx->bytes_unpacked += sizeof(BYTE);
-  return ret;
+  if (sctx) {
+    sha1(sctx, tmp, sizeof(BYTE));
+  }
 }
 
-void pack_UINT16(Pack_Context *ctx, UINT16 val, SHA1_Context *sctx) {
-  check_pack_overflow(ctx, sizeof(UINT16));
+void marshal_UINT16(UINT16 val, Pack_Context *ctx, SHA1_Context *sctx) {
   val = htons(val);
-  if (sctx)
+  if (sctx) {
     sha1(sctx, &val, sizeof(UINT16));
-  UINT16 *tmp = (UINT16 *)(ctx->pack_buffer + ctx->bytes_packed);
-  *tmp = val;
-  ctx->bytes_packed += sizeof(UINT16);
+  }
+  if (ctx) {
+    check_pack_overflow(ctx, sizeof(UINT16));
+    UINT16 *tmp = (UINT16 *)(ctx->pack_buffer + ctx->bytes_packed);
+    *tmp = val;
+    ctx->bytes_packed += sizeof(UINT16);
+  }
 }
-UINT16 unpack_UINT16(Unpack_Context *ctx, SHA1_Context *sctx) {
-  UINT16 ret;
-  check_unpack_overflow(ctx, sizeof(UINT16));
+void unmarshal_UINT16(UINT16 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
+  assert(val);
+  assert(ctx || sctx);
+  if (sctx && !ctx) {
+    UINT16 tmp = htonl(*val);
+    sha1(sctx, &tmp, sizeof(UINT16));
+    return;
+  }
   const UINT16 *tmp =
       (const UINT16 *)(ctx->unpack_buffer + ctx->bytes_unpacked);
-  ret = *tmp;
-  if (sctx)
-    sha1(sctx, &ret, sizeof(UINT16));
-  ret = ntohs(ret);
+  check_unpack_overflow(ctx, sizeof(UINT16));
+  *val = ntohs(*tmp);
   ctx->bytes_unpacked += sizeof(UINT16);
-  return ret;
+  if (sctx) {
+    sha1(sctx, tmp, sizeof(UINT16));
+  }
 }
 
-void pack_UINT32(Pack_Context *ctx, UINT32 val, SHA1_Context *sctx) {
-  check_pack_overflow(ctx, sizeof(UINT32));
+void marshal_UINT32(UINT32 val, Pack_Context *ctx, SHA1_Context *sctx) {
   val = htonl(val);
-  if (sctx)
+  if (sctx) {
     sha1(sctx, &val, sizeof(UINT32));
-  UINT32 *tmp = (UINT32 *)(ctx->pack_buffer + ctx->bytes_packed);
-  *tmp = val;
-  ctx->bytes_packed += sizeof(UINT32);
+  }
+  if (ctx) {
+    check_pack_overflow(ctx, sizeof(UINT32));
+    UINT32 *tmp = (UINT32 *)(ctx->pack_buffer + ctx->bytes_packed);
+    *tmp = val;
+    ctx->bytes_packed += sizeof(UINT32);
+  }
 }
-UINT32 unpack_UINT32(Unpack_Context *ctx, SHA1_Context *sctx) {
-  UINT32 ret;
-  check_unpack_overflow(ctx, sizeof(UINT32));
+void unmarshal_UINT32(UINT32 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
+  assert(val);
+  assert(ctx || sctx);
+  if (sctx && !ctx) {
+    UINT32 tmp = htonl(*val);
+    sha1(sctx, &tmp, sizeof(UINT32));
+    return;
+  }
   const UINT32 *tmp =
       (const UINT32 *)(ctx->unpack_buffer + ctx->bytes_unpacked);
-  ret = *tmp;
-  if (sctx)
-    sha1(sctx, &ret, sizeof(UINT32));
-  ret = ntohl(ret);
+  check_unpack_overflow(ctx, sizeof(UINT32));
+  *val = ntohl(*tmp);
   ctx->bytes_unpacked += sizeof(UINT32);
-  return ret;
+  if (sctx) {
+    sha1(sctx, tmp, sizeof(UINT32));
+  }
 }
 
-void pack_array(Pack_Context *ctx, const void *data, UINT32 size, SHA1_Context *sctx) {
-  check_pack_overflow(ctx, size);
-  if (sctx)
+void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
+                SHA1_Context *sctx) {
+  if (sctx) {
     sha1(sctx, data, size);
-  memcpy(ctx->pack_buffer + ctx->bytes_packed, data, size);
-  ctx->bytes_packed += size;
+  }
+  if (ctx) {
+    check_pack_overflow(ctx, size);
+    memcpy(ctx->pack_buffer + ctx->bytes_packed, data, size);
+    ctx->bytes_packed += size;
+  }
 }
-void *unpack_array(Unpack_Context *ctx, UINT32 size, SHA1_Context *sctx) {
-  void *ret;
+void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
+                  SHA1_Context *sctx) {
+  assert(data);
+  assert(ctx || sctx);
+  if (sctx && !ctx) {
+    sha1(sctx, data, size);
+    return;
+  }
+  void *tmp = (void *)(ctx->unpack_buffer + ctx->bytes_unpacked);
   check_unpack_overflow(ctx, size);
-  ret = (void *)(ctx->unpack_buffer + ctx->bytes_unpacked);
-  if (sctx)
-    sha1(sctx, ret, size);
+  memcpy(data, tmp, size);
   ctx->bytes_unpacked += size;
-  return ret;
+  if (sctx) {
+    sha1(sctx, data, size);
+  }
+}
+void unmarshal_ptr(void *ptr, UINT32 size, Unpack_Context *ctx,
+                  SHA1_Context *sctx) {
+  assert(ptr);
+  assert(ctx);
+  void **tmp = (void **)ptr;
+  *tmp = (void *)(ctx->unpack_buffer + ctx->bytes_unpacked);
+  check_unpack_overflow(ctx, size);
+  ctx->bytes_unpacked += size;
+  if (sctx) {
+    sha1(sctx, *tmp, size);
+  }
 }
 
-void pack_TPM_PCR_SELECTION(Pack_Context *ctx, TPM_PCR_SELECTION select, SHA1_Context *sctx) {
-  pack_UINT16(ctx, select.sizeOfSelect, sctx);
-  pack_array(ctx, select.pcrSelect, (UINT32)select.sizeOfSelect, sctx);
+void marshal_TPM_PCR_SELECTION(const TPM_PCR_SELECTION *select, Pack_Context *ctx,
+                            SHA1_Context *sctx) {
+  marshal_UINT16(select->sizeOfSelect, ctx, sctx);
+  marshal_array(select->pcrSelect, (UINT32)select->sizeOfSelect, ctx, sctx);
 }
-TPM_PCR_SELECTION unpack_TPM_PCR_SELECTION(Unpack_Context *ctx, SHA1_Context *sctx) {
-  TPM_PCR_SELECTION ret;
-  ret.sizeOfSelect = unpack_UINT16(ctx, sctx);
-  ret.pcrSelect = unpack_array(ctx, ret.sizeOfSelect, sctx);
-  return ret;
-}
-
-void pack_TPM_PCR_INFO_LONG(Pack_Context *ctx, TPM_PCR_INFO_LONG pcrInfo, SHA1_Context *sctx) {
-  pack_UINT16(ctx, pcrInfo.tag, sctx);
-  pack_BYTE(ctx, pcrInfo.localityAtCreation, sctx);
-  pack_BYTE(ctx, pcrInfo.localityAtRelease, sctx);
-  pack_TPM_PCR_SELECTION(ctx, pcrInfo.creationPCRSelection, sctx);
-  pack_TPM_PCR_SELECTION(ctx, pcrInfo.releasePCRSelection, sctx);
-  pack_array(ctx, pcrInfo.digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH), sctx);
-  pack_array(ctx, pcrInfo.digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH), sctx);
-}
-TPM_PCR_INFO_LONG unpack_TPM_PCR_INFO_LONG(Unpack_Context *ctx, SHA1_Context *sctx) {
-  TPM_PCR_INFO_LONG ret;
-  ret.tag = unpack_UINT16(ctx, sctx);
-  ret.localityAtCreation = unpack_BYTE(ctx, sctx);
-  ret.localityAtRelease = unpack_BYTE(ctx, sctx);
-  ret.creationPCRSelection = unpack_TPM_PCR_SELECTION(ctx, sctx);
-  ret.releasePCRSelection = unpack_TPM_PCR_SELECTION(ctx, sctx);
-  ret.digestAtCreation =
-      *(TPM_COMPOSITE_HASH *)unpack_array(ctx, sizeof(TPM_COMPOSITE_HASH), sctx);
-  ret.digestAtRelease =
-      *(TPM_COMPOSITE_HASH *)unpack_array(ctx, sizeof(TPM_COMPOSITE_HASH), sctx);
-  return ret;
+void unmarshal_TPM_PCR_SELECTION(TPM_PCR_SELECTION *select, Unpack_Context *ctx,
+                              SHA1_Context *sctx) {
+  unmarshal_UINT16(&select->sizeOfSelect, ctx, sctx);
+  unmarshal_ptr(&select->pcrSelect, select->sizeOfSelect, ctx, sctx);
 }
 
-void pack_TPM_STORED_DATA12(Pack_Context *ctx, TPM_STORED_DATA12 data, SHA1_Context *sctx) {
-  pack_UINT16(ctx, data.tag, sctx);
-  pack_UINT16(ctx, data.et, sctx);
-  pack_UINT32(ctx, data.sealInfoSize, sctx);
-  pack_array(ctx, data.sealInfo, data.sealInfoSize, sctx);
-  pack_UINT32(ctx, data.encDataSize, sctx);
-  pack_array(ctx, data.encData, data.encDataSize, sctx);
+void marshal_TPM_PCR_INFO_LONG(const TPM_PCR_INFO_LONG *pcrInfo, Pack_Context *ctx,
+                            SHA1_Context *sctx) {
+  marshal_UINT16(pcrInfo->tag, ctx, sctx);
+  marshal_BYTE(pcrInfo->localityAtCreation, ctx, sctx);
+  marshal_BYTE(pcrInfo->localityAtRelease, ctx, sctx);
+  marshal_TPM_PCR_SELECTION(&pcrInfo->creationPCRSelection, ctx, sctx);
+  marshal_TPM_PCR_SELECTION(&pcrInfo->releasePCRSelection, ctx, sctx);
+  marshal_array(pcrInfo->digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH), ctx,
+             sctx);
+  marshal_array(pcrInfo->digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH), ctx,
+             sctx);
 }
-TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(Unpack_Context *ctx, SHA1_Context *sctx) {
-  TPM_STORED_DATA12 ret;
-  ret.tag = unpack_UINT16(ctx, sctx);
-  ret.et = unpack_UINT16(ctx, sctx);
-  ret.sealInfoSize = unpack_UINT32(ctx, sctx);
-  ret.sealInfo = unpack_array(ctx, ret.sealInfoSize, sctx);
-  ret.encDataSize = unpack_UINT32(ctx, sctx);
-  ret.encData = unpack_array(ctx, ret.encDataSize, sctx);
-  return ret;
+void unmarshal_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG *pcrInfo, Unpack_Context *ctx,
+                              SHA1_Context *sctx) {
+  unmarshal_UINT16(&pcrInfo->tag, ctx, sctx);
+  unmarshal_BYTE(&pcrInfo->localityAtCreation, ctx, sctx);
+  unmarshal_BYTE(&pcrInfo->localityAtRelease, ctx, sctx);
+  unmarshal_TPM_PCR_SELECTION(&pcrInfo->creationPCRSelection, ctx, sctx);
+  unmarshal_TPM_PCR_SELECTION(&pcrInfo->releasePCRSelection, ctx, sctx);
+  unmarshal_array(&pcrInfo->digestAtCreation.digest, sizeof(TPM_COMPOSITE_HASH),
+               ctx, sctx);
+  unmarshal_array(&pcrInfo->digestAtRelease.digest, sizeof(TPM_COMPOSITE_HASH),
+               ctx, sctx);
+}
+
+void marshal_TPM_STORED_DATA12(const TPM_STORED_DATA12 *data, Pack_Context *ctx,
+                            SHA1_Context *sctx) {
+  marshal_UINT16(data->tag, ctx, sctx);
+  marshal_UINT16(data->et, ctx, sctx);
+  marshal_UINT32(data->sealInfoSize, ctx, sctx);
+  marshal_array(data->sealInfo, data->sealInfoSize, ctx, sctx);
+  marshal_UINT32(data->encDataSize, ctx, sctx);
+  marshal_array(data->encData, data->encDataSize, ctx, sctx);
+}
+void unmarshal_TPM_STORED_DATA12(TPM_STORED_DATA12 *data, Unpack_Context *ctx,
+                              SHA1_Context *sctx) {
+  unmarshal_UINT16(&data->tag, ctx, sctx);
+  unmarshal_UINT16(&data->et, ctx, sctx);
+  unmarshal_UINT32(&data->sealInfoSize, ctx, sctx);
+  unmarshal_ptr(&data->sealInfo, data->sealInfoSize, ctx, sctx);
+  unmarshal_UINT32(&data->encDataSize, ctx, sctx);
+  unmarshal_ptr(&data->encData, data->encDataSize, ctx, sctx);
 }
 
 UINT32 sizeof_TPM_PCR_SELECTION(TPM_PCR_SELECTION select) {
@@ -205,7 +253,8 @@ TPM_ENCAUTH encAuth_gen(const TPM_AUTHDATA *auth,
   sha1(&sctx, nonceEven->nonce, sizeof(TPM_NONCE));
   sha1_finish(&sctx);
 
-  do_xor(auth->authdata, sctx.hash.digest, encAuth.authdata, sizeof(TPM_DIGEST));
+  do_xor(auth->authdata, sctx.hash.digest, encAuth.authdata,
+         sizeof(TPM_DIGEST));
   return encAuth;
 }
 
