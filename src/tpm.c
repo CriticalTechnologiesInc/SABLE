@@ -90,10 +90,9 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   if (res)
     return res;
   unmarshal_UINT32(&randomBytesSize_out, &uctx, NULL);
-  unmarshal_array(randomBytes_out, randomBytesSize_out, &uctx, NULL);
-
-  UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(bytesRequested_in == randomBytesSize_out);
+  unmarshal_array(randomBytes_out, randomBytesSize_out, &uctx, NULL);
+  UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(bytes_unpacked == paramSize_out);
 
   return res;
