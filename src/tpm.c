@@ -45,11 +45,11 @@ TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
 
   return res;
@@ -84,6 +84,7 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   if (res)
@@ -92,7 +93,6 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   unmarshal_array(randomBytes_out, randomBytesSize_out, &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytesRequested_in == randomBytesSize_out);
   assert(bytes_unpacked == paramSize_out);
 
@@ -127,6 +127,7 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   if (res)
@@ -134,7 +135,6 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
   unmarshal_array(outDigest_out, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
 
   return res;
@@ -170,6 +170,7 @@ TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   if (res)
@@ -177,7 +178,6 @@ TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
   unmarshal_array(outDigest_out, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
 
   return res;
@@ -209,6 +209,7 @@ TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   if (res)
@@ -217,7 +218,6 @@ TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
   unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
 
   // Initialize the remainder of the session with default values
@@ -258,6 +258,7 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&ret, &uctx, NULL);
   if (ret)
@@ -268,7 +269,6 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unmarshal_array(&osap_session->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
 
   // Initialize the remainder of the session with default values
@@ -331,6 +331,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
 
   sha1_init(&sctx);                              // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);       //
+  assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
   unmarshal_UINT32(&ret, &uctx, &sctx);          // 1S
   if (ret)                                       //
@@ -350,7 +351,6 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
 
-  assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
   assert(bytes_unpacked == paramSize_out);
   assert(session->continueAuthSession == FALSE);
 
@@ -534,6 +534,7 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
 
   sha1_init(&sctx);                              // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);       //
+  assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
   unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
   if (res)                                       //
@@ -554,7 +555,6 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
 
-  assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
   assert(bytes_unpacked == paramSize_out);
   assert(session->continueAuthSession == FALSE);
 
