@@ -28,6 +28,9 @@
 
 #define REALMODE_CODE 0x20000
 
+#define SLB_PCR_ORD 17
+#define MODULE_PCR_ORD 19
+
 /***********************************************************
  * SABLE globals
  **********************************************************/
@@ -42,8 +45,6 @@ static struct {
 /* ciphertext global secrets */
 static TPM_STORED_DATA12 pp_data;
 static BYTE pp_blob[400];
-
-/* TPM sessions */
 
 static void configure(void) {
   /* local secrets */
@@ -172,7 +173,7 @@ static void unsealPassphrase(void) {
  *  Hash all multiboot modules.
  */
 static int mbi_calc_hash(struct mbi *mbi) {
-  TPM_EXTEND_RET res;
+  TPM_RESULT res;
   SHA1_Context sctx;
 
   CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
@@ -187,8 +188,8 @@ static int mbi_calc_hash(struct mbi *mbi) {
 
     sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     sha1_finish(&sctx);
-    res = TPM_Extend(MODULE_PCR_ORD, sctx.hash);
-    TPM_ERROR(res.returnCode, s_TPM_Extend);
+    res = TPM_Extend(MODULE_PCR_ORD, sctx.hash, NULL);
+    TPM_ERROR(res, s_TPM_Extend);
   }
 
   return 0;
@@ -207,7 +208,7 @@ static int prepare_tpm(BYTE *buffer) {
   CHECK4(-60, 0 >= tpm, s_tis_init_failed, tpm);
   CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), s_could_not_gain_tis_ownership);
 
-  res = TPM_Startup_Clear(buffer);
+  res = TPM_Startup(TPM_ST_CLEAR);
   if (res && res != TPM_E_INVALID_POSTINIT)
     TPM_ERROR(res, s_TPM_Startup_Clear);
 

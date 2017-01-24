@@ -132,6 +132,7 @@ void unmarshal_UINT32(UINT32 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
 
 void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
                    SHA1_Context *sctx) {
+  assert(data);
   if (sctx) {
     sha1(sctx, data, size);
   }
@@ -143,7 +144,6 @@ void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
 }
 void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
                      SHA1_Context *sctx) {
-  assert(data);
   assert(ctx || sctx);
   if (sctx && !ctx) {
     sha1(sctx, data, size);
@@ -151,7 +151,9 @@ void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
   }
   void *tmp = (void *)(ctx->unpack_buffer + ctx->bytes_unpacked);
   check_unpack_overflow(ctx, size);
-  memcpy(data, tmp, size);
+  if (data) {
+    memcpy(data, tmp, size);
+  }
   ctx->bytes_unpacked += size;
   if (sctx) {
     sha1(sctx, data, size);

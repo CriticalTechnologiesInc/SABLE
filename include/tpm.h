@@ -26,104 +26,6 @@
 #include "platform.h"
 #include "tcg.h"
 #include "tis.h"
-#include "tpm_command.h"
-
-#define TPM_TRANSMIT_FAIL 0xFFFF0000
-
-#define TCG_HASH_SIZE 20
-#define TCG_DATA_OFFSET 10
-#define TCG_BUFFER_SIZE 1024
-#define PCR_SELECT_SIZE 3
-
-#define NORESET_PCR_ORD 15
-#define SLB_PCR_ORD 17
-#define MODULE_PCR_ORD 19
-
-/**
- * Use AND to separate the items in a array construction.
- */
-#define AND ,
-
-/**
- * Defines a simple transmit function, which is used several times in
- * the lib, e.g. TPM_PcrRead
- */
-#define TPM_TRANSMIT_FUNC(NAME, PARAMS, PRECOND, POSTCOND)                     \
-  int TPM_##NAME PARAMS {                                                      \
-    int ret;                                                                   \
-    int size = 6;                                                              \
-    PRECOND;                                                                   \
-    buffer[0] = 0x00;                                                          \
-    buffer[1] = 0xc1;                                                          \
-    size += sizeof(send_buffer);                                               \
-    *(unsigned long *)(buffer + 2) = ntohl(size);                              \
-    assert(TCG_BUFFER_SIZE >= size);                                           \
-    for (unsigned i = 0; i < sizeof(send_buffer) / sizeof(*send_buffer); i++)  \
-      *((unsigned long *)(buffer + 6) + i) = ntohl(send_buffer[i]);            \
-    ret = tis_transmit(buffer, size, buffer, TCG_BUFFER_SIZE);                 \
-    if (ret < 0)                                                               \
-      return ret;                                                              \
-    POSTCOND;                                                                  \
-    return ntohl(*(unsigned long *)(buffer + 6));                              \
-  }
-
-/**
- * Copy values from the buffer.
- */
-#define TPM_COPY_FROM(DEST, OFFSET, SIZE)                                      \
-  assert(TCG_BUFFER_SIZE >= TCG_DATA_OFFSET + OFFSET + SIZE)                   \
-      memcpy(DEST, &in_buffer[TCG_DATA_OFFSET + OFFSET], SIZE)
-
-/**
- * Extract long values from the buffer.
- */
-#define TPM_EXTRACT_LONG(OFFSET)                                               \
-  ntohl(*(unsigned long *)(buffer + TCG_DATA_OFFSET + OFFSET))
-
-/**
- * Copy values to SHA1 buffer
- */
-#define SHA_COPY_TO(SRC, SIZE)                                                 \
-  assert(sha_size >= sha_offset + SIZE)                                        \
-      memcpy(sha_buf + sha_offset, SRC, SIZE);                                 \
-  sha_offset += SIZE
-
-/**
- * Copy values to HMAC buffer
- */
-#define HMAC_COPY_TO(SRC, SIZE)                                                \
-  assert(hmac_size >= hmac_offset + SIZE)                                      \
-      memcpy(hmac_buf + hmac_offset, SRC, SIZE);                               \
-  hmac_offset += SIZE
-
-/**
- * Copy values to the TPM-in buffer
- */
-#define SABLE_TPM_COPY_TO(SRC, SIZE)                                           \
-  assert(TCG_BUFFER_SIZE >= tpm_offset_out + SIZE)                             \
-      memcpy(out_buffer + tpm_offset_out, SRC, SIZE);                          \
-  tpm_offset_out += SIZE
-
-/**
- * Copy values from the TPM-in buffer
- */
-#define SABLE_TPM_COPY_FROM(SRC, SIZE)                                         \
-  assert(TCG_BUFFER_SIZE >= tpm_offset_in + SIZE)                              \
-      memcpy(in_buffer + tpm_offset_in, SRC, SIZE);                            \
-  tpm_offset_in += SIZE
-
-/**
- * Transmit command to the TPM
- */
-#define TPM_TRANSMIT(FUNCTION_NAME)                                            \
-  res = tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE)
-
-/**
- * Copy values from the buffer.
- */
-#define TPM_COPY_TO(DEST, OFFSET, SIZE)                                        \
-  assert(TCG_BUFFER_SIZE >= TCG_DATA_OFFSET + OFFSET + SIZE)                   \
-      memcpy(&buffer[TCG_DATA_OFFSET + OFFSET], DEST, SIZE)
 
 typedef struct {
   TPM_AUTHHANDLE authHandle;
@@ -139,10 +41,13 @@ typedef struct {
 } TPM_OSAP_SESSION;
 
 ///////////////////////////////////////////////////////////////////////////
+TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in);
 TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
                          UINT32 bytesRequested_in);
 TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
                        TPM_PCRVALUE *outDigest_out /* out */);
+TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
+                      TPM_PCRVALUE *outDigest_out /* out */);
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */);
 TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
                     TPM_OSAP_SESSION *osap_session /* out */);
@@ -152,8 +57,8 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                                  TPM_SESSION *session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
                             TPM_NV_INDEX nvIndex, UINT32 offset);
-TPM_RESULT TPM_Startup_Clear(BYTE *buffer);
-TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash);
+TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
+                      TPM_PCRVALUE *outDigest_out /* out */);
 TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
                       UINT32 secretDataSize, TPM_AUTHDATA parent_auth,
                       TPM_SESSION parent_session, TPM_AUTHDATA data_auth,

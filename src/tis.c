@@ -13,10 +13,14 @@
  */
 
 #include "tis.h"
-#include "tpm_command.h"
 #include "util.h"
 
 tis_buffers_t tis_buffers = {.in = {0}, .out = {0}};
+
+typedef struct {
+  TPM_TAG tag;
+  UINT32 paramSize;
+} TPM_COMMAND_HEADER;
 
 /**
  * TIS base address.

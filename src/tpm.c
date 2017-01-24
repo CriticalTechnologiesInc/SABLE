@@ -15,21 +15,45 @@
 #include "tpm.h"
 #include "hmac.h"
 #include "string.h"
-#include "tpm_command.h"
 #include "tpm_struct.h"
 #include "util.h"
 
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-} TPM_COMMAND_HEADER;
+TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
+  TPM_RESULT res;
+  Pack_Context pctx;
+  Unpack_Context uctx;
 
-// generic command header
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-} TPM_COMMAND;
+  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
+  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
+                        sizeof(TPM_COMMAND_CODE) + sizeof(TPM_STARTUP_TYPE);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_Startup;
+  TPM_TAG tag_out;
+  UINT32 paramSize_out;
+
+  pack_init(&pctx, tis_buffers.in, sizeof(tis_buffers.in));
+
+  marshal_UINT16(tag_in, &pctx, NULL);
+  marshal_UINT32(paramSize_in, &pctx, NULL);
+  marshal_UINT32(ordinal_in, &pctx, NULL);
+  marshal_UINT16(startupType_in, &pctx, NULL);
+
+  UINT32 bytes_packed = pack_finish(&pctx);
+  assert(bytes_packed == paramSize_in);
+
+  tis_transmit_new();
+
+  unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
+
+  unmarshal_UINT16(&tag_out, &uctx, NULL);
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+
+  UINT32 bytes_unpacked = unpack_finish(&uctx);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytes_unpacked == paramSize_out);
+
+  return res;
+}
 
 TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
                          UINT32 bytesRequested_in) {
@@ -94,6 +118,49 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
   marshal_UINT32(paramSize_in, &pctx, NULL);
   marshal_UINT32(ordinal_in, &pctx, NULL);
   marshal_UINT32(pcrIndex_in, &pctx, NULL);
+
+  UINT32 bytes_packed = pack_finish(&pctx);
+  assert(bytes_packed == paramSize_in);
+
+  tis_transmit_new();
+
+  unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
+
+  unmarshal_UINT16(&tag_out, &uctx, NULL);
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+  if (res)
+    return res;
+  unmarshal_array(outDigest_out, sizeof(TPM_PCRVALUE), &uctx, NULL);
+
+  UINT32 bytes_unpacked = unpack_finish(&uctx);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  assert(bytes_unpacked == paramSize_out);
+
+  return res;
+}
+
+TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
+                      TPM_PCRVALUE *outDigest_out /* out */) {
+  TPM_RESULT res;
+  Pack_Context pctx;
+  Unpack_Context uctx;
+
+  TPM_TAG tag_in = TPM_TAG_RQU_COMMAND;
+  UINT32 paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) +
+                        sizeof(TPM_COMMAND_CODE) + sizeof(TPM_PCRINDEX) +
+                        sizeof(TPM_DIGEST);
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_Extend;
+  TPM_TAG tag_out;
+  UINT32 paramSize_out;
+
+  pack_init(&pctx, tis_buffers.in, sizeof(tis_buffers.in));
+
+  marshal_UINT16(tag_in, &pctx, NULL);
+  marshal_UINT32(paramSize_in, &pctx, NULL);
+  marshal_UINT32(ordinal_in, &pctx, NULL);
+  marshal_UINT32(pcrNum_in, &pctx, NULL);
+  marshal_array(&inDigest_in, sizeof(TPM_DIGEST), &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
@@ -376,25 +443,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   return res;
 }*/
 
-/******************************************************
- * TPM_ReadValue
- *****************************************************/
-
-typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_COMMAND_CODE ordinal;
-  TPM_NV_INDEX nvIndex;
-  UINT32 offset;
-  UINT32 dataSize;
-} TPM_RQU_COMMAND_NV_READVALUE;
-
-typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_RESULT returnCode;
-  UINT32 dataSize;
-} TPM_RSP_COMMAND_NV_READVALUE;
-
-TPM_RESULT TPM_NV_ReadValue(BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
+/*TPM_RESULT TPM_NV_ReadValue(BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
                             UINT32 offset) {
   TPM_RESULT res;
   TPM_RQU_COMMAND_NV_READVALUE *command_in =
@@ -425,13 +474,13 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
   memcpy(data, data_out, dataSize_out);
 
   return res;
-}
+}*/
 
 TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
-                      TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
-                      const void *pcrInfo_in, UINT32 pcrInfoSize_in,
-                      const BYTE *inData_in, UINT32 inDataSize_in,
-                      TPM_SESSION *session, const TPM_SECRET *sharedSecret) {
+                    TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+                    const void *pcrInfo_in, UINT32 pcrInfoSize_in,
+                    const BYTE *inData_in, UINT32 inDataSize_in,
+                    TPM_SESSION *session, const TPM_SECRET *sharedSecret) {
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -482,13 +531,13 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
-  sha1_init(&sctx);                                // compute outParamDigest
-  unmarshal_UINT16(&tag_out, &uctx, NULL);         //
-  unmarshal_UINT32(&paramSize_out, &uctx, NULL);   //
-  unmarshal_UINT32(&res, &uctx, &sctx); // 1S
-  if (res)                              //
-    return res;                                    //
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);      // 2S
+  sha1_init(&sctx);                              // compute outParamDigest
+  unmarshal_UINT16(&tag_out, &uctx, NULL);       //
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
+  unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
+  if (res)                                       //
+    return res;                                  //
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
   unmarshal_TPM_STORED_DATA12(sealed_data, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
@@ -510,76 +559,6 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
 
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");
-
-  return res;
-}
-
-/* TPM_Extend */
-
-typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_COMMAND_CODE ordinal;
-  TPM_PCRINDEX pcrNum;
-  TPM_DIGEST inDigest;
-} TPM_RQU_COMMAND_EXTEND;
-
-typedef struct {
-  TPM_COMMAND_HEADER head;
-  TPM_RESULT returnCode;
-  TPM_DIGEST outDigest;
-} TPM_RSP_COMMAND_EXTEND;
-
-TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
-  TPM_RQU_COMMAND_EXTEND *in = (TPM_RQU_COMMAND_EXTEND *)tis_buffers.in;
-
-  in->head.tag = ntohs(TPM_TAG_RQU_COMMAND);
-  in->head.paramSize = ntohl(sizeof(TPM_RQU_COMMAND_EXTEND));
-  in->ordinal = ntohl(TPM_ORD_Extend);
-  in->pcrNum = ntohl(pcr_index);
-  in->inDigest = hash;
-
-  tis_transmit_new();
-
-  const TPM_RSP_COMMAND_EXTEND *out =
-      (const TPM_RSP_COMMAND_EXTEND *)tis_buffers.out;
-  const TPM_EXTEND_RET ret = {.returnCode = ntohl(out->returnCode),
-                              .outDigest = out->outDigest};
-
-  return ret;
-}
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_STARTUP_TYPE startupType;
-} stTPM_STARTUP;
-
-/**
- * Send a startup to the TPM.
- *
- * Note: We could use the TPM_TRANSMIT_FUNC macro, but this generates smaller
- * code.
- */
-TPM_RESULT
-TPM_Startup_Clear(BYTE *in_buffer) {
-  TPM_RESULT res;
-  UINT32 tpm_offset_out = 0;
-  stTPM_STARTUP com;
-  UINT32 paramSize = sizeof(stTPM_STARTUP);
-  BYTE out_buffer[128];
-
-  com.tag = ntohs(TPM_TAG_RQU_COMMAND);
-  com.paramSize = ntohl(paramSize);
-  com.ordinal = ntohl(TPM_ORD_Startup);
-  com.startupType = ntohs(TPM_ST_CLEAR);
-
-  SABLE_TPM_COPY_TO(&com, sizeof(stTPM_STARTUP));
-  ERROR(TPM_TRANSMIT_FAIL,
-        tis_transmit(out_buffer, paramSize, in_buffer, TCG_BUFFER_SIZE) < 0,
-        s_TPM_Startup_failed_on_transmit);
-
-  res = (TPM_RESULT)ntohl(*((UINT32 *)(in_buffer + 6)));
 
   return res;
 }
