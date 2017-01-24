@@ -199,7 +199,7 @@ static int mbi_calc_hash(struct mbi *mbi) {
  * Prepare the TPM for skinit.
  * Returns a TIS_INIT_* value.
  */
-static int prepare_tpm(BYTE *buffer) {
+static int prepare_tpm(void) {
   int tpm;
   TPM_RESULT res;
 
@@ -222,8 +222,6 @@ static int prepare_tpm(BYTE *buffer) {
  * and disable all localities.
  */
 int _main(struct mbi *mbi, unsigned flags) {
-  BYTE buffer[256];
-
   out_string(s_version_string);
   ERROR(10, !mbi || flags != MBI_MAGIC2, s_not_loaded_via_multiboot);
 
@@ -232,7 +230,7 @@ int _main(struct mbi *mbi, unsigned flags) {
   mbi->boot_loader_name = (unsigned)s_version_string;
 
   int revision = check_cpuid();
-  if (0 >= prepare_tpm(buffer) || (0 > revision)) {
+  if (0 >= prepare_tpm() || (0 > revision)) {
     if (0 > revision)
       out_info(s_No_SVM_platform);
     else
