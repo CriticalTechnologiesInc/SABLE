@@ -49,7 +49,7 @@ TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   unmarshal_UINT32(&res, &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+v  assert(tag_out == TPM_TAG_RSP_COMMAND);
   assert(bytes_unpacked == paramSize_out);
 
   return res;
@@ -84,16 +84,15 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
+  assert(tag_out == TPM_TAG_RSP_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   if (res)
     return res;
   unmarshal_UINT32(&randomBytesSize_out, &uctx, NULL);
+  assert(bytesRequest_in == randomByteSize_out);
   unmarshal_array(randomBytes_out, randomBytesSize_out, &uctx, NULL);
-
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
-  assert(bytesRequested_in == randomBytesSize_out);
   assert(bytes_unpacked == paramSize_out);
 
   return res;
