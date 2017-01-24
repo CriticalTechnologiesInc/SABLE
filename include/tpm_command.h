@@ -26,9 +26,4 @@ typedef struct {
   TPM_DIGEST outDigest;
 } TPM_EXTEND_RET;
 
-typedef struct {
-  TPM_RESULT returnCode;
-  TPM_STORED_DATA12 sealedData;
-} TPM_SEAL_RET;
-
 #endif

@@ -242,27 +242,30 @@ UINT32 sizeof_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo) {
   return ret;
 }
 
-// ret = xor(authData, sha1(sharedSecret ++ nonceEven))
-void encAuth_gen(TPM_ENCAUTH *encAuth /* out */, const TPM_AUTHDATA *auth,
-                 const TPM_SECRET *sharedSecret, const TPM_NONCE *nonceEven) {
+// ret = xor(entityAuthData, sha1(sharedSecret ++ authLastNonceEven))
+void encAuth_gen(TPM_ENCAUTH *encAuth /* out */,
+                 const TPM_AUTHDATA *entityAuthData,
+                 const TPM_SECRET *sharedSecret,
+                 const TPM_NONCE *authLastNonceEven) {
   SHA1_Context sctx;
   sha1_init(&sctx);
   sha1(&sctx, sharedSecret, sizeof(TPM_SECRET));
-  sha1(&sctx, nonceEven, sizeof(TPM_NONCE));
+  sha1(&sctx, authLastNonceEven, sizeof(TPM_NONCE));
   sha1_finish(&sctx);
 
-  do_xor(auth->authdata, sctx.hash.digest, encAuth->authdata,
-         sizeof(TPM_DIGEST));
+  do_xor(entityAuthData->authdata, sctx.hash.digest, encAuth->authdata,
+         sizeof(TPM_AUTHDATA));
 }
 
-void sharedSecret_gen(TPM_SECRET *encAuth /* out */, const TPM_AUTHDATA *auth,
-                 const TPM_NONCE *nonceEvenOSAP, const TPM_NONCE *nonceOddOSAP) {
+void sharedSecret_gen(TPM_SECRET *sharedSecret /* out */,
+                      const TPM_AUTHDATA *auth, const TPM_NONCE *nonceEvenOSAP,
+                      const TPM_NONCE *nonceOddOSAP) {
   HMAC_Context hctx;
   hmac_init(&hctx, auth->authdata, sizeof(TPM_AUTHDATA));
   hmac(&hctx, nonceEvenOSAP, sizeof(TPM_NONCE));
   hmac(&hctx, nonceOddOSAP, sizeof(TPM_NONCE));
   hmac_finish(&hctx);
-  *encAuth = *(TPM_SECRET *)&hctx.sctx.hash;
+  *sharedSecret = *(TPM_SECRET *)&hctx.sctx.hash;
 }
 
 TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {

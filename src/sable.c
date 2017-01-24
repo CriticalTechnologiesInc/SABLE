@@ -40,6 +40,7 @@ static struct {
 } secrets;
 
 /* ciphertext global secrets */
+static TPM_STORED_DATA12 pp_data;
 static BYTE pp_blob[400];
 
 /* TPM sessions */
@@ -67,24 +68,6 @@ static void configure(void) {
   Pack_Context pctx;
   TPM_RESULT res;
 
-  // get the passphrase and passphrase authdata
-  out_string(s_Please_enter_the_passphrase);
-  UINT32 lenPassphrase =
-      get_string(secrets.passphrase, sizeof(secrets.passphrase) - 1, true) + 1;
-  get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
-
-  // Initialize an OSAP session for the SRK
-  res = TPM_GetRandom(srk_osap_session.nonceOddOSAP.nonce, sizeof(TPM_NONCE));
-  TPM_ERROR(res, s_nonce_generation_failed);
-  res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, &srk_osap_session);
-  TPM_ERROR(res, s_TPM_Start_OSAP);
-
-  // Generate the shared secret (for SRK authorization)
-  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
-  sharedSecret_gen(&lsecrets.sharedSecret, &secrets.srk_auth,
-                   &srk_osap_session.nonceEvenOSAP,
-                   &srk_osap_session.nonceOddOSAP);
-
   // Construct pcr_info, which contains the TPM state conditions under which
   // the passphrase may be sealed/unsealed
   res = TPM_PCRRead(17, &pcr_values[0]);
@@ -107,23 +90,42 @@ static void configure(void) {
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == sizeof(pcr_info_packed));
 
+  // get the passphrase, passphrase authdata, and SRK authdata
+  out_string(s_Please_enter_the_passphrase);
+  UINT32 lenPassphrase =
+      get_string(secrets.passphrase, sizeof(secrets.passphrase) - 1, true) + 1;
+  get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
+  get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
+
+  // Initialize an OSAP session for the SRK
+  res = TPM_GetRandom(srk_osap_session.nonceOddOSAP.nonce, sizeof(TPM_NONCE));
+  TPM_ERROR(res, s_nonce_generation_failed);
+  res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, &srk_osap_session);
+  TPM_ERROR(res, s_TPM_Start_OSAP);
+  srk_osap_session.session.continueAuthSession = FALSE;
+
+  // Generate the shared secret (for SRK authorization)
+  sharedSecret_gen(&lsecrets.sharedSecret, &secrets.srk_auth,
+                   &srk_osap_session.nonceEvenOSAP,
+                   &srk_osap_session.nonceOddOSAP);
+
+  // Generate nonceOdd
+  res = TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
+  TPM_ERROR(res, s_nonce_generation_failed);
+
   // Encrypt the new passphrase authdata
   encAuth_gen(&encAuth, &secrets.pp_auth, &lsecrets.sharedSecret,
               &srk_osap_session.session.nonceEven);
 
   // Encrypt the passphrase using the SRK
-  res =
-      TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
-  TPM_ERROR(res, s_nonce_generation_failed);
-  TPM_SEAL_RET sealed_pp =
-      TPM_Seal(TPM_KH_SRK, encAuth, pcr_info_packed, sizeof(pcr_info_packed),
+  res = TPM_Seal(&pp_data, TPM_KH_SRK, encAuth, pcr_info_packed, sizeof(pcr_info_packed),
                (const BYTE *)secrets.passphrase, lenPassphrase,
                &srk_osap_session.session, &lsecrets.sharedSecret);
-  TPM_ERROR(sealed_pp.returnCode, s_TPM_Seal);
+  TPM_ERROR(res, s_TPM_Seal);
 
   // Pack the sealed passphrase into a buffer
   pack_init(&pctx, pp_blob, sizeof(pp_blob));
-  marshal_TPM_STORED_DATA12(&sealed_pp.sealedData, &pctx, NULL);
+  marshal_TPM_STORED_DATA12(&pp_data, &pctx, NULL);
   pack_finish(&pctx);
 
   get_authdata(s_enter_nvAuthData, &lsecrets.nv_auth);

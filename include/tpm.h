@@ -172,9 +172,10 @@ TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
                       UINT32 secretDataSize, TPM_AUTHDATA parent_auth,
                       TPM_SESSION parent_session, TPM_AUTHDATA data_auth,
                       TPM_SESSION data_session);
-TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
-                      const void *pcrInfo_in, UINT32 pcrInfoSize_in,
-                      const BYTE *inData_in, UINT32 inDataSize_in,
-                      TPM_SESSION *session, const TPM_AUTHDATA *key_auth);
+TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
+                    TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+                    const void *pcrInfo_in, UINT32 pcrInfoSize_in,
+                    const BYTE *inData_in, UINT32 inDataSize_in,
+                    TPM_SESSION *session, const TPM_SECRET *sharedSecret);
 
 #endif

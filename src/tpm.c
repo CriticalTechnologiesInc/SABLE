@@ -195,7 +195,6 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   // Initialize the remainder of the session with default values
   memset(&osap_session->session.nonceOdd, 0, sizeof(TPM_NONCE));
   osap_session->session.continueAuthSession = FALSE;
-  memset(&osap_session->nonceOddOSAP, 0, sizeof(TPM_NONCE));
 
   return ret;
 }
@@ -216,7 +215,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                         sizeof(UINT32) + sizeof(UINT32) + dataSize_in +
                         sizeof(TPM_AUTHHANDLE) + sizeof(TPM_NONCE) +
                         sizeof(TPM_BOOL) + sizeof(TPM_AUTHDATA);
-  TPM_COMMAND_CODE ordinal_in = TPM_ORD_Seal;
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_NV_WriteValueAuth;
   TPM_TAG tag_out;
   UINT32 paramSize_out;
   TPM_AUTHDATA resAuth_out;
@@ -416,11 +415,12 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data, UINT32 dataSize, TPM_NV_INDEX nvIndex,
   return res;
 }
 
-TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
+                      TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                       const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                       const BYTE *inData_in, UINT32 inDataSize_in,
                       TPM_SESSION *session, const TPM_SECRET *sharedSecret) {
-  TPM_SEAL_RET ret;
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -473,11 +473,11 @@ TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
   sha1_init(&sctx);                                // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);         //
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);   //
-  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
-  if (ret.returnCode)                              //
-    return ret;                                    //
+  unmarshal_UINT32(&res, &uctx, &sctx); // 1S
+  if (res)                              //
+    return res;                                    //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);      // 2S
-  unmarshal_TPM_STORED_DATA12(&ret.sealedData, &uctx, &sctx); // 3S
+  unmarshal_TPM_STORED_DATA12(sealed_data, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, sharedSecret->authdata, sizeof(TPM_SECRET)); // compute HM
@@ -499,7 +499,7 @@ TPM_SEAL_RET TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");
 
-  return ret;
+  return res;
 }
 
 /* TPM_Extend */
