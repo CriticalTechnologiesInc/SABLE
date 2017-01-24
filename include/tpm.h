@@ -62,8 +62,8 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
 TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
                       TPM_PCRVALUE *outDigest_out /* out */);
 TPM_RESULT
-TPM_Unseal(TPM_STORED_DATA *inData_in /* in */, BYTE *secret_out /* out */,
-           UINT32 *secretSize_out /* out */, TPM_KEY_HANDLE parentHandle_in,
+TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */, BYTE *secret_out /* out */,
+           UINT32 secretSizeMax, TPM_KEY_HANDLE parentHandle_in,
            const TPM_AUTHDATA *parentAuth, TPM_SESSION *parentSession,
            const TPM_AUTHDATA *dataAuth, TPM_SESSION *dataSession);
 TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
