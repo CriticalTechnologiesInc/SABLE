@@ -19,6 +19,18 @@
 #include "tpm_struct.h"
 #include "util.h"
 
+typedef struct {
+  TPM_TAG tag;
+  UINT32 paramSize;
+} TPM_COMMAND_HEADER;
+
+// generic command header
+typedef struct {
+  TPM_TAG tag;
+  UINT32 paramSize;
+  TPM_COMMAND_CODE ordinal;
+} TPM_COMMAND;
+
 TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
                          UINT32 bytesRequested_in) {
   TPM_RESULT res;
@@ -535,6 +547,13 @@ TPM_EXTEND_RET TPM_Extend(TPM_PCRINDEX pcr_index, TPM_DIGEST hash) {
 
   return ret;
 }
+
+typedef struct {
+  TPM_TAG tag;
+  UINT32 paramSize;
+  TPM_COMMAND_CODE ordinal;
+  TPM_STARTUP_TYPE startupType;
+} stTPM_STARTUP;
 
 /**
  * Send a startup to the TPM.

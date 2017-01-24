@@ -125,32 +125,18 @@
   assert(TCG_BUFFER_SIZE >= TCG_DATA_OFFSET + OFFSET + SIZE)                   \
       memcpy(&buffer[TCG_DATA_OFFSET + OFFSET], DEST, SIZE)
 
-//---------------------------------------------------
-// Custom TPM command structures for SABLE
-//---------------------------------------------------
-
-// generic command header
 typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-} TPM_COMMAND;
+  TPM_AUTHHANDLE authHandle;
+  TPM_NONCE nonceEven;
+  TPM_NONCE nonceOdd;
+  TPM_BOOL continueAuthSession;
+} TPM_SESSION;
 
 typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_STARTUP_TYPE startupType;
-} stTPM_STARTUP;
-
-typedef struct {
-  TPM_TAG tag;
-  UINT32 paramSize;
-  TPM_COMMAND_CODE ordinal;
-  TPM_KEY_HANDLE parentHandle;
-  // TPM_STORED_DATA inData; we can't include this in struct because
-  // it's variable size, but remember it's here for command parsing
-} stTPM_UNSEAL;
+  TPM_SESSION session;
+  TPM_NONCE nonceEvenOSAP;
+  TPM_NONCE nonceOddOSAP;
+} TPM_OSAP_SESSION;
 
 ///////////////////////////////////////////////////////////////////////////
 TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
