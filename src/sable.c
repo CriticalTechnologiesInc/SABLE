@@ -111,7 +111,8 @@ static void configure(void) {
                    &srk_osap_session.nonceOddOSAP);
 
   // Generate nonceOdd
-  res = TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
+  res =
+      TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
   TPM_ERROR(res, s_nonce_generation_failed);
 
   // Encrypt the new passphrase authdata
@@ -119,15 +120,11 @@ static void configure(void) {
               &srk_osap_session.session.nonceEven);
 
   // Encrypt the passphrase using the SRK
-  res = TPM_Seal(&pp_data, TPM_KH_SRK, encAuth, pcr_info_packed, sizeof(pcr_info_packed),
-               (const BYTE *)secrets.passphrase, lenPassphrase,
-               &srk_osap_session.session, &lsecrets.sharedSecret);
+  res = TPM_Seal(&pp_data, pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth,
+                 pcr_info_packed, sizeof(pcr_info_packed),
+                 (const BYTE *)secrets.passphrase, lenPassphrase,
+                 &srk_osap_session.session, &lsecrets.sharedSecret);
   TPM_ERROR(res, s_TPM_Seal);
-
-  // Pack the sealed passphrase into a buffer
-  pack_init(&pctx, pp_blob, sizeof(pp_blob));
-  marshal_TPM_STORED_DATA12(&pp_data, &pctx, NULL);
-  pack_finish(&pctx);
 
   get_authdata(s_enter_nvAuthData, &lsecrets.nv_auth);
   res = TPM_OIAP(&nv_session);

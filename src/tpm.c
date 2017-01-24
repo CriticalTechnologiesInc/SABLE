@@ -475,7 +475,8 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   return res;
 }*/
 
-TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
+TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
+                    BYTE *rawData /* out */, UINT32 rawDataSize,
                     TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                     const BYTE *inData_in, UINT32 inDataSize_in,
@@ -537,7 +538,7 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
   if (res)                                       //
     return res;                                  //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
-  unmarshal_TPM_STORED_DATA12(sealed_data, &uctx, &sctx); // 3S
+  unmarshal_TPM_STORED_DATA12(storedData, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, sharedSecret->authdata, sizeof(TPM_SECRET)); // compute HM
@@ -555,6 +556,11 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
   assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
   assert(bytes_unpacked == paramSize_out);
   assert(session->continueAuthSession == FALSE);
+
+  // Pack the storedData into a buffer
+  pack_init(&pctx, rawData, rawDataSize);
+  marshal_TPM_STORED_DATA12(storedData, &pctx, NULL);
+  pack_finish(&pctx);
 
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");
