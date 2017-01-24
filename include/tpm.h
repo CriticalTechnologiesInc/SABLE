@@ -55,14 +55,17 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                                  TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
                                  const TPM_AUTHDATA *nv_auth,
                                  TPM_SESSION *session);
-TPM_RESULT TPM_NV_ReadValue(BYTE *data /* out */, UINT32 dataSize,
-                            TPM_NV_INDEX nvIndex, UINT32 offset);
+TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
+                            UINT32 offset_in, UINT32 dataSize_in,
+                            const TPM_AUTHDATA *ownerAuth_in,
+                            TPM_SESSION *session);
 TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
                       TPM_PCRVALUE *outDigest_out /* out */);
-TPM_RESULT TPM_Unseal(BYTE *data /* in */, BYTE *secretData /* out */,
-                      UINT32 secretDataSize, TPM_AUTHDATA parent_auth,
-                      TPM_SESSION parent_session, TPM_AUTHDATA data_auth,
-                      TPM_SESSION data_session);
+TPM_RESULT
+TPM_Unseal(TPM_STORED_DATA *inData_in /* in */, BYTE *secret_out /* out */,
+           UINT32 *secretSize_out /* out */, TPM_KEY_HANDLE parentHandle_in,
+           const TPM_AUTHDATA *parentAuth, TPM_SESSION *parentSession,
+           const TPM_AUTHDATA *dataAuth, TPM_SESSION *dataSession);
 TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *sealed_data /* out */,
                     TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
