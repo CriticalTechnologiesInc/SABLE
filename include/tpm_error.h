@@ -3,11 +3,6 @@
  * version 1.2 revision 85.
  */
 
-#ifndef __TPM_ERROR_H__
-#define __TPM_ERROR_H__
-
-#include "tcg.h"
-
 #ifndef TPM_E_BASE
 #define TPM_E_BASE ((UINT32)0)
 #endif
@@ -960,5 +955,3 @@
 #define TPM_E_DEFEND_LOCK_RUNNING ((UINT32)(TPM_E_BASE + TPM_E_NON_FATAL + 3))
 
 const char *tpm_error_to_string(TPM_RESULT res);
-
-#endif /* __TPM_ERROR_H__ */

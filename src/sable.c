@@ -12,17 +12,7 @@
  * COPYING file for details.
  */
 
-#include "version.h"
-#include "dev.h"
-#include "mp.h"
-#include "elf.h"
-#include "hmac.h"
-#include "keyboard.h"
-#include "string.h"
-#include "tpm.h"
-#include "tpm_error.h"
-#include "tpm_struct.h"
-#include "util.h"
+#include "sable.h"
 
 #define SLB_PCR_ORD 17
 #define MODULE_PCR_ORD 19

@@ -1,4 +1,7 @@
 #include "string.h"
+#include "platform.h"
+#include "tcg.h"
+#include "util.h"
 #include "keyboard.h"
 #include "version.h"
 

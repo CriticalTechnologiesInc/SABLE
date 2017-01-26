@@ -12,8 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
 #define TIS_BUFFER_SIZE 1024
 typedef struct TIS_BUFFERS {
   unsigned char in[TIS_BUFFER_SIZE];
@@ -22,7 +20,7 @@ typedef struct TIS_BUFFERS {
 
 extern tis_buffers_t tis_buffers;
 
-enum tis_init {
+enum tis_init_defs {
   TIS_INIT_NO_TPM = 0,
   TIS_INIT_STM = 1,
   TIS_INIT_INFINEON = 2,
@@ -84,7 +82,7 @@ enum tis_sts_bits {
 };
 
 void tis_dump(void);
-enum tis_init tis_init(int tis_base);
+enum tis_init_defs tis_init(int tis_base);
 int tis_deactivate_all(void);
 int tis_access(int locality, int force);
 void tis_transmit_new(void);

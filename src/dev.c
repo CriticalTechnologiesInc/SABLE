@@ -12,9 +12,12 @@
  * COPYING file for details.
  */
 
+#include "asm.h"
+#include "platform.h"
+#include "tcg.h"
+#include "util.h"
 #include "dev.h"
 #include "string.h"
-#include "util.h"
 #include "mp.h"
 
 /**

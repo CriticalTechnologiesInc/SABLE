@@ -12,11 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
-#include "platform.h"
-#include "tcg.h"
-
 typedef struct {
   UINT32 index;
   UINT32 blocks;

@@ -1,6 +1,3 @@
-#ifndef STRING_H
-#define STRING_H
-
 #define DECLARE_STRING(name) extern const char *const s_##name
 #define AUTHDATA_STR_SIZE 64
 #define PASSPHRASE_STR_SIZE 128
@@ -150,5 +147,3 @@ DECLARE_STRING(start_module_failed);
 DECLARE_STRING(version_string);
 DECLARE_STRING(message_label);
 DECLARE_STRING(CPU_NAME);
-
-#endif

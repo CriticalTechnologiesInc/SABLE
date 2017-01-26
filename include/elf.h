@@ -12,10 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
-#include "mbi.h"
-
 struct eh {
   unsigned char e_ident[16];
   unsigned short e_type;

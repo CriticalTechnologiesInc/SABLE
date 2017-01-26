@@ -12,10 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-#include "string.h"
-#include "util.h"
-
 enum APIC_DEFS {
   MSR_APIC_BASE = 0x1B,
   APIC_BASE_ENABLE = 0x800,

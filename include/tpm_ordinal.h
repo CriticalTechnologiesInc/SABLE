@@ -2,9 +2,6 @@
  * TPM Ordinal definitions extracted from the TPM 1.2 specification, rev 85.
  */
 
-#ifndef __TPM_ORDINAL_H__
-#define __TPM_ORDINAL_H__
-
 #define TPM_PROTECTED_COMMAND ((UINT32)(0x00000000))
 #define TPM_UNPROTECTED_COMMAND ((UINT32)(0x80000000))
 #define TPM_CONNECTION_COMMAND ((UINT32)(0x40000000))
@@ -146,5 +143,3 @@
 
 #define TSC_ORD_PhysicalPresence ((UINT32)0x4000000A)
 #define TSC_ORD_ResetEstablishmentBit ((UINT32)0x4000000B)
-
-#endif // __TPM_ORDINAL_H__

@@ -1,9 +1,3 @@
-#ifndef TPM_STRUCT_H
-#define TPM_STRUCT_H
-
-#include "sha.h"
-#include "tcg.h"
-
 /* APIs to marshal/unmarshal TPM data structures to/from a buffer */
 
 typedef struct {
@@ -65,5 +59,3 @@ void encAuth_gen(TPM_ENCAUTH *encAuth /* out */, const TPM_AUTHDATA *auth,
 void sharedSecret_gen(TPM_SECRET *encAuth /* out */, const TPM_AUTHDATA *auth,
                       const TPM_NONCE *nonceEvenOSAP,
                       const TPM_NONCE *nonceOddOSAP);
-
-#endif

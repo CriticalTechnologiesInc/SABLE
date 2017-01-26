@@ -12,7 +12,13 @@
  * COPYING file for details.
  */
 
+#include "asm.h"
+#include "platform.h"
+#include "tpm_ordinal.h"
+#include "tcg.h"
+#include "tis.h"
 #include "tpm.h"
+#include "sha.h"
 #include "hmac.h"
 #include "string.h"
 #include "tpm_struct.h"

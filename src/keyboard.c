@@ -1,3 +1,7 @@
+#include "asm.h"
+#include "platform.h"
+#include "tcg.h"
+#include "util.h"
 #include "keyboard.h"
 
 static int scancode;

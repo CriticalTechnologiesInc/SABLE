@@ -12,9 +12,12 @@
  * COPYING file for details.
  */
 
-#include "mp.h"
+#include "asm.h"
 #include "string.h"
+#include "platform.h"
+#include "tcg.h"
 #include "util.h"
+#include "mp.h"
 
 /**
  * Send an IPI to all APs.

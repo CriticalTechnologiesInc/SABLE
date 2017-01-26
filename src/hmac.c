@@ -1,5 +1,7 @@
-#include "hmac.h"
+#include "platform.h"
 #include "tcg.h"
+#include "sha.h"
+#include "hmac.h"
 #include "util.h"
 
 typedef struct HMAC_OPad { BYTE pad[HMAC_BLOCK_SIZE]; } HMAC_OPad;

@@ -12,8 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
 enum pci_constants {
   PCI_ADDR_PORT = 0xcf8,
   PCI_DATA_PORT = 0xcfc,

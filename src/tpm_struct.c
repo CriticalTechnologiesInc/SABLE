@@ -1,6 +1,10 @@
-#include "tpm_struct.h"
+#include "asm.h"
+#include "platform.h"
+#include "tcg.h"
+#include "sha.h"
 #include "hmac.h"
 #include "util.h"
+#include "tpm_struct.h"
 
 void pack_init(Pack_Context *ctx, BYTE *buffer, UINT32 bufferSize) {
   ctx->pack_buffer = buffer;

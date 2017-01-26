@@ -12,6 +12,9 @@
  * COPYING file for details.
  */
 
+#include "asm.h"
+#include "platform.h"
+#include "tcg.h"
 #include "sha.h"
 #include "string.h"
 #include "util.h"

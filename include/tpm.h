@@ -12,21 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
-#ifndef __TPM_H__
-#define __TPM_H__
-
-#ifdef __midl
-#define SIZEIS(x) [size_is(x)]
-#else
-#define SIZEIS(x)
-#endif
-
-#include "platform.h"
-#include "tcg.h"
-#include "tis.h"
-
 typedef struct {
   TPM_AUTHHANDLE authHandle;
   TPM_NONCE nonceEven;
@@ -73,5 +58,3 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                     const BYTE *inData_in, UINT32 inDataSize_in,
                     TPM_SESSION *session, const TPM_SECRET *sharedSecret);
-
-#endif

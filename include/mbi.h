@@ -12,8 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
 enum mbi_enum {
   MBI_MAGIC1 = 0x1badb002,
   MBI_MAGIC2 = 0x2badb002,

@@ -12,12 +12,6 @@
  * COPYING file for details.
  */
 
-#pragma once
-
-#include "asm.h"
-#include "string.h"
-#include "tcg.h"
-
 #define NULL 0
 
 #define MSR_EFER 0xC0000080

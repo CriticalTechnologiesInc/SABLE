@@ -12,8 +12,12 @@
  * COPYING file for details.
  */
 
-#include "tis.h"
+#include "asm.h"
+#include "platform.h"
+#include "tcg.h"
 #include "util.h"
+#include "string.h"
+#include "tis.h"
 
 tis_buffers_t tis_buffers = {.in = {0}, .out = {0}};
 
@@ -36,7 +40,7 @@ static int tis_locality;
  * Init the TIS driver.
  * Returns a TIS_INIT_* value.
  */
-enum tis_init tis_init(int base) {
+enum tis_init_defs tis_init(int base) {
   volatile struct tis_id *id;
   volatile struct tis_mmap *mmap;
 
