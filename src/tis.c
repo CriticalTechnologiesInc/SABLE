@@ -54,37 +54,37 @@ enum tis_init_defs tis_init(int base) {
    */
   if ((id->did_vid == -1) && ((mmap->intf_capability & ~0x1fa) == 5) &&
       ((mmap->access & 0xe8) == 0x80)) {
-    out_info(s_Fix_DID_VID_bug);
+    out_info("Fix DID/VID bug...");
     tis_access(TIS_LOCALITY_0, 0);
   }
 
   switch (id->did_vid) {
   case 0x2e4d5453: /* "STM." */
   case 0x4a100000:
-    out_description(s_STM_rev, id->rid);
+    out_description("STM rev:", id->rid);
     return TIS_INIT_STM;
   case 0xb15d1:
-    out_description(s_Infineon_rev, id->rid);
+    out_description("Infineon rev:", id->rid);
     return TIS_INIT_INFINEON;
   case 0x32021114:
   case 0x32031114:
-    out_description(s_Ateml_rev, id->rid);
+    out_description("Atmel rev:", id->rid);
     return TIS_INIT_ATMEL;
   case 0x100214E4:
-    out_description(s_Broadcom_rev, id->rid);
+    out_description("Broadcom rev:", id->rid);
     return TIS_INIT_BROADCOM;
   case 0x10001:
-    out_description(s_Qemu_TPM_rev, id->rid);
+    out_description("Qemu TPM rev:", id->rid);
     return TIS_INIT_QEMU;
   case 0x11014:
-    out_description(s_IBM_TPM_rev, id->rid);
+    out_description("IBM TPM rev:", id->rid);
     return TIS_INIT_IBM;
   case 0:
   case -1:
-    out_info(s_TPM_not_found);
+    out_info("TPM not found!");
     return TIS_INIT_NO_TPM;
   default:
-    out_description(s_TPM_unknown_ID, id->did_vid);
+    out_description("TPM unknown! ID:", id->did_vid);
     return TIS_INIT_NO_TPM;
   }
 }
@@ -121,9 +121,9 @@ int tis_access(int locality, int force) {
   tis_locality = tis_base + locality;
   mmap = (struct tis_mmap *)tis_locality;
 
-  CHECK3(0, !(mmap->access & TIS_ACCESS_VALID), s_access_register_not_valid);
-  CHECK3(0, mmap->access == 0xff, s_access_register_invalid)
-  CHECK3(2, mmap->access & TIS_ACCESS_ACTIVE, s_locality_already_active);
+  CHECK3(0, !(mmap->access & TIS_ACCESS_VALID), "access register not valid");
+  CHECK3(0, mmap->access == 0xff, "access register invalid")
+  CHECK3(2, mmap->access & TIS_ACCESS_ACTIVE, "locality already active");
 
   // first try it the normal way
   mmap->access = TIS_ACCESS_REQUEST;
@@ -153,7 +153,7 @@ static void wait_state(volatile struct tis_mmap *mmap, unsigned char state) {
  * Write the given buffer to the TPM.
  * Returns the numbers of bytes transfered or an value < 0 on errors.
  */
-static int tis_write_new(void) {
+static int tis_write(void) {
   volatile struct tis_mmap *mmap = (struct tis_mmap *)tis_locality;
   const unsigned char *in = tis_buffers.in;
   const TPM_COMMAND_HEADER *header = (const TPM_COMMAND_HEADER *)tis_buffers.in;
@@ -164,7 +164,7 @@ static int tis_write_new(void) {
     mmap->sts_base = TIS_STS_CMD_READY;
     wait_state(mmap, TIS_STS_CMD_READY);
   }
-  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), s_tis_write_not_ready);
+  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), "tis_write() not ready");
 
   int size = htonl(header->paramSize);
   for (res = 0; res < size; res++) {
@@ -173,7 +173,7 @@ static int tis_write_new(void) {
   }
 
   wait_state(mmap, TIS_STS_VALID);
-  CHECK3(-2, mmap->sts_base & TIS_STS_EXPECT, s_tpm_expects_more_data);
+  CHECK3(-2, mmap->sts_base & TIS_STS_EXPECT, "TPM expects more data");
 
   // execute the command
   mmap->sts_base = TIS_STS_TPM_GO;
@@ -185,14 +185,14 @@ static int tis_write_new(void) {
  * Read into the given buffer from the TPM.
  * Returns the numbers of bytes received or an value < 0 on errors.
  */
-static int tis_read_new(void) {
+static int tis_read(void) {
   volatile struct tis_mmap *mmap = (struct tis_mmap *)tis_locality;
   unsigned char *out = tis_buffers.out;
   TPM_COMMAND_HEADER *header = (TPM_COMMAND_HEADER *)tis_buffers.out;
   unsigned res = 0;
 
   wait_state(mmap, TIS_STS_VALID | TIS_STS_DATA_AVAIL);
-  CHECK4(-2, !(mmap->sts_base & TIS_STS_VALID), s_sts_not_valid,
+  CHECK4(-2, !(mmap->sts_base & TIS_STS_VALID), "sts not valid",
          mmap->sts_base);
 
   for (res = 0;
@@ -207,7 +207,7 @@ static int tis_read_new(void) {
     out++;
   }
 
-  CHECK3(-3, mmap->sts_base & TIS_STS_DATA_AVAIL, s_more_data_available);
+  CHECK3(-3, mmap->sts_base & TIS_STS_DATA_AVAIL, "more data available");
 
   // make the tpm ready again -> this allows tpm background jobs to complete
   mmap->sts_base = TIS_STS_CMD_READY;
@@ -218,81 +218,12 @@ static int tis_read_new(void) {
  * Transmit a command to the TPM and wait for the response.
  * This is our high level TIS function used by all TPM commands.
  */
-void tis_transmit_new(void) {
+void tis_transmit(void) {
   unsigned int res;
 
-  res = tis_write_new();
-  ERROR(-1, res <= 0, s_TIS_write_error);
+  res = tis_write();
+  ERROR(-1, res <= 0, "  TIS write error:");
 
-  res = tis_read_new();
-  ERROR(-2, res <= 0, s_TIS_read_error);
-}
-
-/**
- * Write the given buffer to the TPM.
- * Returns the numbers of bytes transfered or an value < 0 on errors.
- */
-static int tis_write(const unsigned char *buffer, unsigned int size) {
-  volatile struct tis_mmap *mmap = (struct tis_mmap *)tis_locality;
-  unsigned res;
-
-  if (!(mmap->sts_base & TIS_STS_CMD_READY)) {
-    // make the tpm ready -> wakeup from idle state
-    mmap->sts_base = TIS_STS_CMD_READY;
-    wait_state(mmap, TIS_STS_CMD_READY);
-  }
-  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), s_tis_write_not_ready);
-
-  for (res = 0; res < size; res++) {
-    mmap->data_fifo = *buffer;
-    buffer++;
-  }
-
-  wait_state(mmap, TIS_STS_VALID);
-  CHECK3(-2, mmap->sts_base & TIS_STS_EXPECT, s_tpm_expects_more_data);
-
-  // execute the command
-  mmap->sts_base = TIS_STS_TPM_GO;
-
-  return res;
-}
-
-/**
- * Read into the given buffer from the TPM.
- * Returns the numbers of bytes received or an value < 0 on errors.
- */
-static int tis_read(unsigned char *buffer, unsigned int size) {
-  volatile struct tis_mmap *mmap = (struct tis_mmap *)tis_locality;
-  unsigned res = 0;
-
-  wait_state(mmap, TIS_STS_VALID | TIS_STS_DATA_AVAIL);
-  CHECK4(-2, !(mmap->sts_base & TIS_STS_VALID), s_sts_not_valid,
-         mmap->sts_base);
-
-  for (res = 0; res < size && mmap->sts_base & TIS_STS_DATA_AVAIL; res++) {
-    *buffer = mmap->data_fifo;
-    buffer++;
-  }
-
-  CHECK3(-3, mmap->sts_base & TIS_STS_DATA_AVAIL, s_more_data_available);
-
-  // make the tpm ready again -> this allows tpm background jobs to complete
-  mmap->sts_base = TIS_STS_CMD_READY;
-  return res;
-}
-
-/**
- * Transmit a command to the TPM and wait for the response.
- * This is our high level TIS function used by all TPM commands.
- */
-int tis_transmit(const unsigned char *write_buffer, unsigned int write_count,
-                 unsigned char *read_buffer, unsigned int read_count) {
-  unsigned int res;
-
-  res = tis_write(write_buffer, write_count);
-  CHECK4(-1, res <= 0, s_TIS_write_error, res);
-
-  res = tis_read(read_buffer, read_count);
-  CHECK4(-2, res <= 0, s_TIS_read_error, res);
-  return res;
+  res = tis_read();
+  ERROR(-2, res <= 0, "  TIS read error:");
 }

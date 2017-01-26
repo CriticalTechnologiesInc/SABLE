@@ -46,7 +46,7 @@ TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -85,7 +85,7 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -128,7 +128,7 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -171,7 +171,7 @@ TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -210,7 +210,7 @@ TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -259,7 +259,7 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -331,7 +331,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -534,7 +534,7 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
 
-  tis_transmit_new();
+  tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
