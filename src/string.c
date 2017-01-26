@@ -14,7 +14,6 @@
 #define xstr(s) str(s)
 #define str(s) #s
 
-DEFINE_STRING(SHA_data_exceeds_maximum_size, "SHA data exceeds maximum size");
 DEFINE_STRING(exit, "exit()");
 DEFINE_STRING(reboot_now, "-> OK, reboot now!\n");
 DEFINE_STRING(no_ext_cpuid, "no ext cpuid");

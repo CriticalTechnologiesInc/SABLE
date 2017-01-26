@@ -2,7 +2,6 @@
 #define AUTHDATA_STR_SIZE 64
 #define PASSPHRASE_STR_SIZE 128
 
-DECLARE_STRING(SHA_data_exceeds_maximum_size);
 DECLARE_STRING(exit);
 DECLARE_STRING(reboot_now);
 DECLARE_STRING(no_ext_cpuid);

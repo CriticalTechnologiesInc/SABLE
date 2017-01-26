@@ -106,7 +106,7 @@ void sha1(SHA1_Context *ctx, const void *val, UINT32 count) {
     memcpy(ctx->buffer + ctx->index, value, 64 - ctx->index);
     process_block(ctx);
     ctx->blocks++;
-    ERROR(-20, ctx->blocks >= 1 << 23, s_SHA_data_exceeds_maximum_size);
+    ERROR(-20, ctx->blocks >= 1 << 23, "SHA data exceeds maximum size");
   }
 
   memcpy(ctx->buffer + ctx->index, value, count);
