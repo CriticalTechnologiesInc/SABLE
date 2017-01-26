@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#include "string.h"
 #include "sable.h"
 
 #define SLB_PCR_ORD 17
@@ -159,7 +160,7 @@ static int mbi_calc_hash(struct mbi *mbi) {
   TPM_RESULT res;
   SHA1_Context sctx;
 
-  CHECK3(-11, ~mbi->flags & MBI_FLAG_MODS, s_module_flag_missing);
+  CHECK3(-11, ~mbi->flags & (enum mbi_enum)MBI_FLAG_MODS, s_module_flag_missing);
   CHECK3(-12, !mbi->mods_count, s_no_module_to_hash);
   out_description(s_Hashing_modules_count, mbi->mods_count);
 
@@ -183,12 +184,12 @@ static int mbi_calc_hash(struct mbi *mbi) {
  * Returns a TIS_INIT_* value.
  */
 static int prepare_tpm(void) {
-  int tpm;
+  enum TIS_TPM_VENDOR vendor;
   TPM_RESULT res;
 
-  tpm = tis_init(TIS_BASE);
+  vendor = tis_init();
 
-  CHECK4(-60, 0 >= tpm, s_tis_init_failed, tpm);
+  CHECK4(-60, 0 >= vendor, s_tis_init_failed, vendor);
   CHECK3(-61, !tis_access(TIS_LOCALITY_0, 0), s_could_not_gain_tis_ownership);
 
   res = TPM_Startup(TPM_ST_CLEAR);
@@ -197,7 +198,7 @@ static int prepare_tpm(void) {
 
   CHECK3(-62, tis_deactivate_all(), s_tis_deactivate_failed);
 
-  return tpm;
+  return res;
 }
 
 /**
@@ -209,7 +210,7 @@ int _main(struct mbi *mbi, unsigned flags) {
   ERROR(10, !mbi || flags != MBI_MAGIC2, s_not_loaded_via_multiboot);
 
   // set bootloader name
-  mbi->flags |= MBI_FLAG_BOOT_LOADER_NAME;
+  mbi->flags |= (enum mbi_enum)MBI_FLAG_BOOT_LOADER_NAME;
   mbi->boot_loader_name = (unsigned)s_version_string;
 
   int revision = check_cpuid();
@@ -243,7 +244,7 @@ int sable(struct mbi *mbi) {
 
   ERROR(20, !mbi, s_no_mbi_in_sable);
 
-  if (tis_init(TIS_BASE)) {
+  if (tis_init()) {
     ERROR(21, !tis_access(TIS_LOCALITY_2, 0), s_could_not_gain_TIS_ownership);
     ERROR(22, mbi_calc_hash(mbi), s_calc_hash_failed);
 

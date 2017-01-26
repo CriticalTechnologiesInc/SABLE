@@ -12,12 +12,20 @@
  * COPYING file for details.
  */
 
+#include "mp.h"
 #include "asm.h"
-#include "string.h"
 #include "platform.h"
+#include "string.h"
 #include "tcg.h"
 #include "util.h"
-#include "mp.h"
+
+int stop_processors(void) { return send_ipi(APIC_ICR_INIT); }
+
+int start_processors(unsigned address) {
+  CHECK4(-50, address & 0xfff00fff, s_address_d_not_aligned_or_larger_than_1MB,
+         address);
+  return send_ipi(APIC_ICR_STARTUP | address >> 12);
+}
 
 /**
  * Send an IPI to all APs.

@@ -13,14 +13,14 @@
  */
 
 #define TIS_BUFFER_SIZE 1024
-typedef struct TIS_BUFFERS {
+struct TIS_BUFFERS {
   unsigned char in[TIS_BUFFER_SIZE];
   unsigned char out[TIS_BUFFER_SIZE];
-} tis_buffers_t;
+};
 
-extern tis_buffers_t tis_buffers;
+extern struct TIS_BUFFERS tis_buffers;
 
-enum tis_init_defs {
+enum TIS_TPM_VENDOR {
   TIS_INIT_NO_TPM = 0,
   TIS_INIT_STM = 1,
   TIS_INIT_INFINEON = 2,
@@ -30,9 +30,10 @@ enum tis_init_defs {
   TIS_INIT_IBM = 6,
 };
 
-enum tis_mem_offsets {
-  TIS_BASE = (unsigned int)0xfed40000,
-  TPM_DID_VID_0 = 0xf00,
+#define TIS_BASE 0xfed40000
+#define TPM_DID_VID_0 0xf00
+
+enum TIS_LOCALITY {
   TIS_LOCALITY_0 = 0x0000,
   TIS_LOCALITY_1 = 0x1000,
   TIS_LOCALITY_2 = 0x2000,
@@ -40,12 +41,12 @@ enum tis_mem_offsets {
   TIS_LOCALITY_4 = 0x4000
 };
 
-struct tis_id {
+struct TIS_ID {
   int did_vid;
   unsigned char rid;
 };
 
-struct tis_mmap {
+struct TIS_MMAP {
   unsigned char access;
   unsigned char dummy1[7];
   unsigned int int_enable;
@@ -59,7 +60,7 @@ struct tis_mmap {
   unsigned char data_fifo;
 };
 
-enum tis_access_bits {
+enum TIS_ACCESS_BITS {
   TIS_ACCESS_VALID = 1 << 7,
   TIS_ACCESS_RESERVED = 1 << 6,
   TIS_ACCESS_ACTIVE = 1 << 5,
@@ -70,7 +71,7 @@ enum tis_access_bits {
   TIS_ACCESS_TOS = 1 << 0
 };
 
-enum tis_sts_bits {
+enum TIS_STS_BITS {
   TIS_STS_VALID = 1 << 7,
   TIS_STS_CMD_READY = 1 << 6,
   TIS_STS_TPM_GO = 1 << 5,
@@ -82,7 +83,7 @@ enum tis_sts_bits {
 };
 
 void tis_dump(void);
-enum tis_init_defs tis_init(int tis_base);
+enum TIS_TPM_VENDOR tis_init(void);
 int tis_deactivate_all(void);
-int tis_access(int locality, int force);
+int tis_access(enum TIS_LOCALITY locality, int force);
 void tis_transmit(void);

@@ -32,14 +32,10 @@ int send_ipi(unsigned param);
 /**
  * Stop all application processors by sending them an INIT IPI.
  */
-static inline int stop_processors(void) { return send_ipi(APIC_ICR_INIT); }
+int stop_processors(void);
 
 /**
  * Sending all APs a Startup IPI and let them execute real mode code
  * at address.
  */
-static inline int start_processors(unsigned address) {
-  CHECK4(-50, address & 0xfff00fff, s_address_d_not_aligned_or_larger_than_1MB,
-         address);
-  return send_ipi(APIC_ICR_STARTUP | address >> 12);
-}
+int start_processors(unsigned address);

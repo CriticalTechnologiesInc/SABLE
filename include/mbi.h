@@ -12,9 +12,10 @@
  * COPYING file for details.
  */
 
+#define MBI_MAGIC1 0x1badb002
+#define MBI_MAGIC2 0x2badb002
+
 enum mbi_enum {
-  MBI_MAGIC1 = 0x1badb002,
-  MBI_MAGIC2 = 0x2badb002,
   MBI_FLAG_MEM = 1 << 0,
   MBI_FLAG_CMDLINE = 1 << 2,
   MBI_FLAG_MODS = 1 << 3,

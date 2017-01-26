@@ -19,17 +19,12 @@
 #include "string.h"
 #include "tis.h"
 
-tis_buffers_t tis_buffers = {.in = {0}, .out = {0}};
+struct TIS_BUFFERS tis_buffers = {.in = {0}, .out = {0}};
 
 typedef struct {
   TPM_TAG tag;
   UINT32 paramSize;
 } TPM_COMMAND_HEADER;
-
-/**
- * TIS base address.
- */
-static int tis_base;
 
 /**
  * Address of the TIS locality.
@@ -40,13 +35,12 @@ static int tis_locality;
  * Init the TIS driver.
  * Returns a TIS_INIT_* value.
  */
-enum tis_init_defs tis_init(int base) {
-  volatile struct tis_id *id;
-  volatile struct tis_mmap *mmap;
+enum TIS_TPM_VENDOR tis_init() {
+  volatile struct TIS_ID *id;
+  volatile struct TIS_MMAP *mmap;
 
-  tis_base = base;
-  id = (struct tis_id *)(tis_base + TPM_DID_VID_0);
-  mmap = (struct tis_mmap *)(tis_base);
+  id = (struct TIS_ID *)(TIS_BASE + TPM_DID_VID_0);
+  mmap = (struct TIS_MMAP *)(TIS_BASE);
 
   /**
    * There are these buggy ATMEL TPMs that return -1 as did_vid if the
@@ -97,7 +91,7 @@ int tis_deactivate_all(void) {
   int res = 0;
   unsigned i;
   for (i = 0; i < 4; i++) {
-    volatile struct tis_mmap *mmap = (struct tis_mmap *)(tis_base + (i << 12));
+    volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)(TIS_BASE + (i << 12));
     if (mmap->access != 0xff) {
       mmap->access = TIS_ACCESS_ACTIVE;
       res |= mmap->access & TIS_ACCESS_ACTIVE;
@@ -111,15 +105,15 @@ int tis_deactivate_all(void) {
  * @param locality: address of the locality e.g. TIS_LOCALITY_2
  * Returns 0 if we could not gain access.
  */
-int tis_access(int locality, int force) {
-  volatile struct tis_mmap *mmap;
+int tis_access(enum TIS_LOCALITY locality, int force) {
+  volatile struct TIS_MMAP *mmap;
 
   // a force on locality0 is unnecessary
   assert(locality != TIS_LOCALITY_0 || !force);
   assert(locality >= TIS_LOCALITY_0 && locality <= TIS_LOCALITY_4);
 
-  tis_locality = tis_base + locality;
-  mmap = (struct tis_mmap *)tis_locality;
+  tis_locality = TIS_BASE + locality;
+  mmap = (struct TIS_MMAP *)tis_locality;
 
   CHECK3(0, !(mmap->access & TIS_ACCESS_VALID), "access register not valid");
   CHECK3(0, mmap->access == 0xff, "access register invalid")
@@ -143,7 +137,7 @@ int tis_access(int locality, int force) {
   return mmap->access & TIS_ACCESS_ACTIVE;
 }
 
-static void wait_state(volatile struct tis_mmap *mmap, unsigned char state) {
+static void wait_state(volatile struct TIS_MMAP *mmap, unsigned char state) {
   unsigned i;
   for (i = 0; i < 4000 && (mmap->sts_base & state) != state; i++)
     wait(1);
@@ -154,7 +148,7 @@ static void wait_state(volatile struct tis_mmap *mmap, unsigned char state) {
  * Returns the numbers of bytes transfered or an value < 0 on errors.
  */
 static int tis_write(void) {
-  volatile struct tis_mmap *mmap = (struct tis_mmap *)tis_locality;
+  volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   const unsigned char *in = tis_buffers.in;
   const TPM_COMMAND_HEADER *header = (const TPM_COMMAND_HEADER *)tis_buffers.in;
   unsigned res;
@@ -186,7 +180,7 @@ static int tis_write(void) {
  * Returns the numbers of bytes received or an value < 0 on errors.
  */
 static int tis_read(void) {
-  volatile struct tis_mmap *mmap = (struct tis_mmap *)tis_locality;
+  volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   unsigned char *out = tis_buffers.out;
   TPM_COMMAND_HEADER *header = (TPM_COMMAND_HEADER *)tis_buffers.out;
   unsigned res = 0;
