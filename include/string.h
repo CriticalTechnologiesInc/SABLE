@@ -2,7 +2,6 @@
 #define AUTHDATA_STR_SIZE 64
 #define PASSPHRASE_STR_SIZE 128
 
-DECLARE_STRING(no_capability_list_support);
 DECLARE_STRING(SHA_data_exceeds_maximum_size);
 DECLARE_STRING(exit);
 DECLARE_STRING(reboot_now);
@@ -10,14 +9,6 @@ DECLARE_STRING(no_ext_cpuid);
 DECLARE_STRING(no_SVM_support);
 DECLARE_STRING(no_APIC_support);
 DECLARE_STRING(could_not_enable_SVM);
-DECLARE_STRING(pci_debug_format_string);
-DECLARE_STRING(device_not_found);
-DECLARE_STRING(cap_not_found);
-DECLARE_STRING(invalid_DEV_HDR);
-DECLARE_STRING(disable_DEV_and_SLDEV_protection);
-DECLARE_STRING(DEV_not_found);
-DECLARE_STRING(enable_dev_at);
-DECLARE_STRING(enable_DEV_protection);
 DECLARE_STRING(dev_pointer_invalid);
 DECLARE_STRING(sldev_pointer_invalid);
 DECLARE_STRING(not_BSP_or_APIC_disabled);
@@ -117,7 +108,6 @@ DECLARE_STRING(start_module_failed);
 DECLARE_STRING(could_not_enable_SVM);
 DECLARE_STRING(sending_an_INIT_IPI);
 DECLARE_STRING(call_skinit);
-DECLARE_STRING(patch_CPU_name_tag);
 DECLARE_STRING(cpu_name_to_long);
 DECLARE_STRING(halt_APs_in_init_state);
 DECLARE_STRING(sending_an_STARTUP_IPI);

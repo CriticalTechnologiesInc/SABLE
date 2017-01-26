@@ -128,7 +128,7 @@ static unsigned pci_find_device(unsigned id) {
  */
 static unsigned char pci_dev_find_cap(unsigned addr, unsigned char id) {
   CHECK3(-11, !(pci_read_long(addr + PCI_CONF_HDR_CMD) & 0x100000),
-         s_no_capability_list_support);
+         "no capability list support");
   unsigned char cap_offset = pci_read_byte(addr + PCI_CONF_HDR_CAP);
   while (cap_offset)
     if (id == pci_read_byte(addr + cap_offset))
@@ -194,7 +194,7 @@ void pci_print_bars(unsigned addr, unsigned count) {
       }
     }
     if (base)
-      myprintf(s_pci_debug_format_string, ch, high_base, base, high_size, size);
+      myprintf("    %c: %#x%x/%#x%x", ch, high_base, base, high_size, size);
   }
 }
 
@@ -266,10 +266,10 @@ static unsigned dev_get_addr(void) {
     addr = pci_find_device(DEV_PCI_DEVICE_ID_K10);
   if (!addr)
     addr = pci_find_device(DEV_PCI_DEVICE_ID_BLD);
-  CHECK3(-21, !addr, s_device_not_found);
+  CHECK3(-21, !addr, "device not found");
   addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID);
-  CHECK3(-22, !addr, s_cap_not_found);
-  CHECK3(-23, 0xf != (pci_read_long(addr) & 0xf00ff), s_invalid_DEV_HDR);
+  CHECK3(-22, !addr, "cap not found");
+  CHECK3(-23, 0xf != (pci_read_long(addr) & 0xf00ff), "invalid DEV_HDR");
   return addr;
 }
 
@@ -278,9 +278,9 @@ static unsigned dev_get_addr(void) {
  */
 int disable_dev_protection(void) {
   unsigned addr;
-  out_info(s_disable_DEV_and_SLDEV_protection);
+  out_info("disable DEV and SLDEV protection");
   addr = dev_get_addr();
-  CHECK3(-30, !addr, s_DEV_not_found);
+  CHECK3(-30, !addr, "DEV not found");
   dev_write_reg(addr, DEV_REG_CR, 0,
                 dev_read_reg(addr, DEV_REG_CR, 0) &
                     ~(DEV_CR_SLDEV | DEV_CR_EN | DEV_CR_INVD));
@@ -288,7 +288,7 @@ int disable_dev_protection(void) {
 }
 
 static int enable_dev_bitmap(unsigned addr, unsigned base) {
-  out_description(s_enable_dev_at, base);
+  out_description("enable dev at", base);
   unsigned dom = (dev_read_reg(addr, DEV_REG_CAP, 0) >> 8) & 0xff;
   while (dom) {
     dev_write_reg(addr, DEV_REG_BASE_HI, dom, 0);
@@ -309,13 +309,13 @@ static int enable_dev_bitmap(unsigned addr, unsigned base) {
  */
 int enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
   unsigned addr;
-  out_info(s_enable_DEV_protection);
+  out_info("enable DEV protection");
   CHECK3(-41, (unsigned)buffer & 0xfff, s_dev_pointer_invalid);
   CHECK3(-42,
          (unsigned)sldev_buffer < 1 << 17 || (unsigned)sldev_buffer & 0xfff,
          s_sldev_pointer_invalid);
   addr = dev_get_addr();
-  CHECK3(-43, !addr, s_DEV_not_found);
+  CHECK3(-43, !addr, "DEV not found");
 
   /**
    * The DEV interface has a nasty race condition between memsetting
@@ -341,7 +341,7 @@ extern char smp_init_end;
 
 static int fixup(void) {
   unsigned i;
-  out_info(s_patch_CPU_name_tag);
+  out_info("patch CPU name tag");
 
   for (i = 0; i < 6; i++)
     wrmsr(0xc0010030 + i, *(unsigned long long *)(s_CPU_NAME + i * 8));
