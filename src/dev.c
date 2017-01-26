@@ -20,6 +20,9 @@
 #include "string.h"
 #include "mp.h"
 
+#define CPU_NAME "AMD CPU booted by SABLE"
+const char *const cpu_name = CPU_NAME;
+
 /**
  * Read a byte from the pci config space.
  */
@@ -310,10 +313,10 @@ static int enable_dev_bitmap(unsigned addr, unsigned base) {
 int enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
   unsigned addr;
   out_info("enable DEV protection");
-  CHECK3(-41, (unsigned)buffer & 0xfff, s_dev_pointer_invalid);
+  CHECK3(-41, (unsigned)buffer & 0xfff, "DEV pointer invalid");
   CHECK3(-42,
          (unsigned)sldev_buffer < 1 << 17 || (unsigned)sldev_buffer & 0xfff,
-         s_sldev_pointer_invalid);
+         "SL_DEV pointer invalid");
   addr = dev_get_addr();
   CHECK3(-43, !addr, "DEV not found");
 
@@ -344,20 +347,20 @@ static int fixup(void) {
   out_info("patch CPU name tag");
 
   for (i = 0; i < 6; i++)
-    wrmsr(0xc0010030 + i, *(unsigned long long *)(s_CPU_NAME + i * 8));
+    wrmsr(0xc0010030 + i, *(unsigned long long *)(cpu_name + i * 8));
 
-  out_info(s_halt_APs_in_init_state);
+  out_info("halt APs in init state");
   int revision;
   /**
    * Start the stopped APs and execute some fixup code.
    */
   memcpy((char *)REALMODE_CODE, &smp_init_start,
          &smp_init_end - &smp_init_start);
-  CHECK3(-2, start_processors(REALMODE_CODE), s_sending_an_STARTUP_IPI);
+  CHECK3(-2, start_processors(REALMODE_CODE), "sending a STARTUP IPI");
   revision = enable_svm();
-  CHECK3(12, revision, s_could_not_enable_SVM);
+  CHECK3(12, revision, "could not enable SVM");
   out_description(s_SVM_revision, revision);
-  out_info(s_enable_global_interrupt_flag);
+  out_info("Enable global interrupt flag");
 
   asm volatile("stgi");
 
@@ -367,10 +370,10 @@ static int fixup(void) {
 int revert_skinit(void) {
   if (0 < check_cpuid()) {
     if (disable_dev_protection())
-      out_info(s_DEV_disable_failed);
+      out_info("DEV disable failed");
 
-    CHECK3(11, fixup(), s_fixup_failed);
-    out_info(s_fixup_done);
+    CHECK3(11, fixup(), "fixup failed");
+    out_info("fixup done");
   }
 
   return 0;

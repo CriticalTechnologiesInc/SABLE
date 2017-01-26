@@ -22,7 +22,7 @@
 int stop_processors(void) { return send_ipi(APIC_ICR_INIT); }
 
 int start_processors(unsigned address) {
-  CHECK4(-50, address & 0xfff00fff, s_address_d_not_aligned_or_larger_than_1MB,
+  CHECK4(-50, address & 0xfff00fff, "address not aligned or larger than 1MB",
          address);
   return send_ipi(APIC_ICR_STARTUP | address >> 12);
 }

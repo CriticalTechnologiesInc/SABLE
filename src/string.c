@@ -1,9 +1,9 @@
-#include "string.h"
 #include "platform.h"
+#include "keyboard.h"
 #include "tcg.h"
 #include "util.h"
-#include "keyboard.h"
 #include "version.h"
+#include "string.h"
 
 #ifdef EXEC
 #define DEFINE_STRING(name, str) const char *const s_##name = str
@@ -14,69 +14,11 @@
 #define xstr(s) str(s)
 #define str(s) #s
 
-DEFINE_STRING(could_not_enable_SVM, "could not enable SVM");
-DEFINE_STRING(invalid_DEV_HDR, "invalid DEV_HDR");
-DEFINE_STRING(disable_DEV_and_SLDEV_protection,
-              "disable DEV and SLDEV protection");
-DEFINE_STRING(DEV_not_found, "DEV not found");
-DEFINE_STRING(enable_dev_at, "enable dev at");
-DEFINE_STRING(dev_pointer_invalid, "dev pointer invalid");
-DEFINE_STRING(sldev_pointer_invalid, "sldev pointer invalid");
-DEFINE_STRING(jumping_to_next_segment, "jumping to next segment...\n");
-DEFINE_STRING(address_d_not_aligned_or_larger_than_1MB,
-              "address %d not aligned or larger then 1MB");
-DEFINE_STRING(configmagic, "SABLECONFIG");
 DEFINE_STRING(WARNING, "\nWARNING: ");
 DEFINE_STRING(dashes, " -- ");
 DEFINE_STRING(ERROR, "\nERROR: ");
-DEFINE_STRING(TPM_Start_OIAP_failed_on_transmit,
-              "TPM_Start_OIAP() failed on transmit");
-DEFINE_STRING(TPM_Unseal_failed_on_transmit, "TPM_Unseal() failed on transmit");
-DEFINE_STRING(secret_data_too_big_for_buffer, "secret data too big for buffer");
-DEFINE_STRING(could_not_get_random_number_from_TPM,
-              "could not get random num from TPM");
-DEFINE_STRING(TPM_NV_DefineSpace_failed_on_transmit,
-              "TPM_NV_DefineSpace() failed on transmit");
-DEFINE_STRING(TPM_NV_ReadValueAuth_failed_on_transmit,
-              "TPM_NV_ReadValueAuth() failed on transmit");
-DEFINE_STRING(buffer_overflow_detected, "\nBuffer overflow detected\n");
-DEFINE_STRING(TPM_NV_WriteValueAuth_failed_on_transmit,
-              "TPM_NV_WriteValueAuth() failed on transmit");
-DEFINE_STRING(TPM_Flush_failed_on_transmit, "TPM_Flush() failed on transmit");
-DEFINE_STRING(TPM_Seal_failed_on_transmit, "TPM_Seal() failed on transmit");
-DEFINE_STRING(TPM_GetRandom_failed_on_transmit,
-              "TPM_GetRandom() failed on transmit");
-DEFINE_STRING(could_not_get_enough_random_bytes_from_TPM,
-              "could not get enough random bytes from TPM");
-DEFINE_STRING(TPM_PcrRead_failed_on_transmit,
-              "TPM_PcrRead() failed on transmit");
-DEFINE_STRING(TPM_Extend_failed_on_transmit, "TPM_Extend() failed on transmit");
-DEFINE_STRING(TPM_Start_OSAP_failed_on_transmit,
-              "TPM_Start_OSAP() failed on transmit");
-DEFINE_STRING(TPM_Startup_failed_on_transmit,
-              "TPM_Startup() failed on transmit");
-DEFINE_STRING(TPM_GetCapability_Pcrs_failed, "TPM_GetCapability_Pcrs() failed");
-DEFINE_STRING(PCRs, "PCRs:");
-DEFINE_STRING(TPM_PcrRead_failed_with, "\nTPM_PcrRead() failed with");
-DEFINE_STRING(left_bracket, " [");
-DEFINE_STRING(right_bracket, "]: ");
-DEFINE_STRING(SABLE, "SABLE ");
-DEFINE_STRING(n, "\n");
-DEFINE_STRING(SABLE2, "SABLE:   ");
-DEFINE_STRING(AMD_CPU_BOOTED_BY_SABLE, "AMD CPU booted by SABLE");
-DEFINE_STRING(slbend_of_low, ".slb.end_of_low");
-DEFINE_STRING(slbaligned_end_of_low, ".slb.aligned_end_of_low");
-DEFINE_STRING(slbstart_of_high, ".slb.start_of_high");
-DEFINE_STRING(slbend_of_high, ".slb.end_of_high");
 DEFINE_STRING(TPM_Start_OSAP, "TPM_Start_OSAP()");
-DEFINE_STRING(Erasing_srk_authdata, "\nErasing srk password from memory...\n");
 DEFINE_STRING(TPM_Seal, "TPM_Seal()");
-DEFINE_STRING(Erasing_passphrase_from_memory,
-              "\nErasing passphrase from memory...\n");
-DEFINE_STRING(Erasing_passphrase_authdata,
-              "\nErasing passphrase password from memory...\n");
-DEFINE_STRING(Erasing_nv_authdata,
-              "\nErasing NVRAM password from memory...\n");
 DEFINE_STRING(TPM_NV_DefineSpace, "TPM_NV_DefineSpace()");
 DEFINE_STRING(TPM_Start_OIAP, "TPM_Start_OIAP()");
 DEFINE_STRING(TPM_NV_WriteValueAuth, "TPM_NV_WriteValueAuth()");
@@ -95,16 +37,14 @@ DEFINE_STRING(module_flag_missing, "module flag missing");
 DEFINE_STRING(no_module_to_hash, "no module to hash");
 DEFINE_STRING(Hashing_modules_count, "Hashing modules count:");
 DEFINE_STRING(config_magic_detected, "config magic detected");
-DEFINE_STRING(Please_enter_the_passphrase, "Please enter the passphrase (" xstr(
-                                               PASSPHRASE_STR_SIZE) " char max): ");
+DEFINE_STRING(
+    Please_enter_the_passphrase,
+    "Please enter the passphrase (" xstr(PASSPHRASE_STR_SIZE) " char max): ");
 DEFINE_STRING(mod_end_less_than_start, "mod_end less than start");
-DEFINE_STRING(Module_starts_at, "Module starts at ");
-DEFINE_STRING(Module_ends_at, "Module ends at ");
 DEFINE_STRING(TPM_Extend, "TPM_Extend()");
 DEFINE_STRING(tis_init_failed, "tis init failed");
 DEFINE_STRING(could_not_gain_tis_ownership, "could not gain TIS ownership");
 DEFINE_STRING(TPM_Startup_Clear, "TPM_Startup_Clear()");
-DEFINE_STRING(tis_deactivate_failed, "tis_deactivate failed");
 DEFINE_STRING(not_loaded_via_multiboot, "not loaded via multiboot");
 DEFINE_STRING(No_SVM_platform, "No SVM platform");
 DEFINE_STRING(Could_not_prepare_TPM, "Could not prepare the TPM");
@@ -112,20 +52,8 @@ DEFINE_STRING(start_module_failed, "start module failed");
 DEFINE_STRING(sending_an_INIT_IPI,
               "sending an INIT IPI to other processors failed");
 DEFINE_STRING(call_skinit, "call skinit");
-DEFINE_STRING(patch_CPU_name_tag, "patch CPU name tag");
-DEFINE_STRING(cpu_name_to_long, "cpu name to long");
-DEFINE_STRING(halt_APs_in_init_state, "halt APs in init state");
-DEFINE_STRING(sending_an_STARTUP_IPI,
-              "sending an STARTUP IPI to other processors failed");
 DEFINE_STRING(SVM_revision, "SVM revision:");
-DEFINE_STRING(enable_global_interrupt_flag, "enable global interrupt flag");
-DEFINE_STRING(stgi, "stgi");
-DEFINE_STRING(DEV_disable_failed, "DEV disable failed");
-DEFINE_STRING(fixup_failed, "fixup failed");
 DEFINE_STRING(nonce_generation_failed, "nonce generation failed");
-DEFINE_STRING(fixup_done, "fixup done");
-DEFINE_STRING(could_not_iterate_over_the_devices,
-              "could not iterate over the devices");
 DEFINE_STRING(no_mbi_in_sable, "no mbi in sable()");
 DEFINE_STRING(enter_srkAuthData, "Please enter the srkAuthData (" xstr(
                                      AUTHDATA_STR_SIZE) " char max): ");
@@ -135,14 +63,12 @@ DEFINE_STRING(enter_passPhraseAuthData,
 DEFINE_STRING(could_not_gain_TIS_ownership, "could not gain TIS ownership");
 DEFINE_STRING(TPM_PcrRead, "TPM_PcrRead()");
 DEFINE_STRING(PCR17, "PCR[17]: ");
-DEFINE_STRING(calc_hash_failed, "calc hash failed");
 DEFINE_STRING(PCR19, "PCR[19]: ");
-DEFINE_STRING(Sealing_passPhrase, "\nSealing passphrase: \n\n");
-DEFINE_STRING(to_PCR19_with_value, "\n\nto PCR[19] with value \n");
+DEFINE_STRING(calc_hash_failed, "calc hash failed");
 DEFINE_STRING(enter_nvAuthData, "Please enter the NVRAM password (" xstr(
-                                       AUTHDATA_STR_SIZE) " char max): ");
+                                    AUTHDATA_STR_SIZE) " char max): ");
+DEFINE_STRING(tis_deactivate_failed, "tis deactivate failed");
 DEFINE_STRING(Configuration_complete_Rebooting_now,
               "\nConfiguration complete. Rebooting now...\n");
 DEFINE_STRING(version_string,
               "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n");
-DEFINE_STRING(CPU_NAME, "AMD CPU booted by SABLE");
