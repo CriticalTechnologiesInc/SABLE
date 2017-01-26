@@ -31,8 +31,6 @@ DEFINE_STRING(sldev_pointer_invalid, "sldev pointer invalid");
 DEFINE_STRING(not_BSP_or_APIC_disabled, "not BSP or APIC disabled");
 DEFINE_STRING(APIC_out_of_range, "APIC out of range");
 DEFINE_STRING(Interrupt_pending, "Interrupt pending");
-DEFINE_STRING(No_module_to_start, "No module to start.\n");
-DEFINE_STRING(elf_magic, "elf magic:");
 DEFINE_STRING(elf_class_data, "elf class_data:");
 DEFINE_STRING(ELF_header_incorrect, "ELF header incorrect");
 DEFINE_STRING(ELF_type_incorrect, "ELF type incorrect");

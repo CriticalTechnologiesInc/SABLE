@@ -81,7 +81,7 @@ int start_module(struct mbi *mbi) {
   unsigned short *elf_class_data;
 
   if (mbi->mods_count == 0) {
-    out_info(s_No_module_to_start);
+    out_info("No module to start.\n");
     return -1;
   }
 
@@ -130,14 +130,14 @@ int start_module(struct mbi *mbi) {
     elf = (struct eh *)m->mod_start;
     elf_magic = (unsigned int *)elf->e_ident;
     elf_class_data = (unsigned short *)(elf->e_ident + 4);
-    out_description(s_elf_magic, *elf_magic);
-    out_description(s_elf_class_data, *elf_class_data);
+    out_description("elf magic:", *elf_magic);
+    out_description("elf class_data:", *elf_class_data);
 
     ERROR(-31, *elf_magic != 0x464c457f || *elf_class_data != 0x0101,
-          s_ELF_header_incorrect);
+          "ELF header incorrect");
     ERROR(-32, elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
-          s_ELF_type_incorrect);
-    ERROR(-33, sizeof(struct ph) > elf->e_phentsize, s_e_phentsize_too_small);
+          "ELF type incorrect");
+    ERROR(-33, sizeof(struct ph) > elf->e_phentsize, "e_phentsize to small");
 
     for (unsigned i = 0; i < elf->e_phnum; i++) {
       struct ph *ph =
@@ -156,7 +156,7 @@ int start_module(struct mbi *mbi) {
     gen_mov(EDX, (unsigned)mb->entry_addr);
   }
 
-  out_info(s_jumping_to_next_segment);
+  out_info("jumping to next segment...\n");
   wait(1000);
   gen_jmp_edx();
 
