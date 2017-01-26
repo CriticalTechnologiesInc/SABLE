@@ -2,12 +2,6 @@
 #define AUTHDATA_STR_SIZE 64
 #define PASSPHRASE_STR_SIZE 128
 
-DECLARE_STRING(exit);
-DECLARE_STRING(reboot_now);
-DECLARE_STRING(no_ext_cpuid);
-DECLARE_STRING(no_SVM_support);
-DECLARE_STRING(no_APIC_support);
-DECLARE_STRING(could_not_enable_SVM);
 DECLARE_STRING(dev_pointer_invalid);
 DECLARE_STRING(sldev_pointer_invalid);
 DECLARE_STRING(address_d_not_aligned_or_larger_than_1MB);
@@ -106,5 +100,4 @@ DECLARE_STRING(tis_deactivate_failed);
 DECLARE_STRING(Configuration_complete_Rebooting_now);
 DECLARE_STRING(start_module_failed);
 DECLARE_STRING(version_string);
-DECLARE_STRING(message_label);
 DECLARE_STRING(CPU_NAME);

@@ -18,6 +18,8 @@
 #include "util.h"
 #include "string.h"
 
+const char *const message_label = "SABLE:   ";
+
 void memcpy(void *dest, const void *src, UINT32 len) {
   BYTE *dp = dest;
   const BYTE *sp = src;
@@ -101,12 +103,12 @@ void wait(int ms) {
  */
 void exit(unsigned status) {
   out_char('\n');
-  out_description(s_exit, status);
+  out_description("exit()", status);
   for (unsigned i = 0; i < 1000; i++) {
     wait(1000);
     // out_char('.');
   }
-  out_string(s_reboot_now);
+  out_string("-> OK, reboot now!\n");
   reboot();
 }
 
@@ -118,9 +120,9 @@ void exit(unsigned status) {
  */
 int check_cpuid(void) {
   int res;
-  CHECK3(-31, 0x8000000A > cpuid_eax(0x80000000), s_no_ext_cpuid);
-  CHECK3(-32, !(0x4 & cpuid_ecx(0x80000001)), s_no_SVM_support);
-  CHECK3(-33, !(0x200 & cpuid_edx(0x80000001)), s_no_APIC_support);
+  CHECK3(-31, 0x8000000A > cpuid_eax(0x80000000), "no ext cpuid");
+  CHECK3(-32, !(0x4 & cpuid_ecx(0x80000001)), "no SVM support");
+  CHECK3(-33, !(0x200 & cpuid_edx(0x80000001)), "no APIC support");
   res = cpuid_eax(0x8000000A) & 0xff;
   return res;
 }
@@ -133,7 +135,7 @@ int enable_svm(void) {
   unsigned long long value;
   value = rdmsr(MSR_EFER);
   wrmsr(MSR_EFER, value | EFER_SVME);
-  CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), s_could_not_enable_SVM);
+  CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), "could not enable SVM");
   return 0;
 }
 
@@ -202,7 +204,7 @@ void out_hex(unsigned value, unsigned bitlen) {
  * message label.
  */
 void out_description(const char *prefix, unsigned int value) {
-  out_string(s_message_label);
+  out_string(message_label);
   out_string(prefix);
   out_char(' ');
   out_hex(value, 0);
@@ -213,7 +215,7 @@ void out_description(const char *prefix, unsigned int value) {
  * Output a string, prefixed with a message label.
  */
 void out_info(const char *msg) {
-  out_string(s_message_label);
+  out_string(message_label);
   out_string(msg);
   out_char('\n');
 }
@@ -222,7 +224,7 @@ void out_info(const char *msg) {
  * Function to output a hash.
  */
 void show_hash(const char *s, TPM_DIGEST hash) {
-  out_string(s_message_label);
+  out_string(message_label);
   out_string(s);
   for (UINT32 i = 0; i < 20; i++)
     out_hex(hash.digest[i], 7);

@@ -14,11 +14,6 @@
 #define xstr(s) str(s)
 #define str(s) #s
 
-DEFINE_STRING(exit, "exit()");
-DEFINE_STRING(reboot_now, "-> OK, reboot now!\n");
-DEFINE_STRING(no_ext_cpuid, "no ext cpuid");
-DEFINE_STRING(no_SVM_support, "no SVM support");
-DEFINE_STRING(no_APIC_support, "no APIC support");
 DEFINE_STRING(could_not_enable_SVM, "could not enable SVM");
 DEFINE_STRING(invalid_DEV_HDR, "invalid DEV_HDR");
 DEFINE_STRING(disable_DEV_and_SLDEV_protection,
@@ -150,5 +145,4 @@ DEFINE_STRING(Configuration_complete_Rebooting_now,
               "\nConfiguration complete. Rebooting now...\n");
 DEFINE_STRING(version_string,
               "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n");
-DEFINE_STRING(message_label, "SABLE:   ");
 DEFINE_STRING(CPU_NAME, "AMD CPU booted by SABLE");
