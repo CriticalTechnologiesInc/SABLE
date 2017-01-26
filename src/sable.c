@@ -12,21 +12,17 @@
  * COPYING file for details.
  */
 
-#include "sable.h"
+#include "version.h"
 #include "dev.h"
+#include "mp.h"
 #include "elf.h"
 #include "hmac.h"
 #include "keyboard.h"
-#include "mp.h"
-#include "sha.h"
 #include "string.h"
 #include "tpm.h"
 #include "tpm_error.h"
 #include "tpm_struct.h"
 #include "util.h"
-#include "version.h"
-
-#define REALMODE_CODE 0x20000
 
 #define SLB_PCR_ORD 17
 #define MODULE_PCR_ORD 19
@@ -249,51 +245,9 @@ int _main(struct mbi *mbi, unsigned flags) {
   return 0;
 }
 
-static int fixup(void) {
-  unsigned i;
-  out_info(s_patch_CPU_name_tag);
-
-  for (i = 0; i < 6; i++)
-    wrmsr(0xc0010030 + i, *(unsigned long long *)(s_CPU_NAME + i * 8));
-
-  out_info(s_halt_APs_in_init_state);
-  int revision;
-  /**
-   * Start the stopped APs and execute some fixup code.
-   */
-  memcpy((char *)REALMODE_CODE, &smp_init_start,
-         &smp_init_end - &smp_init_start);
-  CHECK3(-2, start_processors(REALMODE_CODE), s_sending_an_STARTUP_IPI);
-  revision = enable_svm();
-  CHECK3(12, revision, s_could_not_enable_SVM);
-  out_description(s_SVM_revision, revision);
-  out_info(s_enable_global_interrupt_flag);
-
-#ifdef EXEC
-  asm volatile("stgi"); // Not included in proof!
-#endif
-
-  return 0;
-}
-
-static int revert_skinit(void) {
-  if (0 < check_cpuid()) {
-    if (disable_dev_protection())
-      out_info(s_DEV_disable_failed);
-
-    CHECK3(11, fixup(), s_fixup_failed);
-    out_info(s_fixup_done);
-  }
-
-  ERROR(12, pci_iterate_devices(), s_could_not_iterate_over_the_devices);
-
-  return 0;
-}
-
 /**
  * This code is executed after skinit.
  */
-/* int sable(struct mbi *mbi) __attribute__ ((section (".text.slb"))); */
 int sable(struct mbi *mbi) {
   revert_skinit();
 

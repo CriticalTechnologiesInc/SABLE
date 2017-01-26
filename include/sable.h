@@ -15,8 +15,3 @@
 #pragma once
 #include "mbi.h"
 
-int main(struct mbi *local_mbi, unsigned flags);
-int osl(struct mbi *mbi);
-
-extern char smp_init_start;
-extern char smp_init_end;
