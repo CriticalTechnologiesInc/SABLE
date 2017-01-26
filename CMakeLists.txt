@@ -12,6 +12,8 @@ include_directories (
   "${PROJECT_BINARY_DIR}/include/"
   )
 
+add_subdirectory(tools)
+
 set (CMAKE_C_FLAGS
   "${CMAKE_C_FLAGS} \
   -Wall \
@@ -53,13 +55,13 @@ add_executable (sable
   src/keyboard.c
   src/mp.c
   src/sha.c
-  src/string.c
   src/tis.c
   src/tpm.c
   src/tpm_error.c
   src/tpm_struct.c
   src/util.c
   src/sable.c
+  src/sable_string.c
   )
 
 set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
