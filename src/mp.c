@@ -27,14 +27,14 @@ int send_ipi(unsigned param) {
   unsigned long long value;
   value = rdmsr(MSR_APIC_BASE);
   CHECK3(-51, !(value & (APIC_BASE_ENABLE | APIC_BASE_BSP)),
-         s_not_BSP_or_APIC_disabled);
-  CHECK3(-52, (value >> 32) & 0xf, s_APIC_out_of_range);
+         "not BSP or APIC disabled");
+  CHECK3(-52, (value >> 32) & 0xf, "APIC out of range");
 
   unsigned long *apic_icr_low =
       (unsigned long *)(((unsigned long)value & 0xfffff000) +
                         APIC_ICR_LOW_OFFSET);
 
-  CHECK3(-53, *apic_icr_low & APIC_ICR_PENDING, s_Interrupt_pending);
+  CHECK3(-53, *apic_icr_low & APIC_ICR_PENDING, "Interrupt pending");
   *apic_icr_low =
       APIC_ICR_DST_ALL_EX | APIC_ICR_LEVEL_EDGE | APIC_ICR_ASSERT | param;
 

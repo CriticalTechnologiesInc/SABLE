@@ -28,13 +28,6 @@ DEFINE_STRING(DEV_not_found, "DEV not found");
 DEFINE_STRING(enable_dev_at, "enable dev at");
 DEFINE_STRING(dev_pointer_invalid, "dev pointer invalid");
 DEFINE_STRING(sldev_pointer_invalid, "sldev pointer invalid");
-DEFINE_STRING(not_BSP_or_APIC_disabled, "not BSP or APIC disabled");
-DEFINE_STRING(APIC_out_of_range, "APIC out of range");
-DEFINE_STRING(Interrupt_pending, "Interrupt pending");
-DEFINE_STRING(elf_class_data, "elf class_data:");
-DEFINE_STRING(ELF_header_incorrect, "ELF header incorrect");
-DEFINE_STRING(ELF_type_incorrect, "ELF type incorrect");
-DEFINE_STRING(e_phentsize_too_small, "e_phentsize to small");
 DEFINE_STRING(jumping_to_next_segment, "jumping to next segment...\n");
 DEFINE_STRING(address_d_not_aligned_or_larger_than_1MB,
               "address %d not aligned or larger then 1MB");
