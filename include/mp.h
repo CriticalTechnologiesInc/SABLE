@@ -16,7 +16,7 @@
 #include "string.h"
 #include "util.h"
 
-enum {
+enum APIC_DEFS {
   MSR_APIC_BASE = 0x1B,
   APIC_BASE_ENABLE = 0x800,
   APIC_BASE_BSP = 0x100,
