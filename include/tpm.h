@@ -29,8 +29,11 @@ typedef struct {
 TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in);
 TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
                          UINT32 bytesRequested_in);
-TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
-                       TPM_PCRVALUE *outDigest_out /* out */);
+typedef struct {
+  TPM_RESULT returnCode;
+  TPM_PCRVALUE outDigest;
+} TPM_PCRRead_t;
+TPM_PCRRead_t TPM_PCRRead(TPM_PCRINDEX pcrIndex_in);
 TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
                       TPM_PCRVALUE *outDigest_out /* out */);
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */);
@@ -52,8 +55,11 @@ TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
            TPM_KEY_HANDLE parentHandle_in, const TPM_AUTHDATA *parentAuth,
            TPM_SESSION *parentSession, const TPM_AUTHDATA *dataAuth,
            TPM_SESSION *dataSession);
-TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
-                    BYTE *rawData /* out */, UINT32 rawDataSize,
+typedef struct {
+  TPM_RESULT returnCode;
+  TPM_STORED_DATA12 sealedData;
+} TPM_Seal_t;
+TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
                     TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                     const BYTE *inData_in, UINT32 inDataSize_in,

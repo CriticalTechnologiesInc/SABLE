@@ -54,11 +54,10 @@ UINT32 sizeof_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo);
 /* APIs to generate specific TPM structs */
 
 TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp);
-void encAuth_gen(TPM_ENCAUTH *encAuth /* out */, const TPM_AUTHDATA *auth,
-                 const TPM_SECRET *sharedSecret, const TPM_NONCE *nonceEven);
-void sharedSecret_gen(TPM_SECRET *encAuth /* out */, const TPM_AUTHDATA *auth,
-                      const TPM_NONCE *nonceEvenOSAP,
-                      const TPM_NONCE *nonceOddOSAP);
+TPM_ENCAUTH encAuth_gen(TPM_AUTHDATA entityAuthData, TPM_SECRET sharedSecret,
+                        TPM_NONCE authLastNonceEven);
+TPM_SECRET sharedSecret_gen(TPM_AUTHDATA auth, TPM_NONCE nonceEvenOSAP,
+                            TPM_NONCE nonceOddOSAP);
 
 /* Helper functions to pack just one struct into a buffer, returns the
  * number of bytes packed */

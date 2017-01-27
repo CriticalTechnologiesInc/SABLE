@@ -12,15 +12,15 @@
  * COPYING file for details.
  */
 
-#include "macro.h"
 #include "asm.h"
+#include "macro.h"
 #include "platform.h"
-#include "tpm_ordinal.h"
 #include "tcg.h"
 #include "tis.h"
 #include "tpm.h"
 #include "sha.h"
 #include "hmac.h"
+#include "tpm_ordinal.h"
 #include "tpm_struct.h"
 #include "util.h"
 
@@ -105,9 +105,8 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   return res;
 }
 
-TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
-                       TPM_PCRVALUE *outDigest_out /* out */) {
-  TPM_RESULT res;
+TPM_PCRRead_t TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
+  TPM_PCRRead_t ret;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -134,16 +133,16 @@ TPM_RESULT TPM_PCRRead(TPM_PCRINDEX pcrIndex_in,
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&res, &uctx, NULL);
-  if (res)
-    return res;
-  unmarshal_array(outDigest_out, sizeof(TPM_PCRVALUE), &uctx, NULL);
+  unmarshal_UINT32(&ret.returnCode, &uctx, NULL);
+  if (ret.returnCode)
+    return ret;
+  unmarshal_array(&ret.outDigest, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(bytes_unpacked == paramSize_out);
   assert(tag_out == TPM_TAG_RSP_COMMAND);
 
-  return res;
+  return ret;
 }
 
 TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
@@ -482,13 +481,12 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   return res;
 }*/
 
-TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
-                    BYTE *rawData /* out */, UINT32 rawDataSize,
+TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
                     TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                     const BYTE *inData_in, UINT32 inDataSize_in,
                     TPM_SESSION *session, const TPM_SECRET *sharedSecret) {
-  TPM_RESULT res;
+  TPM_Seal_t ret;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -541,11 +539,11 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
   sha1_init(&sctx);                              // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);       //
   unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
-  unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
-  if (res)                                       //
-    return res;                                  //
+  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx);          // 1S
+  if (ret.returnCode)                                       //
+    return ret;                                  //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
-  unmarshal_TPM_STORED_DATA12(storedData, &uctx, &sctx); // 3S
+  unmarshal_TPM_STORED_DATA12(&ret.sealedData, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, sharedSecret->authdata, sizeof(TPM_SECRET)); // compute HM
@@ -566,11 +564,11 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
 
   // Pack the storedData into a buffer
   pack_init(&pctx, rawData, rawDataSize);
-  marshal_TPM_STORED_DATA12(storedData, &pctx, NULL);
+  marshal_TPM_STORED_DATA12(&ret.sealedData, &pctx, NULL);
   pack_finish(&pctx);
 
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");
 
-  return res;
+  return ret;
 }

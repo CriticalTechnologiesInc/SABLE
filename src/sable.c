@@ -37,10 +37,7 @@ extern void configure(void);
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
 
-#define SLB_PCR_ORD 17
-#define MODULE_PCR_ORD 19
-
-void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
+TPM_AUTHDATA get_authdata(const char *str /* in */) {
   static const TPM_AUTHDATA zero_authdata = {{0}};
   int res;
   SHA1_Context sctx;
@@ -52,11 +49,9 @@ void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
     sha1_init(&sctx);
     sha1(&sctx, (BYTE *)auth_str, res);
     sha1_finish(&sctx);
-    *authdata = *(TPM_AUTHDATA *)&sctx.hash;
-    memset(auth_str, 0, res);
-    memset(&sctx.hash, 0, sizeof(TPM_DIGEST));
+    return *(TPM_AUTHDATA *)&sctx.hash;
   } else {
-    *authdata = zero_authdata;
+    return zero_authdata;
   }
 }
 
@@ -116,7 +111,7 @@ static int mbi_calc_hash(struct mbi *mbi) {
 
     sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     sha1_finish(&sctx);
-    res = TPM_Extend(MODULE_PCR_ORD, sctx.hash, NULL);
+    res = TPM_Extend(19, sctx.hash, NULL);
     TPM_ERROR(res, "TPM_Extend()");
   }
 
@@ -194,16 +189,13 @@ int sable(struct mbi *m) {
     ERROR(22, mbi_calc_hash(m), "calc hash failed");
 
 #ifndef NDEBUG
-    TPM_RESULT res;
-    TPM_PCRVALUE pcr;
+    TPM_PCRRead_t pcr17 = TPM_PCRRead(17);
+    TPM_ERROR(pcr17.returnCode, "TPM_PcrRead()");
+    show_hash("PCR[17]: ", pcr17.outDigest);
 
-    res = TPM_PCRRead(SLB_PCR_ORD, &pcr);
-    TPM_ERROR(res, "TPM_PcrRead()");
-    show_hash("PCR[17]: ", pcr);
-
-    res = TPM_PCRRead(MODULE_PCR_ORD, &pcr);
-    TPM_ERROR(res, "TPM_PcrRead()");
-    show_hash("PCR[19]: ", pcr);
+    TPM_PCRRead_t pcr19 = TPM_PCRRead(19);
+    TPM_ERROR(pcr19.returnCode, "TPM_PcrRead()");
+    show_hash("PCR[19]: ", pcr19.outDigest);
 
     wait(1000);
 #endif
