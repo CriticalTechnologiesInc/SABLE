@@ -63,4 +63,4 @@ void sharedSecret_gen(TPM_SECRET *encAuth /* out */, const TPM_AUTHDATA *auth,
 /* Helper functions to pack just one struct into a buffer, returns the
  * number of bytes packed */
 UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
-                              const TPM_PCR_INFO_LONG *pcrInfo /* in */);
+                              TPM_PCR_INFO_LONG pcrInfo /* in */);

@@ -61,7 +61,7 @@ void configure(void) {
                                 .digestAtCreation = composite_hash,
                                 .digestAtRelease = composite_hash};
   UINT32 bytes_packed = pack_TPM_PCR_INFO_LONG(
-      pcr_info_packed, sizeof(pcr_info_packed), &pcr_info);
+      pcr_info_packed, sizeof(pcr_info_packed), pcr_info);
   assert(bytes_packed == sizeof(pcr_info_packed));
 
   // get the passphrase, passphrase authdata, and SRK authdata

@@ -287,9 +287,9 @@ TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {
 }
 
 UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
-                            const TPM_PCR_INFO_LONG *pcrInfo /* in */) {
+                            TPM_PCR_INFO_LONG pcrInfo /* in */) {
   Pack_Context pctx;
   pack_init(&pctx, data, dataSize);
-  marshal_TPM_PCR_INFO_LONG(pcrInfo, &pctx, NULL);
+  marshal_TPM_PCR_INFO_LONG(&pcrInfo, &pctx, NULL);
   return pack_finish(&pctx);
 }
