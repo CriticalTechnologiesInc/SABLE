@@ -16,10 +16,10 @@
 #include "macro.h"
 #include "platform.h"
 #include "tcg.h"
-#include "tis.h"
-#include "tpm.h"
 #include "sha.h"
 #include "hmac.h"
+#include "tpm.h"
+#include "tis.h"
 #include "tpm_ordinal.h"
 #include "tpm_struct.h"
 #include "util.h"
@@ -285,8 +285,7 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
 
 TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                                  TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
-                                 const TPM_AUTHDATA *nv_auth,
-                                 TPM_SESSION *session) {
+                                 TPM_AUTHDATA nv_auth, TPM_SESSION *session) {
   TPM_RESULT ret;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -316,7 +315,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   marshal_array(data_in, dataSize_in, &pctx, &sctx); // 5S
   sha1_finish(&sctx); // inParamDigest = sctx.hash
 
-  hmac_init(&hctx, nv_auth->authdata, sizeof(TPM_SECRET)); // compute pubAuth
+  hmac_init(&hctx, nv_auth.authdata, sizeof(TPM_SECRET)); // compute pubAuth
   marshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx); // 1H1
   marshal_UINT32(session->authHandle, &pctx, NULL);                //
   marshal_array(&session->nonceEven, sizeof(TPM_NONCE), NULL,      // 2H1
@@ -343,7 +342,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
   sha1_finish(&sctx);                            // outParamDigest = sctx.hash
 
-  hmac_init(&hctx, nv_auth->authdata, sizeof(TPM_SECRET)); // compute HM
+  hmac_init(&hctx, nv_auth.authdata, sizeof(TPM_SECRET)); // compute HM
   unmarshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx); // 1H1
   unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx,     // 2H1
                   &hctx.sctx);                                       // 2H1
@@ -536,13 +535,13 @@ TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
-  sha1_init(&sctx);                              // compute outParamDigest
-  unmarshal_UINT16(&tag_out, &uctx, NULL);       //
-  unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
-  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx);          // 1S
-  if (ret.returnCode)                                       //
-    return ret;                                  //
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
+  sha1_init(&sctx);                                // compute outParamDigest
+  unmarshal_UINT16(&tag_out, &uctx, NULL);         //
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);   //
+  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
+  if (ret.returnCode)                              //
+    return ret;                                    //
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);      // 2S
   unmarshal_TPM_STORED_DATA12(&ret.sealedData, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 

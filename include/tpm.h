@@ -41,8 +41,7 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
                     TPM_OSAP_SESSION *osap_session /* out */);
 TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                                  TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
-                                 const TPM_AUTHDATA *nv_auth,
-                                 TPM_SESSION *session);
+                                 TPM_AUTHDATA nv_auth, TPM_SESSION *session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
                             UINT32 offset_in, UINT32 dataSize_in,
                             const TPM_AUTHDATA *ownerAuth_in,
