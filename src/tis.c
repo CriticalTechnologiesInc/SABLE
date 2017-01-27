@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#include "macro.h"
 #include "asm.h"
 #include "platform.h"
 #include "tcg.h"

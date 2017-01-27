@@ -16,6 +16,7 @@
  * COPYING file for details.
  */
 
+#include "macro.h"
 #include "mbi.h"
 #include "elf.h"
 #include "platform.h"

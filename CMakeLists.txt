@@ -7,11 +7,6 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
   "${PROJECT_BINARY_DIR}/include/version.h"
   )
-include_directories (
-  "${PROJECT_SOURCE_DIR}/include/"
-  "${PROJECT_BINARY_DIR}/include/"
-  )
-
 add_subdirectory(tools)
 
 set (CMAKE_C_FLAGS
@@ -32,10 +27,6 @@ set (CMAKE_C_FLAGS
   --param max-inline-insns-single=50 \
   -fstrict-aliasing \
   -Wstrict-aliasing=0"
-  )
-
-add_definitions (
-  "-DEXEC"
   )
 
 set (CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
@@ -61,14 +52,20 @@ add_executable (sable
   src/tpm_struct.c
   src/util.c
   src/sable.c
-  src/sable_string.c
+  src/sable_verified.c
+  src/string.c
   )
 
+target_include_directories (sable PUBLIC
+  "${PROJECT_SOURCE_DIR}/include/"
+  "${PROJECT_BINARY_DIR}/include/"
+  )
 set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
-add_dependencies (sable sable_h)
+add_dependencies (sable sable_verified_h)
 
-# These are include files for sable.c only, not the entire project
-set (SABLE_HEADER_FILES
+# These are include files used to generate sable.h only
+set (SABLE_H_HEADER_FILES
+  ${PROJECT_SOURCE_DIR}/include/macro.h
   ${PROJECT_SOURCE_DIR}/include/asm.h
   ${PROJECT_SOURCE_DIR}/include/dev.h
   ${PROJECT_SOURCE_DIR}/include/elf.h
@@ -88,11 +85,31 @@ set (SABLE_HEADER_FILES
   ${PROJECT_BINARY_DIR}/include/version.h
   )
 
-add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/include/sable.h
-  COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
-    ${PROJECT_SOURCE_DIR}/src/sable.c:${PROJECT_BINARY_DIR}/include/sable.h
-    ${SABLE_HEADER_FILES}
-  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.c ${SABLE_HEADER_FILES}
+# Header dependencies for sable.c
+set (SABLE_C_HEADER_FILES
+  ${PROJECT_BINARY_DIR}/include/sable_verified.h
+  ${PROJECT_SOURCE_DIR}/include/string.h
   )
-add_custom_target (sable_h DEPENDS makeheaders ${PROJECT_BINARY_DIR}/include/sable.h)
+
+# custom command and target to generate sable.h
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/include/sable_verified.h
+  COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
+    ${PROJECT_SOURCE_DIR}/src/sable_verified.c:${PROJECT_BINARY_DIR}/include/sable_verified.h
+    ${SABLE_H_HEADER_FILES}
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${SABLE_HEADER_FILES}
+  )
+add_custom_target (sable_verified_h DEPENDS makeheaders ${PROJECT_BINARY_DIR}/include/sable_verified.h)
+
+# custom command and target to generate sable.cpp
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/sable_verified.cpp
+  COMMAND ${CMAKE_C_COMPILER} -E
+    ${PROJECT_SOURCE_DIR}/src/sable_verified.c
+    -DISABELLE
+    -I${PROJECT_SOURCE_DIR}/include/
+    -I${PROJECT_BINARY_DIR}/include/
+    > ${PROJECT_BINARY_DIR}/sable_verified.cpp
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${SABLE_C_HEADER_FILES}
+  )
+add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/sable_verified.cpp)
