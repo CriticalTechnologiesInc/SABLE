@@ -1,5 +1,5 @@
-#include "string.h"
 #include "sable_verified.h"
+#include "string.h"
 
 #define SLB_PCR_ORD 17
 #define MODULE_PCR_ORD 19
@@ -19,21 +19,21 @@ static struct {
 static TPM_STORED_DATA12 pp_data;
 static BYTE pp_blob[400];
 
-extern void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */);
+extern void get_authdata(const char *str /* in */,
+                         TPM_AUTHDATA *authdata /* out */);
 
 void configure(void) {
   /* local secrets */
-  static struct {
-    TPM_AUTHDATA nv_auth;
-    TPM_SECRET sharedSecret;
-  } lsecrets;
+  static TPM_AUTHDATA nv_auth;
+  static TPM_SECRET sharedSecret;
   /* other static locals */
   static TPM_OSAP_SESSION srk_osap_session;
   static TPM_SESSION nv_session;
   static TPM_SECRET encAuth;
   static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
   static const TPM_PCR_SELECTION pcr_select = {
-      .sizeOfSelect = sizeof(pcr_select_bytes), .pcrSelect = pcr_select_bytes};
+      .sizeOfSelect = sizeof(pcr_select_bytes),
+      .pcrSelect = (BYTE *)pcr_select_bytes};
   static TPM_PCRVALUE pcr_values[2];
   static BYTE pcr_info_packed[sizeof(TPM_STRUCTURE_TAG) +
                               2 * sizeof(TPM_LOCALITY_SELECTION) +
@@ -41,7 +41,6 @@ void configure(void) {
                                    sizeof(pcr_select_bytes)) +
                               2 * sizeof(TPM_COMPOSITE_HASH)];
   /* auto locals */
-  Pack_Context pctx;
   TPM_RESULT res;
 
   // Construct pcr_info, which contains the TPM state conditions under which
@@ -52,7 +51,7 @@ void configure(void) {
   TPM_ERROR(res, "Failed to read PCR19");
   TPM_PCR_COMPOSITE composite = {.select = pcr_select,
                                  .valueSize = sizeof(pcr_values),
-                                 .pcrValue = pcr_values};
+                                 .pcrValue = (TPM_PCRVALUE *)pcr_values};
   TPM_COMPOSITE_HASH composite_hash = get_TPM_COMPOSITE_HASH(composite);
   TPM_PCR_INFO_LONG pcr_info = {.tag = TPM_TAG_PCR_INFO_LONG,
                                 .localityAtCreation = TPM_LOC_TWO,
@@ -61,9 +60,8 @@ void configure(void) {
                                 .releasePCRSelection = pcr_select,
                                 .digestAtCreation = composite_hash,
                                 .digestAtRelease = composite_hash};
-  pack_init(&pctx, pcr_info_packed, sizeof(pcr_info_packed));
-  marshal_TPM_PCR_INFO_LONG(&pcr_info, &pctx, NULL);
-  UINT32 bytes_packed = pack_finish(&pctx);
+  UINT32 bytes_packed = pack_TPM_PCR_INFO_LONG(
+      pcr_info_packed, sizeof(pcr_info_packed), &pcr_info);
   assert(bytes_packed == sizeof(pcr_info_packed));
 
   // get the passphrase, passphrase authdata, and SRK authdata
@@ -81,7 +79,7 @@ void configure(void) {
   srk_osap_session.session.continueAuthSession = FALSE;
 
   // Generate the shared secret (for SRK authorization)
-  sharedSecret_gen(&lsecrets.sharedSecret, &secrets.srk_auth,
+  sharedSecret_gen(&sharedSecret, &secrets.srk_auth,
                    &srk_osap_session.nonceEvenOSAP,
                    &srk_osap_session.nonceOddOSAP);
 
@@ -91,21 +89,21 @@ void configure(void) {
   TPM_ERROR(res, s_nonce_generation_failed);
 
   // Encrypt the new passphrase authdata
-  encAuth_gen(&encAuth, &secrets.pp_auth, &lsecrets.sharedSecret,
+  encAuth_gen(&encAuth, &secrets.pp_auth, &sharedSecret,
               &srk_osap_session.session.nonceEven);
 
   // Encrypt the passphrase using the SRK
   res = TPM_Seal(&pp_data, pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth,
                  pcr_info_packed, sizeof(pcr_info_packed),
                  (const BYTE *)secrets.passphrase, lenPassphrase,
-                 &srk_osap_session.session, &lsecrets.sharedSecret);
+                 &srk_osap_session.session, &sharedSecret);
   TPM_ERROR(res, s_TPM_Seal);
 
-  get_authdata(s_enter_nvAuthData, &lsecrets.nv_auth);
+  get_authdata(s_enter_nvAuthData, &nv_auth);
   res = TPM_OIAP(&nv_session);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
-                              &lsecrets.nv_auth, &nv_session);
+  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0, &nv_auth,
+                              &nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 }
