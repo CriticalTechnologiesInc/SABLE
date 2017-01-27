@@ -18,7 +18,6 @@
 
 #include "mbi.h"
 #include "elf.h"
-#include "string.h"
 #include "platform.h"
 #include "tcg.h"
 #include "util.h"

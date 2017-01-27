@@ -65,3 +65,34 @@ add_executable (sable
   )
 
 set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
+add_dependencies (sable sable_h)
+
+# These are include files for sable.c only, not the entire project
+set (SABLE_HEADER_FILES
+  ${PROJECT_SOURCE_DIR}/include/asm.h
+  ${PROJECT_SOURCE_DIR}/include/dev.h
+  ${PROJECT_SOURCE_DIR}/include/elf.h
+  ${PROJECT_SOURCE_DIR}/include/sha.h
+  ${PROJECT_SOURCE_DIR}/include/hmac.h
+  ${PROJECT_SOURCE_DIR}/include/keyboard.h
+  ${PROJECT_SOURCE_DIR}/include/mbi.h
+  ${PROJECT_SOURCE_DIR}/include/mp.h
+  ${PROJECT_SOURCE_DIR}/include/platform.h
+  ${PROJECT_SOURCE_DIR}/include/tcg.h
+  ${PROJECT_SOURCE_DIR}/include/tis.h
+  ${PROJECT_SOURCE_DIR}/include/tpm_error.h
+  ${PROJECT_SOURCE_DIR}/include/tpm_ordinal.h
+  ${PROJECT_SOURCE_DIR}/include/tpm_struct.h
+  ${PROJECT_SOURCE_DIR}/include/tpm.h
+  ${PROJECT_SOURCE_DIR}/include/util.h
+  ${PROJECT_BINARY_DIR}/include/version.h
+  )
+
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/include/sable.h
+  COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
+    ${PROJECT_SOURCE_DIR}/src/sable.c:${PROJECT_BINARY_DIR}/include/sable.h
+    ${SABLE_HEADER_FILES}
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.c ${SABLE_HEADER_FILES}
+  )
+add_custom_target (sable_h DEPENDS makeheaders ${PROJECT_BINARY_DIR}/include/sable.h)

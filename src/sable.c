@@ -12,7 +12,8 @@
  * COPYING file for details.
  */
 
-#include "string.h"
+#include "sable_defs.h"
+#include "sable_string.h"
 #include "sable.h"
 
 #define SLB_PCR_ORD 17
@@ -32,6 +33,26 @@ static struct {
 /* ciphertext global secrets */
 static TPM_STORED_DATA12 pp_data;
 static BYTE pp_blob[400];
+
+static void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
+  static const TPM_AUTHDATA zero_authdata = {{0}};
+  int res;
+  SHA1_Context sctx;
+  char auth_str[AUTHDATA_STR_SIZE];
+
+  out_string(str);
+  res = get_string(auth_str, AUTHDATA_STR_SIZE, false);
+  if (res > 0) {
+    sha1_init(&sctx);
+    sha1(&sctx, (BYTE *)auth_str, res);
+    sha1_finish(&sctx);
+    *authdata = *(TPM_AUTHDATA *)&sctx.hash;
+    memset(auth_str, 0, res);
+    memset(&sctx.hash, 0, sizeof(TPM_DIGEST));
+  } else {
+    *authdata = zero_authdata;
+  }
+}
 
 static void configure(void) {
   /* local secrets */

@@ -16,7 +16,6 @@
 #include "platform.h"
 #include "tcg.h"
 #include "sha.h"
-#include "string.h"
 #include "util.h"
 
 #define ROL(VALUE, COUNT) ((VALUE) << COUNT | (VALUE) >> (32 - COUNT))

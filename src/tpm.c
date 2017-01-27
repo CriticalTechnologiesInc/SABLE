@@ -20,7 +20,6 @@
 #include "tpm.h"
 #include "sha.h"
 #include "hmac.h"
-#include "string.h"
 #include "tpm_struct.h"
 #include "util.h"
 

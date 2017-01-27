@@ -17,7 +17,6 @@
 #include "tcg.h"
 #include "util.h"
 #include "dev.h"
-#include "string.h"
 #include "mp.h"
 
 #define CPU_NAME "AMD CPU booted by SABLE"
@@ -359,7 +358,7 @@ static int fixup(void) {
   CHECK3(-2, start_processors(REALMODE_CODE), "sending a STARTUP IPI");
   revision = enable_svm();
   CHECK3(12, revision, "could not enable SVM");
-  out_description(s_SVM_revision, revision);
+  out_description("SVM Revision:", revision);
   out_info("Enable global interrupt flag");
 
   asm volatile("stgi");

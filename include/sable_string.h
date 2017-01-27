@@ -1,6 +1,4 @@
 #define DECLARE_STRING(name) extern const char *const s_##name
-#define AUTHDATA_STR_SIZE 64
-#define PASSPHRASE_STR_SIZE 128
 
 DECLARE_STRING(WARNING);
 DECLARE_STRING(dashes);

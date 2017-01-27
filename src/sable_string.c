@@ -3,7 +3,8 @@
 #include "tcg.h"
 #include "util.h"
 #include "version.h"
-#include "string.h"
+#include "sable_defs.h"
+#include "sable_string.h"
 
 #ifdef EXEC
 #define DEFINE_STRING(name, str) const char *const s_##name = str

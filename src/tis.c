@@ -16,7 +16,6 @@
 #include "platform.h"
 #include "tcg.h"
 #include "util.h"
-#include "string.h"
 #include "tis.h"
 
 struct TIS_BUFFERS tis_buffers = {.in = {0}, .out = {0}};

@@ -143,4 +143,3 @@ void exit(unsigned status) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
-void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */);

@@ -16,7 +16,6 @@
 #include "platform.h"
 #include "tcg.h"
 #include "util.h"
-#include "string.h"
 
 const char *const message_label = "SABLE:   ";
 
@@ -229,27 +228,4 @@ void show_hash(const char *s, TPM_DIGEST hash) {
   for (UINT32 i = 0; i < 20; i++)
     out_hex(hash.digest[i], 7);
   out_char('\n');
-}
-
-#include "sha.h"
-#include "keyboard.h"
-
-void get_authdata(const char *str /* in */, TPM_AUTHDATA *authdata /* out */) {
-  static const TPM_AUTHDATA zero_authdata = {{0}};
-  int res;
-  SHA1_Context sctx;
-  char auth_str[AUTHDATA_STR_SIZE];
-
-  out_string(str);
-  res = get_string(auth_str, AUTHDATA_STR_SIZE, false);
-  if (res > 0) {
-    sha1_init(&sctx);
-    sha1(&sctx, (BYTE *)auth_str, res);
-    sha1_finish(&sctx);
-    *authdata = *(TPM_AUTHDATA *)&sctx.hash;
-    memset(auth_str, 0, res);
-    memset(&sctx.hash, 0, sizeof(TPM_DIGEST));
-  } else {
-    *authdata = zero_authdata;
-  }
 }
