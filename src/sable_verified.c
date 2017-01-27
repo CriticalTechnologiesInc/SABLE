@@ -81,7 +81,7 @@ void configure(void) {
   TPM_Seal_t seal_ret = TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth,
                  pcr_info_packed, sizeof(pcr_info_packed),
                  (const BYTE *)passphrase, lenPassphrase,
-                 &srk_osap_session.session, &sharedSecret);
+                 &srk_osap_session.session, sharedSecret);
   TPM_ERROR(seal_ret.returnCode, s_TPM_Seal);
 
   TPM_AUTHDATA nv_auth = get_authdata(s_enter_nvAuthData);

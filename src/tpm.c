@@ -485,7 +485,7 @@ TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
                     TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                     const BYTE *inData_in, UINT32 inDataSize_in,
-                    TPM_SESSION *session, const TPM_SECRET *sharedSecret) {
+                    TPM_SESSION *session, TPM_SECRET sharedSecret) {
   TPM_Seal_t ret;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -517,7 +517,7 @@ TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
   marshal_array(inData_in, inDataSize_in, &pctx, &sctx);         // 6S
   sha1_finish(&sctx); // inParamDigest = sctx.hash
 
-  hmac_init(&hctx, sharedSecret->authdata,
+  hmac_init(&hctx, sharedSecret.authdata,
             sizeof(TPM_SECRET)); // compute pubAuth
   marshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx); // 1H1
   marshal_UINT32(session->authHandle, &pctx, NULL);                //
@@ -546,7 +546,7 @@ TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
   unmarshal_TPM_STORED_DATA12(&ret.sealedData, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
-  hmac_init(&hctx, sharedSecret->authdata, sizeof(TPM_SECRET)); // compute HM
+  hmac_init(&hctx, sharedSecret.authdata, sizeof(TPM_SECRET)); // compute HM
   unmarshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx); // 1H1
   unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx,     // 2H1
                   &hctx.sctx);                                       // 2H1

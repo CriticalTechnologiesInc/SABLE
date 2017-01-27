@@ -63,4 +63,4 @@ TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
                     TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
                     const void *pcrInfo_in, UINT32 pcrInfoSize_in,
                     const BYTE *inData_in, UINT32 inDataSize_in,
-                    TPM_SESSION *session, const TPM_SECRET *sharedSecret);
+                    TPM_SESSION *session, TPM_SECRET sharedSecret);
