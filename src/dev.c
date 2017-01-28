@@ -15,6 +15,7 @@
 #include "dev.h"
 #include "string.h"
 #include "util.h"
+#include "mp.h"
 
 /**
  * Read a byte from the pci config space.
@@ -328,5 +329,46 @@ int enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
    */
   memset(buffer, 0xff, 1 << 17);
   enable_dev_bitmap(addr, base);
+  return 0;
+}
+
+#define REALMODE_CODE 0x20000
+extern char smp_init_start;
+extern char smp_init_end;
+
+static int fixup(void) {
+  unsigned i;
+  out_info(s_patch_CPU_name_tag);
+
+  for (i = 0; i < 6; i++)
+    wrmsr(0xc0010030 + i, *(unsigned long long *)(s_CPU_NAME + i * 8));
+
+  out_info(s_halt_APs_in_init_state);
+  int revision;
+  /**
+   * Start the stopped APs and execute some fixup code.
+   */
+  memcpy((char *)REALMODE_CODE, &smp_init_start,
+         &smp_init_end - &smp_init_start);
+  CHECK3(-2, start_processors(REALMODE_CODE), s_sending_an_STARTUP_IPI);
+  revision = enable_svm();
+  CHECK3(12, revision, s_could_not_enable_SVM);
+  out_description(s_SVM_revision, revision);
+  out_info(s_enable_global_interrupt_flag);
+
+  asm volatile("stgi");
+
+  return 0;
+}
+
+int revert_skinit(void) {
+  if (0 < check_cpuid()) {
+    if (disable_dev_protection())
+      out_info(s_DEV_disable_failed);
+
+    CHECK3(11, fixup(), s_fixup_failed);
+    out_info(s_fixup_done);
+  }
+
   return 0;
 }

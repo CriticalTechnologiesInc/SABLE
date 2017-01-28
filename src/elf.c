@@ -157,9 +157,7 @@ int start_module(struct mbi *mbi) {
   wait(1000);
   gen_jmp_edx();
 
-#ifdef EXEC
   asm volatile("jmp *%%edx" ::"a"(0), "d"(TRAMPOLINE_ADDRESS), "b"(mbi));
-#endif
 
   /* NOT REACHED */
   return 0;
