@@ -12,14 +12,14 @@
  * COPYING file for details.
  */
 
-typedef struct {
+typedef struct tdTPM_SESSION {
   TPM_AUTHHANDLE authHandle;
   TPM_NONCE nonceEven;
   TPM_NONCE nonceOdd;
   TPM_BOOL continueAuthSession;
 } TPM_SESSION;
 
-typedef struct {
+typedef struct tdTPM_OSAP_SESSION {
   TPM_SESSION session;
   TPM_NONCE nonceEvenOSAP;
   TPM_NONCE nonceOddOSAP;
