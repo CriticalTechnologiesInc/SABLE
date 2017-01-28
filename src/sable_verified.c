@@ -24,15 +24,13 @@ static BYTE pcr_info_packed[sizeof(TPM_STRUCTURE_TAG) +
 static TPM_OSAP_SESSION srk_osap_session;
 static TPM_SESSION nv_session;
 
-void configure(void) {
-  TPM_RESULT res;
-
-  // Construct pcr_info, which contains the TPM state conditions under which
-  // the passphrase may be sealed/unsealed
-  TPM_PCRRead_t pcr17 = TPM_PCRRead(17);
+// Construct pcr_info, which contains the TPM state conditions under which
+// the passphrase may be sealed/unsealed
+void assign_pcr_info(void) {
+  struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
   TPM_ERROR(pcr17.returnCode, "Failed to read PCR17");
   pcr_values[0] = pcr17.outDigest;
-  TPM_PCRRead_t pcr19 = TPM_PCRRead(19);
+  struct TPM_PCRRead_ret pcr19 = TPM_PCRRead(19);
   TPM_ERROR(pcr19.returnCode, "Failed to read PCR19");
   pcr_values[1] = pcr19.outDigest;
   TPM_PCR_COMPOSITE composite = {.select = pcr_select,
@@ -49,6 +47,10 @@ void configure(void) {
   UINT32 bytes_packed = pack_TPM_PCR_INFO_LONG(
       pcr_info_packed, sizeof(pcr_info_packed), pcr_info);
   assert(bytes_packed == sizeof(pcr_info_packed));
+}
+
+void configure(void) {
+  TPM_RESULT res;
 
   // get the passphrase, passphrase authdata, and SRK authdata
   out_string(s_Please_enter_the_passphrase);
@@ -78,10 +80,10 @@ void configure(void) {
       encAuth_gen(pp_auth, sharedSecret, srk_osap_session.session.nonceEven);
 
   // Encrypt the passphrase using the SRK
-  TPM_Seal_t seal_ret = TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth,
-                 pcr_info_packed, sizeof(pcr_info_packed),
-                 (const BYTE *)passphrase, lenPassphrase,
-                 &srk_osap_session.session, sharedSecret);
+  struct TPM_Seal_ret seal_ret =
+      TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth, pcr_info_packed,
+               sizeof(pcr_info_packed), (const BYTE *)passphrase, lenPassphrase,
+               &srk_osap_session.session, sharedSecret);
   TPM_ERROR(seal_ret.returnCode, s_TPM_Seal);
 
   TPM_AUTHDATA nv_auth = get_authdata(s_enter_nvAuthData);

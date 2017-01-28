@@ -15,14 +15,14 @@
 #include "asm.h"
 #include "macro.h"
 #include "platform.h"
+#include "tpm_ordinal.h"
 #include "tcg.h"
 #include "sha.h"
 #include "hmac.h"
-#include "tpm.h"
-#include "tis.h"
-#include "tpm_ordinal.h"
 #include "tpm_struct.h"
+#include "tis.h"
 #include "util.h"
+#include "tpm.h"
 
 TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   TPM_RESULT res;
@@ -105,8 +105,8 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   return res;
 }
 
-TPM_PCRRead_t TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
-  TPM_PCRRead_t ret;
+struct TPM_PCRRead_ret TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
+  struct TPM_PCRRead_ret ret;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -480,12 +480,13 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   return res;
 }*/
 
-TPM_Seal_t TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
-                    TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
-                    const void *pcrInfo_in, UINT32 pcrInfoSize_in,
-                    const BYTE *inData_in, UINT32 inDataSize_in,
-                    TPM_SESSION *session, TPM_SECRET sharedSecret) {
-  TPM_Seal_t ret;
+struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
+                             TPM_KEY_HANDLE keyHandle_in,
+                             TPM_ENCAUTH encAuth_in, const void *pcrInfo_in,
+                             UINT32 pcrInfoSize_in, const BYTE *inData_in,
+                             UINT32 inDataSize_in, TPM_SESSION *session,
+                             TPM_SECRET sharedSecret) {
+  struct TPM_Seal_ret ret;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;

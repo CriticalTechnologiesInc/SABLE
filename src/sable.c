@@ -189,11 +189,11 @@ int sable(struct mbi *m) {
     ERROR(22, mbi_calc_hash(m), "calc hash failed");
 
 #ifndef NDEBUG
-    TPM_PCRRead_t pcr17 = TPM_PCRRead(17);
+    struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
     TPM_ERROR(pcr17.returnCode, "TPM_PcrRead()");
     show_hash("PCR[17]: ", pcr17.outDigest);
 
-    TPM_PCRRead_t pcr19 = TPM_PCRRead(19);
+    struct TPM_PCRRead_ret pcr19 = TPM_PCRRead(19);
     TPM_ERROR(pcr19.returnCode, "TPM_PcrRead()");
     show_hash("PCR[19]: ", pcr19.outDigest);
 
