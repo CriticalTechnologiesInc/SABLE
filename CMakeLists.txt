@@ -53,7 +53,6 @@ add_executable (sable
   src/util.c
   src/sable.c
   src/sable_verified.c
-  src/string.c
   )
 
 target_include_directories (sable PUBLIC
@@ -85,12 +84,6 @@ set (SABLE_H_HEADER_FILES
   ${PROJECT_BINARY_DIR}/include/version.h
   )
 
-# Header dependencies for sable.c
-set (SABLE_C_HEADER_FILES
-  ${PROJECT_BINARY_DIR}/include/sable_verified.h
-  ${PROJECT_SOURCE_DIR}/include/string.h
-  )
-
 # custom command and target to generate sable.h
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/include/sable_verified.h
@@ -110,6 +103,6 @@ add_custom_command (
     -I${PROJECT_SOURCE_DIR}/include/
     -I${PROJECT_BINARY_DIR}/include/
     > ${PROJECT_BINARY_DIR}/sable_verified.cpp
-  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${SABLE_C_HEADER_FILES}
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${PROJECT_BINARY_DIR}/include/sable_verified.h
   )
 add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/sable_verified.cpp)

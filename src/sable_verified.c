@@ -1,7 +1,9 @@
 #include "sable_verified.h"
-#include "string.h"
 
-extern TPM_AUTHDATA get_authdata(const char *str /* in */);
+#define PASSPHRASE_STR_SIZE 128
+#define AUTHDATA_STR_SIZE 64
+
+extern TPM_AUTHDATA get_authdata(void);
 
 /***********************************************************
  * SABLE globals
@@ -53,17 +55,19 @@ void configure(void) {
   TPM_RESULT res;
 
   // get the passphrase, passphrase authdata, and SRK authdata
-  out_string(s_Please_enter_the_passphrase);
+  EXCLUDE(out_string("Please enter the passphrase (" xstr(PASSPHRASE_STR_SIZE) " char max): ");)
   UINT32 lenPassphrase =
       get_string(passphrase, sizeof(passphrase) - 1, true) + 1;
-  TPM_AUTHDATA pp_auth = get_authdata(s_enter_passPhraseAuthData);
-  TPM_AUTHDATA srk_auth = get_authdata(s_enter_srkAuthData);
+  EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(AUTHDATA_STR_SIZE) " char max): ");)
+  TPM_AUTHDATA pp_auth = get_authdata();
+  EXCLUDE(out_string("Please enter the srkAuthData (" xstr(AUTHDATA_STR_SIZE) " char max): ");)
+  TPM_AUTHDATA srk_auth = get_authdata();
 
   // Initialize an OSAP session for the SRK
   res = TPM_GetRandom(srk_osap_session.nonceOddOSAP.nonce, sizeof(TPM_NONCE));
-  TPM_ERROR(res, s_nonce_generation_failed);
+  TPM_ERROR(res, "nonce generation failed");
   res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, &srk_osap_session);
-  TPM_ERROR(res, s_TPM_Start_OSAP);
+  TPM_ERROR(res, "TPM_Start_OSAP()");
   srk_osap_session.session.continueAuthSession = FALSE;
 
   // Generate the shared secret (for SRK authorization)
@@ -73,7 +77,7 @@ void configure(void) {
   // Generate nonceOdd
   res =
       TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
-  TPM_ERROR(res, s_nonce_generation_failed);
+  TPM_ERROR(res, "nonce generation failed");
 
   // Encrypt the new passphrase authdata
   TPM_ENCAUTH encAuth =
@@ -84,13 +88,14 @@ void configure(void) {
       TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth, pcr_info_packed,
                sizeof(pcr_info_packed), (const BYTE *)passphrase, lenPassphrase,
                &srk_osap_session.session, sharedSecret);
-  TPM_ERROR(seal_ret.returnCode, s_TPM_Seal);
+  TPM_ERROR(seal_ret.returnCode, "TPM_Seal()");
 
-  TPM_AUTHDATA nv_auth = get_authdata(s_enter_nvAuthData);
+  EXCLUDE(out_string("Please enter the nvAuthData (" xstr(AUTHDATA_STR_SIZE) " char max): ");)
+  TPM_AUTHDATA nv_auth = get_authdata();
   res = TPM_OIAP(&nv_session);
-  TPM_ERROR(res, s_TPM_Start_OIAP);
+  TPM_ERROR(res, "TPM_Start_OIAP()");
 
   res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0, nv_auth,
                               &nv_session);
-  TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
+  TPM_ERROR(res, "TPM_NV_WriteValueAuth()");
 }

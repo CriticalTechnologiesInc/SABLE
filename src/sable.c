@@ -30,20 +30,21 @@
 #include "tpm_struct.h"
 #include "util.h"
 #include "version.h"
-#include "string.h"
+
+#define PASSPHRASE_STR_SIZE 128
+#define AUTHDATA_STR_SIZE 64
 
 extern void configure(void);
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
 
-TPM_AUTHDATA get_authdata(const char *str /* in */) {
+TPM_AUTHDATA get_authdata(void) {
   static const TPM_AUTHDATA zero_authdata = {{0}};
   int res;
   SHA1_Context sctx;
   char auth_str[AUTHDATA_STR_SIZE];
 
-  out_string(str);
   res = get_string(auth_str, AUTHDATA_STR_SIZE, false);
   if (res > 0) {
     sha1_init(&sctx);

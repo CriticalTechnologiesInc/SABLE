@@ -1,4 +1,13 @@
 #ifndef ISABELLE
+#define EXCLUDE(X) X
+#else
+#define EXCLUDE(X)
+#endif
+
+#define xstr(s) str(s)
+#define str(s) #s
+
+#ifndef ISABELLE
 #define assert(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
