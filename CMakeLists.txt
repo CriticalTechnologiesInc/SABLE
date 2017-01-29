@@ -11,6 +11,7 @@ add_subdirectory(tools)
 
 set (CMAKE_C_FLAGS
   "${CMAKE_C_FLAGS} \
+  -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"' \
   -Wall \
   -Werror \
   -Wno-main \
@@ -90,7 +91,7 @@ add_custom_command (
   COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
     ${PROJECT_SOURCE_DIR}/src/sable_verified.c:${PROJECT_BINARY_DIR}/include/sable_verified.h
     ${SABLE_H_HEADER_FILES}
-  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${SABLE_HEADER_FILES}
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${SABLE_H_HEADER_FILES}
   )
 add_custom_target (sable_verified_h DEPENDS makeheaders ${PROJECT_BINARY_DIR}/include/sable_verified.h)
 
@@ -99,7 +100,7 @@ add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/sable_verified.cpp
   COMMAND ${CMAKE_C_COMPILER} -E
     ${PROJECT_SOURCE_DIR}/src/sable_verified.c
-    -DISABELLE
+    -DISABELLE -DNDEBUG
     -I${PROJECT_SOURCE_DIR}/include/
     -I${PROJECT_BINARY_DIR}/include/
     > ${PROJECT_BINARY_DIR}/sable_verified.cpp

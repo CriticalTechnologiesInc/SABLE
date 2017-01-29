@@ -20,6 +20,38 @@
 
 const char *const message_label = "SABLE:   ";
 
+#ifndef NDEBUG
+void log(const char *file, const char *line, const char *message) {
+  out_string(file);
+  out_char(':');
+  out_string(line);
+  out_string(" -- ");
+  out_string(message);
+  out_char('\n');
+}
+
+void log_tpm(const char *file, const char *line, const char *cmd,
+             const char *message) {
+  out_string(file);
+  out_char(':');
+  out_string(line);
+  out_string(" -- ");
+  out_string(cmd);
+  out_string("(): ");
+  out_string(message);
+  out_char('\n');
+}
+
+void log_desc(const char *file, const char *line, const char *message,
+              unsigned hex) {
+  out_string(file);
+  out_char(':');
+  out_string(line);
+  out_string(" -- ");
+  out_description(message, hex);
+}
+#endif
+
 void memcpy(void *dest, const void *src, UINT32 len) {
   BYTE *dp = dest;
   const BYTE *sp = src;

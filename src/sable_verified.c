@@ -28,7 +28,7 @@ static TPM_SESSION nv_session;
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
-void assign_pcr_info(void) {
+void set_pcr_info(void) {
   struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
   TPM_ERROR(pcr17.returnCode, "Failed to read PCR17");
   pcr_values[0] = pcr17.outDigest;
