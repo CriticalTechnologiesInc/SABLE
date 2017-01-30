@@ -56,6 +56,15 @@ TPM_AUTHDATA get_authdata(void) {
   }
 }
 
+/* temporary solution, in the long term we should not rely on the TPM to generate
+ * nonces. */
+TPM_NONCE get_nonce(void) {
+  TPM_NONCE ret;
+  TPM_RESULT res = TPM_GetRandom(ret.nonce, sizeof(TPM_NONCE));
+  TPM_ERROR(res, "nonce generation failed");
+  return ret;
+}
+
 static void unsealPassphrase(void) {
   /*TPM_RESULT res;
   get_authdata("Please enter the srkAuthData (" AUTHDATA_STR_SIZE " char max):

@@ -4,6 +4,7 @@
 #define AUTHDATA_STR_SIZE 64
 
 extern TPM_AUTHDATA get_authdata(void);
+extern TPM_NONCE get_nonce(void);
 
 /***********************************************************
  * SABLE globals
@@ -55,17 +56,19 @@ void configure(void) {
   TPM_RESULT res;
 
   // get the passphrase, passphrase authdata, and SRK authdata
-  EXCLUDE(out_string("Please enter the passphrase (" xstr(PASSPHRASE_STR_SIZE) " char max): ");)
+  EXCLUDE(out_string("Please enter the passphrase (" xstr(
+      PASSPHRASE_STR_SIZE) " char max): ");)
   UINT32 lenPassphrase =
       get_string(passphrase, sizeof(passphrase) - 1, true) + 1;
-  EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(AUTHDATA_STR_SIZE) " char max): ");)
+  EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
+      AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA pp_auth = get_authdata();
-  EXCLUDE(out_string("Please enter the srkAuthData (" xstr(AUTHDATA_STR_SIZE) " char max): ");)
+  EXCLUDE(out_string("Please enter the srkAuthData (" xstr(
+      AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA srk_auth = get_authdata();
 
   // Initialize an OSAP session for the SRK
-  res = TPM_GetRandom(srk_osap_session.nonceOddOSAP.nonce, sizeof(TPM_NONCE));
-  TPM_ERROR(res, "nonce generation failed");
+  srk_osap_session.nonceOddOSAP = get_nonce();
   res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, &srk_osap_session);
   TPM_ERROR(res, "TPM_Start_OSAP()");
   srk_osap_session.session.continueAuthSession = FALSE;
@@ -75,9 +78,7 @@ void configure(void) {
       srk_auth, srk_osap_session.nonceEvenOSAP, srk_osap_session.nonceOddOSAP);
 
   // Generate nonceOdd
-  res =
-      TPM_GetRandom(srk_osap_session.session.nonceOdd.nonce, sizeof(TPM_NONCE));
-  TPM_ERROR(res, "nonce generation failed");
+  srk_osap_session.session.nonceOdd = get_nonce();
 
   // Encrypt the new passphrase authdata
   TPM_ENCAUTH encAuth =
@@ -90,7 +91,8 @@ void configure(void) {
                &srk_osap_session.session, sharedSecret);
   TPM_ERROR(seal_ret.returnCode, "TPM_Seal()");
 
-  EXCLUDE(out_string("Please enter the nvAuthData (" xstr(AUTHDATA_STR_SIZE) " char max): ");)
+  EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
+      AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA nv_auth = get_authdata();
   res = TPM_OIAP(&nv_session);
   TPM_ERROR(res, "TPM_Start_OIAP()");
