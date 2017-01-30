@@ -132,13 +132,14 @@ static void configure(void) {
 }
 
 static void unsealPassphrase(void) {
-  /*TPM_RESULT res;
+  TPM_RESULT res;
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
 
-  res = TPM_NV_ReadValue(pp_blob, sizeof(pp_blob), 0x04, 0);
+  res = TPM_NV_ReadValue(pp_blob, 0x04, 0, sizeof(pp_blob), NULL, NULL);
   TPM_ERROR(res, s_TPM_NV_ReadValueAuth);
 
+  /*
   res = TPM_Start_OIAP(buffer, sctxParent);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
@@ -159,7 +160,7 @@ static void unsealPassphrase(void) {
 
   if (bufcmp(s_YES, string_buf, 3))
     reboot();
-    */
+  */
 }
 
 /**
