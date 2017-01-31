@@ -132,34 +132,47 @@ static void configure(void) {
 }
 
 static void unsealPassphrase(void) {
+
   TPM_RESULT res;
+  TPM_SESSION parent_oiap_session;
+  TPM_SESSION entity_oiap_session;
+  BYTE unsealedData[400];
+  UINT32 unsealedData_size = NULL;
+  TPM_STORED_DATA pp_data2;
+
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
 
-  res = TPM_NV_ReadValue(pp_blob, 0x04, 0, sizeof(pp_blob), NULL, NULL);
+  res = TPM_NV_ReadValue(pp_data2.encData, 0x04, 0, sizeof(pp_blob), NULL, NULL);
   TPM_ERROR(res, s_TPM_NV_ReadValueAuth);
 
-  /*
-  res = TPM_Start_OIAP(buffer, sctxParent);
+  //res = TPM_Start_OIAP(parent_oiap_session);
+  res = TPM_OIAP(&parent_oiap_session);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_Start_OIAP(buffer, sctxEntity);
+  //res = TPM_Start_OIAP(buffer, sctxEntity);
+  res = TPM_OIAP(&entity_oiap_session);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_Unseal(buffer, sealedData, unsealedData, STRING_BUF_SIZE,
-  unsealedDataSize,
-                   sctxParent, sctxEntity);
+  //res = TPM_Unseal(buffer, sealedData, unsealedData, STRING_BUF_SIZE,
+  //unsealedDataSize,
+  //                 sctxParent, sctxEntity);
+  res = TPM_Unseal(&pp_data2, unsealedData, unsealedData_size, TPM_KH_SRK,
+		&secrets.srk_auth, &parent_oiap_session,
+		&secrets.pp_auth, &entity_oiap_session);
   TPM_WARNING(res, s_TPM_Unseal);
+
+  /*
 
   out_string(s_Please_confirm_that_the_passphrase);
   out_string(s_Passphrase);
   out_string((char *)unsealedData);
 
   out_string(s_If_this_is_correct);
-  get_string(3, true);
+ // get_string(3, true);
 
-  if (bufcmp(s_YES, string_buf, 3))
-    reboot();
+  //if (bufcmp(s_YES, string_buf, 3))
+    //reboot();
   */
 }
 

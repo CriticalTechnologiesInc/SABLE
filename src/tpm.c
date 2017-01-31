@@ -481,6 +481,8 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */,
 			UINT32 dataSize_in, const TPM_AUTHDATA *ownerAuth_in,
 			TPM_SESSION *session) {
 
+	assert((ownerAuth_in != NULL && session != NULL) || (ownerAuth_in == NULL && session == NULL));
+
 	TPM_TAG tag_in;
 	UINT32 paramSize_in;
 	TPM_COMMAND_CODE ordinal_in = TPM_ORD_NV_ReadValue;
@@ -634,7 +636,7 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
 
   sha1_init(&sctx); // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);
-  assert(tag_out == TPM_TAG_RQU_AUTH2_COMMAND);
+  //assert(tag_out == TPM_TAG_RSP_AUTH2_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, &sctx); // 1S
   if (res)
