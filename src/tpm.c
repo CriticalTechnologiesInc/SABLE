@@ -761,6 +761,10 @@ TPM_RESULT TPM_Seal(TPM_STORED_DATA12 *storedData /* out */,
   pack_init(&pctx, rawData, rawDataSize);
   marshal_TPM_STORED_DATA12(storedData, &pctx, NULL);
   pack_finish(&pctx);
+  // Direct storedData to reference rawData
+  unpack_init(&uctx, rawData, rawDataSize);
+  unmarshal_TPM_STORED_DATA12(storedData, &uctx, NULL);
+  unpack_finish(&uctx);
 
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");
