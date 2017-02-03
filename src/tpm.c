@@ -541,13 +541,12 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */,
 	sha1_init(&sctx); // compute outParamDigest
 	unmarshal_UINT16(&tag_out, &uctx, NULL);
 
-	if (session != NULL) { assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND); }
-	else { assert(tag_out == TPM_TAG_RSP_COMMAND); }
-
 	unmarshal_UINT32(&paramSize_out, &uctx, NULL);
 	unmarshal_UINT32(&res, &uctx, &sctx); // 1S
 
 	if (res) { return res; }
+	if (session != NULL) { assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND); }
+	else { assert(tag_out == TPM_TAG_RSP_COMMAND); }
 
 	unmarshal_UINT32(&ordinal_in, NULL, &sctx); // 2S
 	unmarshal_UINT32(&dataSize_in, &uctx, &sctx); // 3S
@@ -561,23 +560,22 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */,
 		unmarshal_array(&session->nonceOdd, sizeof(TPM_NONCE), NULL, &hctx.sctx); // 3H1
         	unmarshal_BYTE(&session->continueAuthSession, &uctx, &hctx.sctx); // 4H1
 		hmac_finish(&hctx); // HM = hctx.sctx.hash
-		unmarshal_array(&ownerAuth_out, sizeof(TPM_DIGEST), &uctx, NULL);
+		unmarshal_array(&ownerAuth_out, sizeof(TPM_AUTHDATA), &uctx, NULL);
 	}
 
 	UINT32 bytes_unpacked = unpack_finish(&uctx);
 	assert(bytes_unpacked == paramSize_out);
 	if (session != NULL) { assert(session->continueAuthSession == FALSE); }
-
+        if (session != NULL) { ERROR(-1, memcmp(&hctx.sctx.hash, &ownerAuth_out, sizeof(TPM_AUTHDATA)), "MiM attack detected!"); }
 	return res;
 }
 
-TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
+TPM_RESULT TPM_Unseal(const TPM_STORED_DATA12 *inData_in /* in */,
 			BYTE *secret_out /* out */, UINT32
 			secretSizeMax, TPM_KEY_HANDLE parentHandle_in,
 			const TPM_AUTHDATA *parentAuth, TPM_SESSION
      			*parentSession, const TPM_AUTHDATA *dataAuth,
 			TPM_SESSION *dataSession) {
-
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -587,7 +585,7 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
   TPM_TAG tag_in = TPM_TAG_RQU_AUTH2_COMMAND;
   UINT32 paramSize_in =
 	sizeof(TPM_TAG) + sizeof(UINT32) + sizeof(TPM_COMMAND_CODE) +
-	sizeof(TPM_KEY_HANDLE) + sizeof(TPM_STORED_DATA) + 
+	sizeof(TPM_KEY_HANDLE) + sizeof(TPM_STORED_DATA12) +
 	sizeof(TPM_AUTHHANDLE) + sizeof(TPM_NONCE) + sizeof(TSS_BOOL) +
 	sizeof(TPM_AUTHDATA) + sizeof(TPM_AUTHHANDLE) + sizeof(TPM_NONCE) +
 	sizeof(TSS_BOOL) + sizeof(TPM_AUTHDATA);
@@ -605,7 +603,7 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
   marshal_UINT32(paramSize_in, &pctx, NULL);
   marshal_UINT32(ordinal_in, &pctx, &sctx); // 1S
   marshal_UINT32(parentHandle_in, &pctx, NULL);
-  marshal_array(inData_in, sizeof(TPM_STORED_DATA), &pctx, &sctx); // 2S
+  marshal_array(inData_in, sizeof(TPM_STORED_DATA12), &pctx, &sctx); // 2S
   sha1_finish(&sctx); //inParamDigest = sctx.hash
 
   hmac_init(&hctx, parentAuth->authdata,
@@ -636,11 +634,10 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
 
   sha1_init(&sctx); // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);
-  //assert(tag_out == TPM_TAG_RSP_AUTH2_COMMAND);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, &sctx); // 1S
-  if (res)
-    return res;
+  //if (res) { return res; }
+  assert(tag_out == TPM_TAG_RSP_AUTH2_COMMAND);
   unmarshal_UINT32(&ordinal_in, NULL, &sctx); // 2S
   unmarshal_UINT32(&secretSizeMax, &uctx, &sctx); // 3S
   unmarshal_BYTE(secret_out, &uctx, &sctx); // 4S
@@ -654,8 +651,8 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
   unmarshal_array(&resAuth_out, sizeof(TPM_AUTHDATA), &uctx, NULL);
   hmac_finish(&hctx); // HM = hctx.sctx.hash
 
-  ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
-	"MiM attack detected!");
+  //ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
+  //	"MiM attack detected!");
 
   hmac_init(&hctx, dataAuth->authdata, sizeof(TPM_SECRET)); // compute HM
   unmarshal_array(&dataSession->nonceEven, sizeof(TPM_NONCE), &uctx, &hctx.sctx); // 2H2
@@ -664,13 +661,13 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
   unmarshal_array(&dataAuth_out, sizeof(TPM_AUTHDATA), &uctx, NULL);
   hmac_finish(&hctx); // HM = hctx.sctx.hash
 
-  ERROR(-1, memcmp(&hctx.sctx.hash, &dataAuth_out, sizeof(TPM_AUTHDATA)),
-	"MiM attack detected!");
+  //ERROR(-1, memcmp(&hctx.sctx.hash, &dataAuth_out, sizeof(TPM_AUTHDATA)),
+  //	"MiM attack detected!");
 
-  UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(parentSession->continueAuthSession == FALSE);
-  assert(dataSession->continueAuthSession == FALSE);
+  //UINT32 bytes_unpacked = unpack_finish(&uctx);
+  //assert(bytes_unpacked == paramSize_out);
+  //assert(parentSession->continueAuthSession == FALSE);
+  //assert(dataSession->continueAuthSession == FALSE);
 
   return res;
 }

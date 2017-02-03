@@ -35,6 +35,7 @@
 static struct {
   TPM_AUTHDATA pp_auth;
   TPM_AUTHDATA srk_auth;
+  TPM_AUTHDATA owner_auth;
   char passphrase[PASSPHRASE_STR_SIZE];
 } secrets;
 
@@ -126,7 +127,7 @@ static void configure(void) {
   res = TPM_OIAP(&nv_session);
   TPM_ERROR(res, s_TPM_Start_OIAP);
 
-  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0,
+  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x194, 0,
                               &lsecrets.nv_auth, &nv_session);
   TPM_ERROR(res, s_TPM_NV_WriteValueAuth);
 }
@@ -134,16 +135,20 @@ static void configure(void) {
 static void unsealPassphrase(void) {
 
   TPM_RESULT res;
-  TPM_SESSION parent_oiap_session;
-  TPM_SESSION entity_oiap_session;
-  BYTE unsealedData[400];
-  UINT32 unsealedData_size = NULL;
-  TPM_STORED_DATA pp_data2;
+  static TPM_SESSION parent_oiap_session;
+  static TPM_SESSION entity_oiap_session;
+  static TPM_SESSION oiap_session;
 
   get_authdata(s_enter_srkAuthData, &secrets.srk_auth);
   get_authdata(s_enter_passPhraseAuthData, &secrets.pp_auth);
 
-  res = TPM_NV_ReadValue(pp_data2.encData, 0x04, 0, sizeof(pp_blob), NULL, NULL);
+#ifdef NV_OWNER_REQUIRED
+  get_authdata(s_enter_srkAuthData, &secrets.owner_auth);
+  res = TPM_OIAP(&oiap_session);
+  TPM_ERROR(res, s_TPM_Start_OIAP);
+#endif
+
+  res = TPM_NV_ReadValue(pp_blob, 0x194, 0, sizeof(pp_blob), &secrets.owner_auth, &oiap_session);
   TPM_ERROR(res, s_TPM_NV_ReadValueAuth);
 
   //res = TPM_Start_OIAP(parent_oiap_session);
@@ -157,13 +162,19 @@ static void unsealPassphrase(void) {
   //res = TPM_Unseal(buffer, sealedData, unsealedData, STRING_BUF_SIZE,
   //unsealedDataSize,
   //                 sctxParent, sctxEntity);
-  res = TPM_Unseal(&pp_data2, unsealedData, unsealedData_size, TPM_KH_SRK,
+
+  // unmarshal_TPM_STORED_DATA12
+  Unpack_Context uctx;
+  unpack_init(&uctx, pp_blob, sizeof(pp_blob));
+  unmarshal_TPM_STORED_DATA12(&pp_data, &uctx, NULL);
+  unpack_finish(&uctx);
+
+  res = TPM_Unseal(&pp_data, (BYTE *) secrets.passphrase, (sizeof secrets.passphrase), TPM_KH_SRK,
 		&secrets.srk_auth, &parent_oiap_session,
 		&secrets.pp_auth, &entity_oiap_session);
   TPM_WARNING(res, s_TPM_Unseal);
 
-  /*
-
+ /*
   out_string(s_Please_confirm_that_the_passphrase);
   out_string(s_Passphrase);
   out_string((char *)unsealedData);
