@@ -17,11 +17,6 @@ static const TPM_PCR_SELECTION pcr_select = {
     .sizeOfSelect = sizeof(pcr_select_bytes),
     .pcrSelect = (BYTE *)pcr_select_bytes};
 static TPM_PCRVALUE pcr_values[2];
-static BYTE pcr_info_packed[sizeof(TPM_STRUCTURE_TAG) +
-                            2 * sizeof(TPM_LOCALITY_SELECTION) +
-                            2 * (sizeof(pcr_select.sizeOfSelect) +
-                                 sizeof(pcr_select_bytes)) +
-                            2 * sizeof(TPM_COMPOSITE_HASH)];
 
 /* TPM sessions */
 static TPM_OSAP_SESSION srk_osap_session;
@@ -29,7 +24,7 @@ static TPM_SESSION nv_session;
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
-void set_pcr_info(void) {
+TPM_PCR_INFO_LONG get_pcr_info(void) {
   struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
   TPM_ERROR(pcr17.returnCode, TPM_PCRRead);
   pcr_values[0] = pcr17.outDigest;
@@ -47,9 +42,7 @@ void set_pcr_info(void) {
                                 .releasePCRSelection = pcr_select,
                                 .digestAtCreation = composite_hash,
                                 .digestAtRelease = composite_hash};
-  UINT32 bytes_packed = pack_TPM_PCR_INFO_LONG(
-      pcr_info_packed, sizeof(pcr_info_packed), pcr_info);
-  assert(bytes_packed == sizeof(pcr_info_packed));
+  return pcr_info;
 }
 
 void seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
@@ -73,10 +66,12 @@ void seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   TPM_ENCAUTH encAuth =
       encAuth_gen(pp_auth, sharedSecret, srk_osap_session.session.nonceEven);
 
+  TPM_PCR_INFO_LONG pcr_info = get_pcr_info();
+
   // Encrypt the passphrase using the SRK
   struct TPM_Seal_ret seal_ret =
-      TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth, pcr_info_packed,
-               sizeof(pcr_info_packed), (const BYTE *)passphrase, lenPassphrase,
+      TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth, pcr_info,
+               (const BYTE *)passphrase, lenPassphrase,
                &srk_osap_session.session, sharedSecret);
   TPM_ERROR(seal_ret.returnCode, TPM_Seal);
 }

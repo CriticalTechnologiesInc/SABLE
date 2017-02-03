@@ -582,10 +582,10 @@ TPM_RESULT TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
 
 struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
                              TPM_KEY_HANDLE keyHandle_in,
-                             TPM_ENCAUTH encAuth_in, const void *pcrInfo_in,
-                             UINT32 pcrInfoSize_in, const BYTE *inData_in,
-                             UINT32 inDataSize_in, TPM_SESSION *session,
-                             TPM_SECRET sharedSecret) {
+                             TPM_ENCAUTH encAuth_in,
+                             TPM_PCR_INFO_LONG pcrInfo_in,
+                             const BYTE *inData_in, UINT32 inDataSize_in,
+                             TPM_SESSION *session, TPM_SECRET sharedSecret) {
   struct TPM_Seal_ret ret;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -593,6 +593,7 @@ struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
   HMAC_Context hctx;
 
   TPM_TAG tag_in = TPM_TAG_RQU_AUTH1_COMMAND;
+  UINT32 pcrInfoSize_in = sizeof_TPM_PCR_INFO_LONG(pcrInfo_in);
   UINT32 paramSize_in =
       sizeof(TPM_TAG) + sizeof(UINT32) + sizeof(TPM_COMMAND_CODE) +
       sizeof(TPM_KEY_HANDLE) + sizeof(TPM_ENCAUTH) + sizeof(UINT32) +
@@ -612,7 +613,7 @@ struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
   marshal_UINT32(keyHandle_in, &pctx, NULL); //
   marshal_array(&encAuth_in, sizeof(TPM_ENCAUTH), &pctx, &sctx); // 2S
   marshal_UINT32(pcrInfoSize_in, &pctx, &sctx);                  // 3S
-  marshal_array(pcrInfo_in, pcrInfoSize_in, &pctx, &sctx);       // 4S
+  marshal_TPM_PCR_INFO_LONG(&pcrInfo_in, &pctx, &sctx);       // 4S
   marshal_UINT32(inDataSize_in, &pctx, &sctx);                   // 5S
   marshal_array(inData_in, inDataSize_in, &pctx, &sctx);         // 6S
   sha1_finish(&sctx); // inParamDigest = sctx.hash
