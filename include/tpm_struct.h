@@ -63,6 +63,7 @@ TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp);
 void encAuth_gen(TPM_ENCAUTH *encAuth /* out */, const TPM_AUTHDATA *auth,
                  const TPM_SECRET *sharedSecret, const TPM_NONCE *nonceEven);
 void sharedSecret_gen(TPM_SECRET *encAuth /* out */, const TPM_AUTHDATA *auth,
-                 const TPM_NONCE *nonceEvenOSAP, const TPM_NONCE *nonceOddOSAP);
+                      const TPM_NONCE *nonceEvenOSAP,
+                      const TPM_NONCE *nonceOddOSAP);
 
 #endif
