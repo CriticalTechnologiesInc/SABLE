@@ -22,6 +22,7 @@ const char *const message_label = "SABLE:   ";
 
 #ifndef NDEBUG
 void log(const char *file, const char *line, const char *message) {
+  out_string(message_label);
   out_string(file);
   out_char(':');
   out_string(line);
@@ -32,6 +33,7 @@ void log(const char *file, const char *line, const char *message) {
 
 void log_tpm(const char *file, const char *line, const char *cmd,
              const char *message) {
+  out_string(message_label);
   out_string(file);
   out_char(':');
   out_string(line);
@@ -44,6 +46,7 @@ void log_tpm(const char *file, const char *line, const char *cmd,
 
 void log_desc(const char *file, const char *line, const char *message,
               unsigned hex) {
+  out_string(message_label);
   out_string(file);
   out_char(':');
   out_string(line);
