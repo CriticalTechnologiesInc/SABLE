@@ -35,6 +35,7 @@
 #define AUTHDATA_STR_SIZE 64
 
 extern void configure(void);
+extern void trusted_boot(void);
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
@@ -63,42 +64,6 @@ TPM_NONCE get_nonce(void) {
   TPM_RESULT res = TPM_GetRandom(ret.nonce, sizeof(TPM_NONCE));
   TPM_ERROR(res, "nonce generation failed");
   return ret;
-}
-
-static void unsealPassphrase(void) {
-  /*TPM_RESULT res;
-  get_authdata("Please enter the srkAuthData (" AUTHDATA_STR_SIZE " char max):
-  ", &secrets.srk_auth);
-  get_authdata("Please enter the passPhraseAuthData (" AUTHDATA_STR_SIZE " char
-  max): ", &secrets.pp_auth);
-
-  res = TPM_NV_ReadValue(pp_blob, sizeof(pp_blob), 0x04, 0);
-  TPM_ERROR(res, "TPM_NV_ReadValue()");
-
-  res = TPM_Start_OIAP(buffer, sctxParent);
-  TPM_ERROR(res, "TPM_Start_OIAP()");
-
-  res = TPM_Start_OIAP(buffer, sctxEntity);
-  TPM_ERROR(res, "TPM_Start_OIAP()");
-
-  res = TPM_Unseal(buffer, sealedData, unsealedData, STRING_BUF_SIZE,
-  unsealedDataSize,
-                   sctxParent, sctxEntity);
-  TPM_WARNING(res, "TPM_Unseal()");
-
-  out_string("\nPlease confirm that the passphrase shown below matches the "
-              "one which was entered during system configuration. If the "
-              "passphrase does not match, contact your systems administrator "
-              "immediately.\n\n");
-  out_string("Passphrase: ");
-  out_string((char *)unsealedData);
-
-  out_string("\n\nIf this is correct, type 'yes' in all capitals: ");
-  get_string(3, true);
-
-  if (bufcmp("YES", string_buf, 3))
-    reboot();
-    */
 }
 
 /**
@@ -220,7 +185,7 @@ int sable(struct mbi *m) {
       wait(5000);
       reboot();
     } else {
-      unsealPassphrase();
+      trusted_boot();
     }
 
     ERROR(25, tis_deactivate_all(), "tis deactivate failed");

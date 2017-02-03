@@ -52,7 +52,8 @@ void set_pcr_info(void) {
   assert(bytes_packed == sizeof(pcr_info_packed));
 }
 
-void seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth, UINT32 lenPassphrase) {
+void seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+                     UINT32 lenPassphrase) {
   TPM_RESULT res;
 
   // Initialize an OSAP session for the SRK
@@ -113,4 +114,54 @@ void configure(void) {
 
   // write the sealed passphrase to disk
   write_passphrase(nv_auth);
+}
+
+void trusted_boot(void) {
+  /*TPM_RESULT res;
+  TPM_SESSION parent_oiap_session;
+  TPM_SESSION entity_oiap_session;
+  BYTE unsealedData[400];
+  UINT32 unsealedData_size = NULL;
+  TPM_STORED_DATA pp_data2;
+
+  EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
+      AUTHDATA_STR_SIZE) " char max): ");)
+  TPM_AUTHDATA pp_auth = get_authdata();
+  EXCLUDE(out_string("Please enter the srkAuthData (" xstr(
+      AUTHDATA_STR_SIZE) " char max): ");)
+  TPM_AUTHDATA srk_auth = get_authdata();
+
+  res =
+      TPM_NV_ReadValue(pp_data2.encData, 0x04, 0, sizeof(pp_blob), NULL, NULL);
+  TPM_ERROR(res, TPM_NV_ReadValue);
+
+  // res = TPM_Start_OIAP(parent_oiap_session);
+  res = TPM_OIAP(&parent_oiap_session);
+  TPM_ERROR(res, TPM_OIAP);
+
+  // res = TPM_Start_OIAP(buffer, sctxEntity);
+  res = TPM_OIAP(&entity_oiap_session);
+  TPM_ERROR(res, TPM_OIAP);
+
+  // res = TPM_Unseal(buffer, sealedData, unsealedData, STRING_BUF_SIZE,
+  // unsealedDataSize,
+  //                 sctxParent, sctxEntity);
+  res = TPM_Unseal(&pp_data2, unsealedData, unsealedData_size, TPM_KH_SRK,
+                   &secrets.srk_auth, &parent_oiap_session, &secrets.pp_auth,
+                   &entity_oiap_session);
+  TPM_ERROR(res, TPM_Unseal);
+  */
+
+  /*
+
+  out_string(s_Please_confirm_that_the_passphrase);
+  out_string(s_Passphrase);
+  out_string((char *)unsealedData);
+
+  out_string(s_If_this_is_correct);
+ // get_string(3, true);
+
+  //if (bufcmp(s_YES, string_buf, 3))
+    //reboot();
+  */
 }
