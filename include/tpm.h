@@ -11,6 +11,7 @@
  * the  terms  of the  GNU General Public Licence 2.  Please see the
  * COPYING file for details.
  */
+OPTION_GEN(TPM_AUTHDATA);
 
 typedef struct tdTPM_SESSION {
   TPM_AUTHHANDLE authHandle;
@@ -44,15 +45,15 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                                  TPM_AUTHDATA nv_auth, TPM_SESSION *session);
 TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
                             UINT32 offset_in, UINT32 dataSize_in,
-                            const TPM_AUTHDATA *ownerAuth_in,
+                            OPTION(TPM_AUTHDATA) ownerAuth_in,
                             TPM_SESSION *session);
 TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
                       TPM_PCRVALUE *outDigest_out /* out */);
 TPM_RESULT
-TPM_Unseal(const TPM_STORED_DATA *inData_in /* in */,
+TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */,
            BYTE *secret_out /* out */, UINT32 secretSizeMax,
-           TPM_KEY_HANDLE parentHandle_in, const TPM_AUTHDATA *parentAuth,
-           TPM_SESSION *parentSession, const TPM_AUTHDATA *dataAuth,
+           TPM_KEY_HANDLE parentHandle_in, TPM_AUTHDATA parentAuth,
+           TPM_SESSION *parentSession, TPM_AUTHDATA dataAuth,
            TPM_SESSION *dataSession);
 struct TPM_Seal_ret {
   TPM_RESULT returnCode;

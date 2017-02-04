@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#include "option.h"
 #include "asm.h"
 #include "dev.h"
 #include "mbi.h"
@@ -57,7 +58,8 @@ TPM_AUTHDATA get_authdata(void) {
   }
 }
 
-/* temporary solution, in the long term we should not rely on the TPM to generate
+/* temporary solution, in the long term we should not rely on the TPM to
+ * generate
  * nonces. */
 TPM_NONCE get_nonce(void) {
   TPM_NONCE ret;

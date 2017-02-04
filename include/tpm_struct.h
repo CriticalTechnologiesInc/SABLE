@@ -48,8 +48,9 @@ void unmarshal_TPM_STORED_DATA12(TPM_STORED_DATA12 *data /* in/out */,
 
 /* Helper functions to compute the size of TPM structs */
 
-UINT32 sizeof_TPM_PCR_SELECTION(TPM_PCR_SELECTION select);
-UINT32 sizeof_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo);
+UINT32 sizeof_TPM_PCR_SELECTION(const TPM_PCR_SELECTION *select);
+UINT32 sizeof_TPM_PCR_INFO_LONG(const TPM_PCR_INFO_LONG *pcrInfo);
+UINT32 sizeof_TPM_STORED_DATA12(const TPM_STORED_DATA12 *storedData);
 
 /* APIs to generate specific TPM structs */
 
@@ -59,7 +60,9 @@ TPM_ENCAUTH encAuth_gen(TPM_AUTHDATA entityAuthData, TPM_SECRET sharedSecret,
 TPM_SECRET sharedSecret_gen(TPM_AUTHDATA auth, TPM_NONCE nonceEvenOSAP,
                             TPM_NONCE nonceOddOSAP);
 
-/* Helper functions to pack just one struct into a buffer, returns the
- * number of bytes packed */
+/* Helper functions to pack/unpack just one struct into a buffer, returns the
+ * number of bytes packed, or the unpacked struct */
 UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
                               TPM_PCR_INFO_LONG pcrInfo /* in */);
+TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(const BYTE *data /* in */,
+                                           UINT32 dataSize);

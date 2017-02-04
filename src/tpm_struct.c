@@ -232,20 +232,31 @@ void unmarshal_TPM_STORED_DATA12(TPM_STORED_DATA12 *data, Unpack_Context *ctx,
   unmarshal_ptr(&data->encData, data->encDataSize, ctx, sctx);
 }
 
-UINT32 sizeof_TPM_PCR_SELECTION(TPM_PCR_SELECTION select) {
+UINT32 sizeof_TPM_PCR_SELECTION(const TPM_PCR_SELECTION *select) {
   UINT32 ret = 0;
-  ret += sizeof(select.sizeOfSelect);
-  ret += select.sizeOfSelect;
+  ret += sizeof(select->sizeOfSelect);
+  ret += select->sizeOfSelect;
   return ret;
 }
 
-UINT32 sizeof_TPM_PCR_INFO_LONG(TPM_PCR_INFO_LONG pcrInfo) {
+UINT32 sizeof_TPM_PCR_INFO_LONG(const TPM_PCR_INFO_LONG *pcrInfo) {
   UINT32 ret = 0;
   ret += sizeof(TPM_STRUCTURE_TAG);
   ret += 2 * sizeof(TPM_LOCALITY_SELECTION);
-  ret += sizeof_TPM_PCR_SELECTION(pcrInfo.creationPCRSelection);
-  ret += sizeof_TPM_PCR_SELECTION(pcrInfo.releasePCRSelection);
+  ret += sizeof_TPM_PCR_SELECTION(&pcrInfo->creationPCRSelection);
+  ret += sizeof_TPM_PCR_SELECTION(&pcrInfo->releasePCRSelection);
   ret += 2 * sizeof(TPM_COMPOSITE_HASH);
+  return ret;
+}
+
+UINT32 sizeof_TPM_STORED_DATA12(const TPM_STORED_DATA12 *storedData) {
+  UINT32 ret = 0;
+  ret += sizeof(TPM_STRUCTURE_TAG);
+  ret += sizeof(TPM_ENTITY_TYPE);
+  ret += sizeof(UINT32);
+  ret += storedData->sealInfoSize;
+  ret += sizeof(UINT32);
+  ret += storedData->encDataSize;
   return ret;
 }
 
@@ -289,4 +300,14 @@ UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
   pack_init(&pctx, data, dataSize);
   marshal_TPM_PCR_INFO_LONG(&pcrInfo, &pctx, NULL);
   return pack_finish(&pctx);
+}
+
+TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(const BYTE *data /* in */,
+                                           UINT32 dataSize) {
+  TPM_STORED_DATA12 ret;
+  Unpack_Context uctx;
+  unpack_init(&uctx, data, dataSize);
+  unmarshal_TPM_STORED_DATA12(&ret, &uctx, NULL);
+  unpack_finish(&uctx);
+  return ret;
 }

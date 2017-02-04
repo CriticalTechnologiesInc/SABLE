@@ -14,6 +14,7 @@
  * $Id: tpm_error.c 364 2010-02-11 10:24:45Z mast $
  */
 
+#include "macro.h"
 #include "platform.h"
 #include "tcg.h"
 #include "util.h"

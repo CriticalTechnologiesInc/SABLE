@@ -1,3 +1,4 @@
+#include "macro.h"
 #include "platform.h"
 #include "tcg.h"
 #include "sha.h"

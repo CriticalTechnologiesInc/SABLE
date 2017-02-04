@@ -21,6 +21,11 @@ static TPM_PCRVALUE pcr_values[2];
 /* TPM sessions */
 static TPM_OSAP_SESSION srk_osap_session;
 static TPM_SESSION nv_session;
+static TPM_SESSION srk_session;
+static TPM_SESSION pp_session;
+#ifdef NV_OWNER_REQUIRED
+static TPM_SESSION owner_session;
+#endif
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
@@ -111,13 +116,48 @@ void configure(void) {
   write_passphrase(nv_auth);
 }
 
+TPM_STORED_DATA12 read_passphrase(void) {
+  TPM_RESULT res;
+  OPTION(TPM_AUTHDATA) nv_auth;
+
+#ifdef NV_OWNER_REQUIRED
+  EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
+      AUTHDATA_STR_SIZE) " char max): ");)
+  nv_auth.value = get_authdata();
+  nv_auth.hasValue = true;
+
+  res = TPM_OIAP(&owner_session);
+  TPM_ERROR(res, TPM_OIAP);
+
+  res =
+      TPM_NV_ReadValue(pp_blob, 404, 0, sizeof(pp_blob), nv_auth, &nv_session);
+  TPM_ERROR(res, TPM_NV_ReadValue);
+#else
+  nv_auth.hasValue = false;
+  res = TPM_NV_ReadValue(pp_blob, 4, 0, sizeof(pp_blob), nv_auth, NULL);
+  TPM_ERROR(res, TPM_NV_ReadValue);
+#endif
+
+  return unpack_TPM_STORED_DATA12(pp_blob, sizeof(pp_blob));
+}
+
+void unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+                       TPM_STORED_DATA12 sealed_pp) {
+  TPM_RESULT res;
+
+  res = TPM_OIAP(&srk_session);
+  TPM_ERROR(res, TPM_OIAP);
+
+  res = TPM_OIAP(&pp_session);
+  TPM_ERROR(res, TPM_OIAP);
+
+  res = TPM_Unseal(sealed_pp, (BYTE *)passphrase, sizeof(passphrase), TPM_KH_SRK,
+                   srk_auth, &srk_session, pp_auth, &pp_session);
+  TPM_ERROR(res, TPM_Unseal);
+}
+
 void trusted_boot(void) {
-  /*TPM_RESULT res;
-  TPM_SESSION parent_oiap_session;
-  TPM_SESSION entity_oiap_session;
-  BYTE unsealedData[400];
-  UINT32 unsealedData_size = NULL;
-  TPM_STORED_DATA pp_data2;
+  TPM_STORED_DATA12 sealed_pp = read_passphrase();
 
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
@@ -125,6 +165,15 @@ void trusted_boot(void) {
   EXCLUDE(out_string("Please enter the srkAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA srk_auth = get_authdata();
+
+  unseal_passphrase(srk_auth, pp_auth, sealed_pp);
+
+  /*TPM_RESULT res;
+  TPM_SESSION parent_oiap_session;
+  TPM_SESSION entity_oiap_session;
+  BYTE unsealedData[400];
+  UINT32 unsealedData_size = NULL;
+  TPM_STORED_DATA pp_data2;
 
   res =
       TPM_NV_ReadValue(pp_data2.encData, 0x04, 0, sizeof(pp_blob), NULL, NULL);
