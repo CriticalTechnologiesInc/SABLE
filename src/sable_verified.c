@@ -168,44 +168,11 @@ void trusted_boot(void) {
 
   unseal_passphrase(srk_auth, pp_auth, sealed_pp);
 
-  /*TPM_RESULT res;
-  TPM_SESSION parent_oiap_session;
-  TPM_SESSION entity_oiap_session;
-  BYTE unsealedData[400];
-  UINT32 unsealedData_size = NULL;
-  TPM_STORED_DATA pp_data2;
-
-  res =
-      TPM_NV_ReadValue(pp_data2.encData, 0x04, 0, sizeof(pp_blob), NULL, NULL);
-  TPM_ERROR(res, TPM_NV_ReadValue);
-
-  // res = TPM_Start_OIAP(parent_oiap_session);
-  res = TPM_OIAP(&parent_oiap_session);
-  TPM_ERROR(res, TPM_OIAP);
-
-  // res = TPM_Start_OIAP(buffer, sctxEntity);
-  res = TPM_OIAP(&entity_oiap_session);
-  TPM_ERROR(res, TPM_OIAP);
-
-  // res = TPM_Unseal(buffer, sealedData, unsealedData, STRING_BUF_SIZE,
-  // unsealedDataSize,
-  //                 sctxParent, sctxEntity);
-  res = TPM_Unseal(&pp_data2, unsealedData, unsealedData_size, TPM_KH_SRK,
-                   &secrets.srk_auth, &parent_oiap_session, &secrets.pp_auth,
-                   &entity_oiap_session);
-  TPM_ERROR(res, TPM_Unseal);
-  */
-
-  /*
-
-  out_string(s_Please_confirm_that_the_passphrase);
-  out_string(s_Passphrase);
-  out_string((char *)unsealedData);
-
-  out_string(s_If_this_is_correct);
- // get_string(3, true);
+  EXCLUDE(out_string("Please confirm that the passphrase is correct:\n\n");)
+  EXCLUDE(out_string(passphrase);)
+  EXCLUDE(out_string("\n\nIf this is correct, please type YES in all capitals: ");)
+  //get_string(3, true);
 
   //if (bufcmp(s_YES, string_buf, 3))
     //reboot();
-  */
 }
