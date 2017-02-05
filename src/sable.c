@@ -12,7 +12,6 @@
  * COPYING file for details.
  */
 
-#include "option.h"
 #include "asm.h"
 #include "dev.h"
 #include "mbi.h"
