@@ -15,6 +15,7 @@
 #include "asm.h"
 #include "macro.h"
 #include "platform.h"
+#include "alloc.h"
 #include "tcg.h"
 #include "tis.h"
 #include "sha.h"
@@ -471,12 +472,11 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
   return res;
 }
 
-TPM_RESULT TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */,
-                      BYTE *secret_out /* out */, UINT32 secretSizeMax,
-                      TPM_KEY_HANDLE parentHandle_in, TPM_AUTHDATA parentAuth,
-                      TPM_SESSION *parentSession, TPM_AUTHDATA dataAuth,
-                      TPM_SESSION *dataSession) {
-  TPM_RESULT res;
+struct TPM_Unseal_ret
+TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
+           TPM_AUTHDATA parentAuth, TPM_SESSION *parentSession,
+           TPM_AUTHDATA dataAuth, TPM_SESSION *dataSession) {
+  struct TPM_Unseal_ret ret;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -539,15 +539,16 @@ TPM_RESULT TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */,
   sha1_init(&sctx); // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&res, &uctx, &sctx); // 1S
-  if (res) {
-    return res;
+  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
+  if (ret.returnCode) {
+    return ret;
   }
   assert(tag_out == TPM_TAG_RSP_AUTH2_COMMAND);
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);     // 2S
-  unmarshal_UINT32(&secretSizeMax, &uctx, &sctx); // 3S
-  unmarshal_BYTE(secret_out, &uctx, &sctx);       // 4S
-  sha1_finish(&sctx);                             // outParamDigest = sctx.hash
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);            // 2S
+  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);         // 3S
+  ret.data = alloc(ret.dataSize);                        //
+  unmarshal_array(ret.data, ret.dataSize, &uctx, &sctx); // 4S
+  sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, parentAuth.authdata, sizeof(TPM_SECRET)); // compute HM
   unmarshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx);
@@ -579,7 +580,7 @@ TPM_RESULT TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */,
   // assert(parentSession->continueAuthSession == FALSE);
   // assert(dataSession->continueAuthSession == FALSE);
 
-  return res;
+  return ret;
 }
 
 struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,

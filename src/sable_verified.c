@@ -10,13 +10,7 @@ extern TPM_NONCE get_nonce(void);
  * SABLE globals
  **********************************************************/
 
-static char passphrase[PASSPHRASE_STR_SIZE];
 static BYTE pp_blob[400];
-static BYTE pcr_select_bytes[3] = {0x0, 0x0, 0xa};
-static const TPM_PCR_SELECTION pcr_select = {
-    .sizeOfSelect = sizeof(pcr_select_bytes),
-    .pcrSelect = (BYTE *)pcr_select_bytes};
-static TPM_PCRVALUE pcr_values[2];
 
 /* TPM sessions */
 static TPM_OSAP_SESSION srk_osap_session;
@@ -30,6 +24,13 @@ static TPM_SESSION owner_session;
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
 TPM_PCR_INFO_LONG get_pcr_info(void) {
+  TPM_PCRVALUE *pcr_values = alloc(2 * sizeof(TPM_PCRVALUE));
+  BYTE *pcr_select_bytes = alloc(3);
+  pcr_select_bytes[0] = 0x00;
+  pcr_select_bytes[1] = 0x00;
+  pcr_select_bytes[2] = 0x0a;
+  TPM_PCR_SELECTION pcr_select = {.sizeOfSelect = sizeof(pcr_select_bytes),
+                                  .pcrSelect = (BYTE *)pcr_select_bytes};
   struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
   TPM_ERROR(pcr17.returnCode, TPM_PCRRead);
   pcr_values[0] = pcr17.outDigest;
@@ -151,8 +152,8 @@ void unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   res = TPM_OIAP(&pp_session);
   TPM_ERROR(res, TPM_OIAP);
 
-  res = TPM_Unseal(sealed_pp, (BYTE *)passphrase, sizeof(passphrase), TPM_KH_SRK,
-                   srk_auth, &srk_session, pp_auth, &pp_session);
+  res = TPM_Unseal(sealed_pp, (BYTE *)passphrase, sizeof(passphrase),
+                   TPM_KH_SRK, srk_auth, &srk_session, pp_auth, &pp_session);
   TPM_ERROR(res, TPM_Unseal);
 }
 
@@ -170,9 +171,10 @@ void trusted_boot(void) {
 
   EXCLUDE(out_string("Please confirm that the passphrase is correct:\n\n");)
   EXCLUDE(out_string(passphrase);)
-  EXCLUDE(out_string("\n\nIf this is correct, please type YES in all capitals: ");)
-  //get_string(3, true);
+  EXCLUDE(
+      out_string("\n\nIf this is correct, please type YES in all capitals: ");)
+  // get_string(3, true);
 
-  //if (bufcmp(s_YES, string_buf, 3))
-    //reboot();
+  // if (bufcmp(s_YES, string_buf, 3))
+  // reboot();
 }
