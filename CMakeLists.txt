@@ -41,6 +41,7 @@ set (CMAKE_EXE_LINKER_FLAGS
 
 add_executable (sable
   src/asm.S
+  src/alloc.c
   src/dev.c
   src/elf.c
   src/hmac.c
@@ -66,6 +67,7 @@ add_dependencies (sable sable_verified_h)
 # These are include files used to generate sable.h only
 set (SABLE_H_HEADER_FILES
   ${PROJECT_SOURCE_DIR}/include/macro.h
+  ${PROJECT_SOURCE_DIR}/include/alloc.h
   ${PROJECT_SOURCE_DIR}/include/asm.h
   ${PROJECT_SOURCE_DIR}/include/dev.h
   ${PROJECT_SOURCE_DIR}/include/elf.h
