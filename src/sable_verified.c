@@ -36,7 +36,7 @@ TPM_PCR_INFO_LONG get_pcr_info(void) {
   TPM_ERROR(pcr19.returnCode, TPM_PCRRead);
   pcr_values[1] = pcr19.outDigest;
   TPM_PCR_COMPOSITE composite = {.select = pcr_select,
-                                 .valueSize = sizeof(pcr_values),
+                                 .valueSize = 2 * sizeof(TPM_PCRVALUE),
                                  .pcrValue = (TPM_PCRVALUE *)pcr_values};
   TPM_COMPOSITE_HASH composite_hash = get_TPM_COMPOSITE_HASH(composite);
   TPM_PCR_INFO_LONG pcr_info = {.tag = TPM_TAG_PCR_INFO_LONG,
