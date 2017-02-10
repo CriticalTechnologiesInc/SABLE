@@ -439,10 +439,9 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   } else {
     assert(tag_out == TPM_TAG_RSP_COMMAND);
   }
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);         // 2S
-  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);      // 3S
-  ret.data = alloc(ret.dataSize);                     //
-  unmarshal_ptr(ret.data, dataSize_in, &uctx, &sctx); // 4S
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);          // 2S
+  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);       // 3S
+  unmarshal_ptr(&ret.data, ret.dataSize, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   if (session != NULL) {

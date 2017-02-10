@@ -27,7 +27,7 @@ TPM_PCR_INFO_LONG get_pcr_info(void) {
   pcr_select_bytes[0] = 0x00;
   pcr_select_bytes[1] = 0x00;
   pcr_select_bytes[2] = 0x0a;
-  TPM_PCR_SELECTION pcr_select = {.sizeOfSelect = sizeof(pcr_select_bytes),
+  TPM_PCR_SELECTION pcr_select = {.sizeOfSelect = 3,
                                   .pcrSelect = (BYTE *)pcr_select_bytes};
   struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
   TPM_ERROR(pcr17.returnCode, TPM_PCRRead);
@@ -101,7 +101,7 @@ void configure(void) {
   EXCLUDE(out_string("Please enter the passphrase (" xstr(
       PASSPHRASE_STR_SIZE) " char max): ");)
   UINT32 lenPassphrase =
-      get_string(passphrase, sizeof(passphrase) - 1, true) + 1;
+      get_string(passphrase, PASSPHRASE_STR_SIZE - 1, true) + 1;
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA pp_auth = get_authdata();

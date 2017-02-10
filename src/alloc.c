@@ -120,7 +120,7 @@ void *alloc(UINT32 size) {
   size = align_up(size, ALLOC_CHUNK_SIZE_BITS);
   UINT32 total_size = size + sizeof(struct mem_node);
 
-  struct mem_node *current = (struct mem_node *)(prev + total_size);
+  struct mem_node *current = (struct mem_node *)((BYTE *)prev + total_size);
   current->size = prev->size - total_size;
   current->next = NULL;
   prev->size = size;
