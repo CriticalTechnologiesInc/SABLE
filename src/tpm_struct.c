@@ -289,10 +289,9 @@ TPM_SECRET sharedSecret_gen(TPM_AUTHDATA auth, TPM_NONCE nonceEvenOSAP,
 TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {
   SHA1_Context sctx;
   sha1_init(&sctx);
-  sha1(&sctx, &comp.select.sizeOfSelect, sizeof(comp.select.sizeOfSelect));
-  sha1(&sctx, comp.select.pcrSelect, comp.select.sizeOfSelect);
-  sha1(&sctx, &comp.valueSize, sizeof(comp.valueSize));
-  sha1(&sctx, comp.pcrValue, comp.valueSize);
+  marshal_TPM_PCR_SELECTION(&comp.select, NULL, &sctx);
+  marshal_UINT32(comp.valueSize, NULL, &sctx);
+  marshal_array(comp.pcrValue, comp.valueSize, NULL, &sctx);
   sha1_finish(&sctx);
   return sctx.hash;
 }
