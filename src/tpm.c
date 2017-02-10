@@ -365,10 +365,10 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   return ret;
 }
 
-TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
-                            UINT32 offset_in, UINT32 dataSize_in,
-                            OPTION(TPM_AUTHDATA) ownerAuth_in,
-                            TPM_SESSION *session) {
+struct TPM_NV_ReadValue_ret
+TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
+                 OPTION(TPM_AUTHDATA) ownerAuth_in, TPM_SESSION *session) {
+  struct TPM_NV_ReadValue_ret ret;
 
   assert((ownerAuth_in.hasValue && session) ||
          (!ownerAuth_in.hasValue && !session));
@@ -376,7 +376,6 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
   TPM_TAG tag_in;
   UINT32 paramSize_in;
   TPM_COMMAND_CODE ordinal_in = TPM_ORD_NV_ReadValue;
-  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -431,20 +430,19 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
   unmarshal_UINT16(&tag_out, &uctx, NULL);
 
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&res, &uctx, &sctx); // 1S
-
-  if (res) {
-    return res;
+  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
+  if (ret.returnCode) {
+    return ret;
   }
   if (session != NULL) {
     assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
   } else {
     assert(tag_out == TPM_TAG_RSP_COMMAND);
   }
-
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);           // 2S
-  unmarshal_UINT32(&dataSize_in, &uctx, &sctx);         // 3S
-  unmarshal_array(data_out, dataSize_in, &uctx, &sctx); // 4S
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);         // 2S
+  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);      // 3S
+  ret.data = alloc(ret.dataSize);                     //
+  unmarshal_ptr(ret.data, dataSize_in, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   if (session != NULL) {
@@ -469,7 +467,7 @@ TPM_RESULT TPM_NV_ReadValue(BYTE *data_out /* out */, TPM_NV_INDEX nvIndex_in,
     ERROR(-1, memcmp(&hctx.sctx.hash, &ownerAuth_out, sizeof(TPM_AUTHDATA)),
           "MiM attack detected!");
   }
-  return res;
+  return ret;
 }
 
 struct TPM_Unseal_ret
@@ -583,8 +581,7 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   return ret;
 }
 
-struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
-                             TPM_KEY_HANDLE keyHandle_in,
+struct TPM_Seal_ret TPM_Seal(TPM_KEY_HANDLE keyHandle_in,
                              TPM_ENCAUTH encAuth_in,
                              TPM_PCR_INFO_LONG pcrInfo_in,
                              const BYTE *inData_in, UINT32 inDataSize_in,
@@ -665,15 +662,6 @@ struct TPM_Seal_ret TPM_Seal(BYTE *rawData /* out */, UINT32 rawDataSize,
   assert(bytes_unpacked == paramSize_out);
   assert(session->continueAuthSession == FALSE);
   assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
-
-  // Pack the storedData into a buffer
-  pack_init(&pctx, rawData, rawDataSize);
-  marshal_TPM_STORED_DATA12(&ret.sealedData, &pctx, NULL);
-  pack_finish(&pctx);
-  // Direct storedData to reference rawData
-  unpack_init(&uctx, rawData, rawDataSize);
-  unmarshal_TPM_STORED_DATA12(&ret.sealedData, &uctx, NULL);
-  unpack_finish(&uctx);
 
   ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
         "MiM attack detected!");

@@ -10,8 +10,6 @@ extern TPM_NONCE get_nonce(void);
  * SABLE globals
  **********************************************************/
 
-static BYTE pp_blob[400];
-
 /* TPM sessions */
 static TPM_OSAP_SESSION srk_osap_session;
 static TPM_SESSION nv_session;
@@ -51,8 +49,9 @@ TPM_PCR_INFO_LONG get_pcr_info(void) {
   return pcr_info;
 }
 
-void seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
-                     UINT32 lenPassphrase) {
+TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+                                  const char *passphrase,
+                                  UINT32 lenPassphrase) {
   TPM_RESULT res;
 
   // Initialize an OSAP session for the SRK
@@ -76,24 +75,28 @@ void seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
 
   // Encrypt the passphrase using the SRK
   struct TPM_Seal_ret seal_ret =
-      TPM_Seal(pp_blob, sizeof(pp_blob), TPM_KH_SRK, encAuth, pcr_info,
-               (const BYTE *)passphrase, lenPassphrase,
-               &srk_osap_session.session, sharedSecret);
+      TPM_Seal(TPM_KH_SRK, encAuth, pcr_info, (const BYTE *)passphrase,
+               lenPassphrase, &srk_osap_session.session, sharedSecret);
   TPM_ERROR(seal_ret.returnCode, TPM_Seal);
+
+  return seal_ret.sealedData;
 }
 
-void write_passphrase(TPM_AUTHDATA nv_auth) {
+void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
   TPM_RESULT res;
 
   res = TPM_OIAP(&nv_session);
   TPM_ERROR(res, TPM_Start_OIAP);
 
-  res = TPM_NV_WriteValueAuth(pp_blob, sizeof(pp_blob), 0x04, 0, nv_auth,
-                              &nv_session);
+  struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
+  res =
+      TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, &nv_session);
   TPM_ERROR(res, TPM_NV_WriteValueAuth);
 }
 
 void configure(void) {
+  char *passphrase = alloc(PASSPHRASE_STR_SIZE);
+
   // get the passphrase, passphrase authdata, and SRK authdata
   EXCLUDE(out_string("Please enter the passphrase (" xstr(
       PASSPHRASE_STR_SIZE) " char max): ");)
@@ -107,18 +110,19 @@ void configure(void) {
   TPM_AUTHDATA srk_auth = get_authdata();
 
   // seal the passphrase to the pp_blob buffer
-  seal_passphrase(srk_auth, pp_auth, lenPassphrase);
+  TPM_STORED_DATA12 sealedData =
+      seal_passphrase(srk_auth, pp_auth, passphrase, lenPassphrase);
 
   EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA nv_auth = get_authdata();
 
   // write the sealed passphrase to disk
-  write_passphrase(nv_auth);
+  write_passphrase(nv_auth, sealedData);
 }
 
 TPM_STORED_DATA12 read_passphrase(void) {
-  TPM_RESULT res;
+  struct TPM_NV_ReadValue_ret val;
   OPTION(TPM_AUTHDATA) nv_auth;
 
 #ifdef NV_OWNER_REQUIRED
@@ -130,20 +134,19 @@ TPM_STORED_DATA12 read_passphrase(void) {
   res = TPM_OIAP(&owner_session);
   TPM_ERROR(res, TPM_OIAP);
 
-  res =
-      TPM_NV_ReadValue(pp_blob, 404, 0, sizeof(pp_blob), nv_auth, &nv_session);
-  TPM_ERROR(res, TPM_NV_ReadValue);
+  val = TPM_NV_ReadValue(404, 0, 400, nv_auth, &nv_session);
+  TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
 #else
   nv_auth.hasValue = false;
-  res = TPM_NV_ReadValue(pp_blob, 4, 0, sizeof(pp_blob), nv_auth, NULL);
-  TPM_ERROR(res, TPM_NV_ReadValue);
+  val = TPM_NV_ReadValue(4, 0, 400, nv_auth, NULL);
+  TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
 #endif
 
-  return unpack_TPM_STORED_DATA12(pp_blob, sizeof(pp_blob));
+  return unpack_TPM_STORED_DATA12(val.data, val.dataSize);
 }
 
-void unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
-                       TPM_STORED_DATA12 sealed_pp) {
+const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+                              TPM_STORED_DATA12 sealed_pp) {
   TPM_RESULT res;
 
   res = TPM_OIAP(&srk_session);
@@ -152,9 +155,11 @@ void unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   res = TPM_OIAP(&pp_session);
   TPM_ERROR(res, TPM_OIAP);
 
-  res = TPM_Unseal(sealed_pp, (BYTE *)passphrase, sizeof(passphrase),
-                   TPM_KH_SRK, srk_auth, &srk_session, pp_auth, &pp_session);
-  TPM_ERROR(res, TPM_Unseal);
+  TPM_Unseal_ret unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, srk_auth,
+                                         &srk_session, pp_auth, &pp_session);
+  TPM_ERROR(unseal_ret.returnCode, TPM_Unseal);
+
+  return (const char *)unseal_ret.data;
 }
 
 void trusted_boot(void) {
@@ -167,7 +172,7 @@ void trusted_boot(void) {
       AUTHDATA_STR_SIZE) " char max): ");)
   TPM_AUTHDATA srk_auth = get_authdata();
 
-  unseal_passphrase(srk_auth, pp_auth, sealed_pp);
+  const char *passphrase = unseal_passphrase(srk_auth, pp_auth, sealed_pp);
 
   EXCLUDE(out_string("Please confirm that the passphrase is correct:\n\n");)
   EXCLUDE(out_string(passphrase);)

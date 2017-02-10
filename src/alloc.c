@@ -65,13 +65,6 @@ static UINT32 align_up(UINT32 val, UINT32 align_bits) {
   return (val + ((1UL << align_bits) - 1UL)) & (~((1UL << align_bits) - 1UL));
 }
 
-/* Return the maximum of "a" and "b". */
-static UINT32 max(UINT32 a, UINT32 b) {
-  if (a >= b)
-    return a;
-  return b;
-}
-
 /*
  * This simple allocator uses a linked list of "mem_nodes", each which
  * contain a size (indicating that the 'size' bytes from the beginning

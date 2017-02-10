@@ -1,6 +1,7 @@
 #include "macro.h"
 #include "asm.h"
 #include "platform.h"
+#include "alloc.h"
 #include "tcg.h"
 #include "sha.h"
 #include "hmac.h"
@@ -169,8 +170,10 @@ void unmarshal_ptr(void *ptr, UINT32 size, Unpack_Context *ctx,
   assert(ptr);
   assert(ctx);
   void **tmp = (void **)ptr;
-  *tmp = (void *)(ctx->unpack_buffer + ctx->bytes_unpacked);
   check_unpack_overflow(ctx, size);
+  *tmp = alloc(size);
+  assert(*tmp);
+  memcpy(*tmp, ctx->unpack_buffer + ctx->bytes_unpacked, size);
   ctx->bytes_unpacked += size;
   if (sctx) {
     sha1(sctx, *tmp, size);
@@ -295,10 +298,18 @@ TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {
 }
 
 UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
-                            TPM_PCR_INFO_LONG pcrInfo /* in */) {
+                            const TPM_PCR_INFO_LONG *pcrInfo /* in */) {
   Pack_Context pctx;
   pack_init(&pctx, data, dataSize);
-  marshal_TPM_PCR_INFO_LONG(&pcrInfo, &pctx, NULL);
+  marshal_TPM_PCR_INFO_LONG(pcrInfo, &pctx, NULL);
+  return pack_finish(&pctx);
+}
+
+UINT32 pack_TPM_STORED_DATA12(BYTE *data /* out */, UINT32 dataSize,
+                              const TPM_STORED_DATA12 *storedData) {
+  Pack_Context pctx;
+  pack_init(&pctx, data, dataSize);
+  marshal_TPM_STORED_DATA12(storedData, &pctx, NULL);
   return pack_finish(&pctx);
 }
 
@@ -309,5 +320,14 @@ TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(const BYTE *data /* in */,
   unpack_init(&uctx, data, dataSize);
   unmarshal_TPM_STORED_DATA12(&ret, &uctx, NULL);
   unpack_finish(&uctx);
+  return ret;
+}
+
+struct extracted_TPM_STORED_DATA12 extract_TPM_STORED_DATA12(TPM_STORED_DATA12 storedData) {
+  UINT32 size = sizeof_TPM_STORED_DATA12(&storedData);
+  struct extracted_TPM_STORED_DATA12 ret = {
+    .dataSize = size,
+    .data = alloc(size)};
+  pack_TPM_STORED_DATA12(ret.data, ret.dataSize, &storedData);
   return ret;
 }

@@ -63,6 +63,12 @@ TPM_SECRET sharedSecret_gen(TPM_AUTHDATA auth, TPM_NONCE nonceEvenOSAP,
 /* Helper functions to pack/unpack just one struct into a buffer, returns the
  * number of bytes packed, or the unpacked struct */
 UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
-                              TPM_PCR_INFO_LONG pcrInfo /* in */);
+                              const TPM_PCR_INFO_LONG *pcrInfo /* in */);
+UINT32 pack_TPM_STORED_DATA12(BYTE *data /* out */, UINT32 dataSize,
+                              const TPM_STORED_DATA12 *storedData /* in */);
 TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(const BYTE *data /* in */,
                                            UINT32 dataSize);
+struct extracted_TPM_STORED_DATA12 {
+  UINT32 dataSize;
+  BYTE *data;
+} extract_TPM_STORED_DATA12(TPM_STORED_DATA12 storedData);
