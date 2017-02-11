@@ -108,6 +108,7 @@ minimum recommended size is 384 bytes. Here's an example configuration command:
 Once the space has been configured, reboot your system, and select the new SEC
 from the GRUB2 boot menu. SABLE will ask if you want to configure. Type "y", then
 enter the following credentials:
+
 - The **passphrase** is a unique text string that should be known only to the user(s)
   of this SEC. On a trusted boot, this passphrase will be displayed to the user
   if and only if the boot configuration is valid.
@@ -125,8 +126,10 @@ from the GRUB2 menu as in the Configuration step, but this time strike the 'n' k
 when prompted to initiate a trusted boot. SABLE will measure the boot components, and
 attempt to unseal the passphrase. The user must additionally enter the following
 credentials:
+
 - The **passphrase authdata**
 - The **SRK password**
+
 Then the **passphrase** will be displayed to the user if and only if the boot
 configuration is valid, AND the provided credentials were correct. If the user
 recognizes the passphrase as the one associated with the SEC, he/she types "YES"
