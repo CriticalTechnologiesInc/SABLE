@@ -439,8 +439,8 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   } else {
     assert(tag_out == TPM_TAG_RSP_COMMAND);
   }
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);          // 2S
-  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);       // 3S
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);           // 2S
+  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);        // 3S
   unmarshal_ptr(&ret.data, ret.dataSize, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
@@ -506,21 +506,22 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
 
   hmac_init(&hctx, parentAuth.authdata,
             sizeof(TPM_SECRET)); // compute parentAuth
-  marshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx); // 1H1
-  marshal_UINT32(parentSession->authHandle, &pctx, NULL);
-  marshal_array(&parentSession->nonceEven, sizeof(TPM_NONCE), NULL,
-                &hctx.sctx); // 2H1
-  marshal_array(&parentSession->nonceOdd, sizeof(TPM_NONCE), &pctx,
+  marshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx);     // 1H1
+  marshal_UINT32(parentSession->authHandle, &pctx, NULL);              //
+  marshal_array(&parentSession->nonceEven, sizeof(TPM_NONCE), NULL,    // 2H1
+                &hctx.sctx);                                           // 2H1
+  marshal_array(&parentSession->nonceOdd, sizeof(TPM_NONCE), &pctx,    // 3H1
                 &hctx.sctx);                                           // 3H1
   marshal_BYTE(parentSession->continueAuthSession, &pctx, &hctx.sctx); // 4H1
   hmac_finish(&hctx); // inAuth = hctx.sctx.hash
   marshal_array(&hctx.sctx.hash, sizeof(TPM_DIGEST), &pctx, NULL);
 
   hmac_init(&hctx, dataAuth.authdata, sizeof(TPM_SECRET)); // compute dataAuth
-  marshal_UINT32(dataSession->authHandle, &pctx, NULL);
-  marshal_array(&dataSession->nonceEven, sizeof(TPM_NONCE), NULL,
-                &hctx.sctx); // 2H2
-  marshal_array(&dataSession->nonceOdd, sizeof(TPM_NONCE), &pctx,
+  marshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx);   // 1H2
+  marshal_UINT32(dataSession->authHandle, &pctx, NULL);              //
+  marshal_array(&dataSession->nonceEven, sizeof(TPM_NONCE), NULL,    // 2H2
+                &hctx.sctx);                                         // 2H2
+  marshal_array(&dataSession->nonceOdd, sizeof(TPM_NONCE), &pctx,    // 3H2
                 &hctx.sctx);                                         // 3H2
   marshal_BYTE(dataSession->continueAuthSession, &pctx, &hctx.sctx); // 4H2
   hmac_finish(&hctx); // inAuth = hctx.sctx.hash
