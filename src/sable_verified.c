@@ -87,6 +87,7 @@ void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
 
   res = TPM_OIAP(&nv_session);
   TPM_ERROR(res, TPM_Start_OIAP);
+  nv_session.nonceOdd = get_nonce();
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
   res =
@@ -133,6 +134,7 @@ TPM_STORED_DATA12 read_passphrase(void) {
 
   res = TPM_OIAP(&owner_session);
   TPM_ERROR(res, TPM_OIAP);
+  owner_session.nonceOdd = get_nonce();
 
   val = TPM_NV_ReadValue(404, 0, 400, nv_auth, &nv_session);
   TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
@@ -151,9 +153,11 @@ const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
 
   res = TPM_OIAP(&srk_session);
   TPM_ERROR(res, TPM_OIAP);
+  srk_session.nonceOdd = get_nonce();
 
   res = TPM_OIAP(&pp_session);
   TPM_ERROR(res, TPM_OIAP);
+  pp_session.nonceOdd = get_nonce();
 
   TPM_Unseal_ret unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, srk_auth,
                                          &srk_session, pp_auth, &pp_session);
