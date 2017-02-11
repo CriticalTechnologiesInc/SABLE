@@ -182,8 +182,12 @@ void trusted_boot(void) {
   EXCLUDE(out_string(passphrase);)
   EXCLUDE(
       out_string("\n\nIf this is correct, please type YES in all capitals: ");)
-  // get_string(3, true);
 
-  // if (bufcmp(s_YES, string_buf, 3))
-  // reboot();
+  EXCLUDE(
+  char *yes_string = alloc(4);
+  get_string(yes_string, 4, true);
+
+  if (memcmp("YES", yes_string, 3))
+    reboot();
+    )
 }
