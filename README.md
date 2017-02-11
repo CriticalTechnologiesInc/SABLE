@@ -1,4 +1,4 @@
-**SABLE**: The *S*yracuse *A*ssured *B*oot*L*oader *E*xecutive
+**SABLE**: The **S**yracuse **A**ssured **B**oot**L**oader **E**xecutive
 =================
 
 Overview
