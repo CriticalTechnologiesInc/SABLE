@@ -190,6 +190,7 @@ TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
 }
 
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
+  assert(session);
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -221,20 +222,18 @@ TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
     return res;
   unmarshal_UINT32(&session->authHandle, &uctx, NULL);
   unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
+  session->osap = NULL;
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(bytes_unpacked == paramSize_out);
   assert(tag_out == TPM_TAG_RSP_COMMAND);
 
-  // Initialize the remainder of the session with default values
-  memset(&session->nonceOdd, 0, sizeof(TPM_NONCE));
-  session->continueAuthSession = FALSE;
-
   return res;
 }
 
 TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
-                    TPM_OSAP_SESSION *osap_session /* out */) {
+                    TPM_SESSION *session /* out */) {
+  assert(session && session->osap);
   TPM_RESULT ret;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -254,7 +253,7 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   marshal_UINT32(ordinal_in, &pctx, NULL);
   marshal_UINT16(entityType_in, &pctx, NULL);
   marshal_UINT32(entityValue_in, &pctx, NULL);
-  marshal_array(&osap_session->nonceOddOSAP, sizeof(TPM_NONCE), &pctx, NULL);
+  marshal_array(&session->osap->nonceOddOSAP, sizeof(TPM_NONCE), &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
   assert(bytes_packed == paramSize_in);
@@ -268,18 +267,14 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unmarshal_UINT32(&ret, &uctx, NULL);
   if (ret)
     return ret;
-  unmarshal_UINT32(&osap_session->session.authHandle, &uctx, NULL);
-  unmarshal_array(&osap_session->session.nonceEven, sizeof(TPM_NONCE), &uctx,
+  unmarshal_UINT32(&session->authHandle, &uctx, NULL);
+  unmarshal_array(&session->nonceEven, sizeof(TPM_NONCE), &uctx,
                   NULL);
-  unmarshal_array(&osap_session->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
+  unmarshal_array(&session->osap->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(bytes_unpacked == paramSize_out);
   assert(tag_out == TPM_TAG_RSP_COMMAND);
-
-  // Initialize the remainder of the session with default values
-  memset(&osap_session->session.nonceOdd, 0, sizeof(TPM_NONCE));
-  osap_session->session.continueAuthSession = FALSE;
 
   return ret;
 }

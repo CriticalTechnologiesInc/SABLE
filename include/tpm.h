@@ -13,18 +13,18 @@
  */
 OPTION_GEN(TPM_AUTHDATA);
 
+typedef struct tdTPM_OSAP_EXTENSION {
+  TPM_NONCE nonceEvenOSAP;
+  TPM_NONCE nonceOddOSAP;
+} TPM_OSAP_EXTENSION;
+
 typedef struct tdTPM_SESSION {
   TPM_AUTHHANDLE authHandle;
   TPM_NONCE nonceEven;
   TPM_NONCE nonceOdd;
   TPM_BOOL continueAuthSession;
+  TPM_OSAP_EXTENSION *osap;
 } TPM_SESSION;
-
-typedef struct tdTPM_OSAP_SESSION {
-  TPM_SESSION session;
-  TPM_NONCE nonceEvenOSAP;
-  TPM_NONCE nonceOddOSAP;
-} TPM_OSAP_SESSION;
 
 ///////////////////////////////////////////////////////////////////////////
 TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in);
@@ -36,9 +36,11 @@ struct TPM_PCRRead_ret {
 } TPM_PCRRead(TPM_PCRINDEX pcrIndex_in);
 TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
                       TPM_PCRVALUE *outDigest_out /* out */);
+/* Only populates the authHandle and nonceEven fields. nonceOdd and
+ * and continueAuthSession must be populated by the caller. */
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */);
 TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
-                    TPM_OSAP_SESSION *osap_session /* out */);
+                    TPM_SESSION *session /* out */);
 TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
                                  TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
                                  TPM_AUTHDATA nv_auth, TPM_SESSION *session);

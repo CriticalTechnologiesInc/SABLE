@@ -6,18 +6,7 @@
 extern TPM_AUTHDATA get_authdata(void);
 extern TPM_NONCE get_nonce(void);
 
-/***********************************************************
- * SABLE globals
- **********************************************************/
-
-/* TPM sessions */
-static TPM_OSAP_SESSION srk_osap_session;
-static TPM_SESSION nv_session;
-static TPM_SESSION srk_session;
-static TPM_SESSION pp_session;
-#ifdef NV_OWNER_REQUIRED
-static TPM_SESSION owner_session;
-#endif
+static TPM_SESSION sessions[2];
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
@@ -55,28 +44,29 @@ TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   TPM_RESULT res;
 
   // Initialize an OSAP session for the SRK
-  srk_osap_session.nonceOddOSAP = get_nonce();
-  res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, &srk_osap_session);
+  TPM_SESSION *srk_osap_session = &sessions[0];
+  srk_osap_session->osap = alloc(sizeof(TPM_OSAP_EXTENSION));
+  srk_osap_session->osap->nonceOddOSAP = get_nonce();
+  srk_osap_session->nonceOdd = get_nonce();
+  srk_osap_session->continueAuthSession = FALSE;
+  res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, srk_osap_session);
   TPM_ERROR(res, TPM_Start_OSAP);
-  srk_osap_session.session.continueAuthSession = FALSE;
 
   // Generate the shared secret (for SRK authorization)
-  TPM_SECRET sharedSecret = sharedSecret_gen(
-      srk_auth, srk_osap_session.nonceEvenOSAP, srk_osap_session.nonceOddOSAP);
-
-  // Generate nonceOdd
-  srk_osap_session.session.nonceOdd = get_nonce();
+  TPM_SECRET sharedSecret =
+      sharedSecret_gen(srk_auth, srk_osap_session->osap->nonceEvenOSAP,
+                       srk_osap_session->osap->nonceOddOSAP);
 
   // Encrypt the new passphrase authdata
   TPM_ENCAUTH encAuth =
-      encAuth_gen(pp_auth, sharedSecret, srk_osap_session.session.nonceEven);
+      encAuth_gen(pp_auth, sharedSecret, srk_osap_session->nonceEven);
 
   TPM_PCR_INFO_LONG pcr_info = get_pcr_info();
 
   // Encrypt the passphrase using the SRK
   struct TPM_Seal_ret seal_ret =
       TPM_Seal(TPM_KH_SRK, encAuth, pcr_info, (const BYTE *)passphrase,
-               lenPassphrase, &srk_osap_session.session, sharedSecret);
+               lenPassphrase, srk_osap_session, sharedSecret);
   TPM_ERROR(seal_ret.returnCode, TPM_Seal);
 
   return seal_ret.sealedData;
@@ -85,13 +75,14 @@ TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
 void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
   TPM_RESULT res;
 
-  res = TPM_OIAP(&nv_session);
+  TPM_SESSION *nv_session = &sessions[0];
+  nv_session->nonceOdd = get_nonce();
+  nv_session->continueAuthSession = FALSE;
+  res = TPM_OIAP(nv_session);
   TPM_ERROR(res, TPM_Start_OIAP);
-  nv_session.nonceOdd = get_nonce();
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
-  res =
-      TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, &nv_session);
+  res = TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, nv_session);
   TPM_ERROR(res, TPM_NV_WriteValueAuth);
 }
 
@@ -132,11 +123,13 @@ TPM_STORED_DATA12 read_passphrase(void) {
   nv_auth.value = get_authdata();
   nv_auth.hasValue = true;
 
+  TPM_SESSION *owner_session = &sessions[0];
+  owner_session->nonceOdd = get_nonce();
+  owner_session->continueAuthSession = FALSE;
   res = TPM_OIAP(&owner_session);
   TPM_ERROR(res, TPM_OIAP);
-  owner_session.nonceOdd = get_nonce();
 
-  val = TPM_NV_ReadValue(404, 0, 400, nv_auth, &nv_session);
+  val = TPM_NV_ReadValue(404, 0, 400, nv_auth, nv_session);
   TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
 #else
   nv_auth.hasValue = false;
@@ -151,16 +144,20 @@ const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
                               TPM_STORED_DATA12 sealed_pp) {
   TPM_RESULT res;
 
-  res = TPM_OIAP(&srk_session);
+  TPM_SESSION *srk_session = &sessions[0];
+  srk_session->nonceOdd = get_nonce();
+  srk_session->continueAuthSession = FALSE;
+  res = TPM_OIAP(srk_session);
   TPM_ERROR(res, TPM_OIAP);
-  srk_session.nonceOdd = get_nonce();
 
-  res = TPM_OIAP(&pp_session);
+  TPM_SESSION *pp_session = &sessions[0];
+  pp_session->nonceOdd = get_nonce();
+  pp_session->continueAuthSession = FALSE;
+  res = TPM_OIAP(pp_session);
   TPM_ERROR(res, TPM_OIAP);
-  pp_session.nonceOdd = get_nonce();
 
   TPM_Unseal_ret unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, srk_auth,
-                                         &srk_session, pp_auth, &pp_session);
+                                         srk_session, pp_auth, pp_session);
   TPM_ERROR(unseal_ret.returnCode, TPM_Unseal);
 
   return (const char *)unseal_ret.data;
@@ -183,11 +180,7 @@ void trusted_boot(void) {
   EXCLUDE(
       out_string("\n\nIf this is correct, please type YES in all capitals: ");)
 
-  EXCLUDE(
-  char *yes_string = alloc(4);
-  get_string(yes_string, 4, true);
+  EXCLUDE(char *yes_string = alloc(4); get_string(yes_string, 4, true);
 
-  if (memcmp("YES", yes_string, 3))
-    reboot();
-    )
+          if (memcmp("YES", yes_string, 3)) reboot();)
 }
