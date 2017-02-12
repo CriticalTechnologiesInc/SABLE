@@ -71,7 +71,6 @@ TPM_NONCE get_nonce(void) {
  *  Hash all multiboot modules.
  */
 static int mbi_calc_hash(struct mbi *mbi) {
-  TPM_RESULT res;
   SHA1_Context sctx;
 
   CHECK3(-11, ~mbi->flags & (enum mbi_enum)MBI_FLAG_MODS,
@@ -87,8 +86,8 @@ static int mbi_calc_hash(struct mbi *mbi) {
 
     sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     sha1_finish(&sctx);
-    res = TPM_Extend(19, sctx.hash, NULL);
-    TPM_ERROR(res, "TPM_Extend()");
+    struct TPM_Extend_ret res = TPM_Extend(19, sctx.hash);
+    TPM_ERROR(res.returnCode, TPM_Extend);
   }
 
   return 0;
