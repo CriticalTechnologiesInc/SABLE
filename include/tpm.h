@@ -34,8 +34,10 @@ struct TPM_PCRRead_ret {
   TPM_RESULT returnCode;
   TPM_PCRVALUE outDigest;
 } TPM_PCRRead(TPM_PCRINDEX pcrIndex_in);
-TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
-                      TPM_PCRVALUE *outDigest_out /* out */);
+struct TPM_Extend_ret {
+  TPM_RESULT returnCode;
+  TPM_PCRVALUE outDigest;
+} TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in);
 /* Only populates the authHandle and nonceEven fields. nonceOdd and
  * and continueAuthSession must be populated by the caller. */
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */);

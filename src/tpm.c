@@ -146,9 +146,8 @@ struct TPM_PCRRead_ret TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
   return ret;
 }
 
-TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
-                      TPM_PCRVALUE *outDigest_out /* out */) {
-  TPM_RESULT res;
+struct TPM_Extend_ret TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
+  struct TPM_Extend_ret ret;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -177,16 +176,16 @@ TPM_RESULT TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in,
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&res, &uctx, NULL);
-  if (res)
-    return res;
-  unmarshal_array(outDigest_out, sizeof(TPM_PCRVALUE), &uctx, NULL);
+  unmarshal_UINT32(&ret.returnCode, &uctx, NULL);
+  if (ret.returnCode)
+    return ret;
+  unmarshal_array(&ret.outDigest, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   assert(bytes_unpacked == paramSize_out);
   assert(tag_out == TPM_TAG_RSP_COMMAND);
 
-  return res;
+  return ret;
 }
 
 TPM_RESULT TPM_OIAP(TPM_SESSION *session /* out */) {
