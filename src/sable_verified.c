@@ -6,7 +6,7 @@
 extern TPM_AUTHDATA get_authdata(void);
 extern TPM_NONCE get_nonce(void);
 
-static TPM_SESSION *sessions[2];
+static TPM_SESSION *sessions[2] = {NULL, NULL};
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
