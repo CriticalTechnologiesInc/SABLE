@@ -712,7 +712,7 @@ typedef struct tdTPM_SEALED_DATA /* 1.1b */
 {
   TPM_PAYLOAD_TYPE payload;
   TPM_SECRET authData;
-  TPM_NONCE tpmProof;
+  TPM_SECRET tpmProof;
   TPM_DIGEST storedDigest;
   UINT32 dataSize;
   SIZEIS(dataSize)
