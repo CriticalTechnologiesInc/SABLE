@@ -3,6 +3,9 @@
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
+typedef TPM_SEALED_DATA
+    BOGUS1; // just to get makeheaders to include TPM_SEALED_DATA
+
 extern TPM_AUTHDATA get_authdata(void);
 extern TPM_NONCE get_nonce(void);
 
@@ -79,7 +82,8 @@ void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
   sessions[0]->continueAuthSession = FALSE;
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
-  res = TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, &sessions[0]);
+  res =
+      TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, &sessions[0]);
   TPM_ERROR(res, TPM_NV_WriteValueAuth);
 }
 
