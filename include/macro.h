@@ -27,7 +27,7 @@ void log_desc(const char *file, const char *line, const char *message,
   {                                                                            \
     if (!(X)) {                                                                \
       LOG("\nAssertion failed: '" xstr(X) "'\n\n");                            \
-      exit(0xbadbbbad);                                                        \
+      exit();                                                        \
     }                                                                          \
   }
 
@@ -40,7 +40,8 @@ void log_desc(const char *file, const char *line, const char *message,
   {                                                                            \
     if (value) {                                                               \
       LOG(msg);                                                                \
-      exit(result);                                                            \
+      EXCLUDE(out_description("\nexit()", result);)                            \
+      exit();                                                                  \
     }                                                                          \
   }
 
@@ -49,7 +50,7 @@ void log_desc(const char *file, const char *line, const char *message,
     if (result) {                                                              \
       LOG_TPM(command_name, tpm_error_to_string(result));                      \
       EXCLUDE(wait(10000);)                                                    \
-      exit(result);                                                            \
+      exit();                                                                  \
     }                                                                          \
   }
 

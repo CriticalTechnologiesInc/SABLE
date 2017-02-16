@@ -136,12 +136,9 @@ void wait(int ms) {
 /**
  * Print the exit status and reboot the machine.
  */
-void exit(unsigned status) {
-  out_char('\n');
-  out_description("exit()", status);
+void exit(void) {
   for (unsigned i = 0; i < 1000; i++) {
     wait(1000);
-    // out_char('.');
   }
   out_string("-> OK, reboot now!\n");
   reboot();

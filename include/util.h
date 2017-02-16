@@ -49,7 +49,7 @@ void memset(void *s, BYTE c, UINT32 len);
 UINT32 memcmp(const void *buf1, const void *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 void wait(int ms);
-void exit(unsigned status) __attribute__((noreturn));
+void exit(void) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
