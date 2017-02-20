@@ -24,13 +24,19 @@ void log_desc(const char *file, const char *line, const char *message,
 #define LOG_DESC(message, val)
 #endif
 
-#define assert(X)                                                              \
+#ifndef NDEBUG
+#define ASSERT(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
       LOG("\nAssertion failed: '" xstr(X) "'\n\n");                            \
-      exit();                                                                  \
+      dump_error();                                                            \
+      exit(-1);                                                                  \
     }                                                                          \
   }
+#else
+inline void assert(void) {}
+#define ASSERT(X) assert();
+#endif
 
 #define UNUSED(x) (void)(x)
 
