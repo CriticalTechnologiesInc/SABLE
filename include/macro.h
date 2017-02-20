@@ -21,13 +21,14 @@ void log_desc(const char *file, const char *line, const char *message,
 #else
 #define LOG(message)
 #define LOG_TPM(cmd, message)
+#define LOG_DESC(message, val)
 #endif
 
 #define assert(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
       LOG("\nAssertion failed: '" xstr(X) "'\n\n");                            \
-      exit();                                                        \
+      exit();                                                                  \
     }                                                                          \
   }
 
@@ -36,21 +37,21 @@ void log_desc(const char *file, const char *line, const char *message,
 /**
  * A fatal error happens if value is true.
  */
-#define ERROR(result, value, msg)                                              \
+#define ERROR(ret, exception, value, msg)                                      \
   {                                                                            \
     if (value) {                                                               \
       LOG(msg);                                                                \
-      EXCLUDE(out_description("\nexit()", result);)                            \
-      exit();                                                                  \
+      ret = exception;                                                         \
+      return ret;                                                              \
     }                                                                          \
   }
 
-#define TPM_ERROR(result, command_name)                                        \
+#define TPM_ERROR(ret, result, command_name)                                   \
   {                                                                            \
     if (result) {                                                              \
       LOG_TPM(command_name, tpm_error_to_string(result));                      \
-      EXCLUDE(wait(10000);)                                                    \
-      exit();                                                                  \
+      ret = ERROR_TPM | result;                                                \
+      return ret;                                                              \
     }                                                                          \
   }
 
@@ -61,6 +62,7 @@ void log_desc(const char *file, const char *line, const char *message,
   {                                                                            \
     if (value) {                                                               \
       LOG(msg);                                                                \
+      dump_error();                                                            \
       return result;                                                           \
     }                                                                          \
   }
@@ -72,6 +74,7 @@ void log_desc(const char *file, const char *line, const char *message,
   {                                                                            \
     if (value) {                                                               \
       LOG_DESC(msg, hex);                                                      \
+      dump_error();                                                            \
       return result;                                                           \
     }                                                                          \
   }
