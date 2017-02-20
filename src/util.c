@@ -201,7 +201,8 @@ void wait(int ms) {
 /**
  * Print the exit status and reboot the machine.
  */
-void exit(void) {
+void exit(unsigned status) {
+  out_description("ERROR ", status);
   for (unsigned i = 0; i < 1000; i++) {
     wait(1000);
   }
