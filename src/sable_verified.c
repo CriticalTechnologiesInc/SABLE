@@ -73,7 +73,7 @@ TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   return seal_ret.sealedData;
 }
 
-void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
+void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData, UINT32 index) {
   TPM_RESULT res;
 
   res = TPM_OIAP(&sessions[0]);
@@ -83,11 +83,11 @@ void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
   res =
-      TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, &sessions[0]);
+      TPM_NV_WriteValueAuth(x.data, x.dataSize, index, 0, nv_auth, &sessions[0]);
   TPM_ERROR(res, TPM_NV_WriteValueAuth);
 }
 
-void configure(void) {
+void configure(UINT32 index) {
   char *passphrase = alloc(PASSPHRASE_STR_SIZE);
 
   // get the passphrase, passphrase authdata, and SRK authdata
@@ -111,10 +111,10 @@ void configure(void) {
   TPM_AUTHDATA nv_auth = get_authdata();
 
   // write the sealed passphrase to disk
-  write_passphrase(nv_auth, sealedData);
+  write_passphrase(nv_auth, sealedData, index);
 }
 
-TPM_STORED_DATA12 read_passphrase(void) {
+TPM_STORED_DATA12 read_passphrase(UINT32 index) {
   struct TPM_NV_ReadValue_ret val;
   OPTION(TPM_AUTHDATA) nv_auth;
 
@@ -130,11 +130,11 @@ TPM_STORED_DATA12 read_passphrase(void) {
   owner_session->nonceOdd = get_nonce();
   owner_session->continueAuthSession = FALSE;
 
-  val = TPM_NV_ReadValue(404, 0, 400, nv_auth, nv_session);
+  val = TPM_NV_ReadValue(index, 0, 400, nv_auth, nv_session);
   TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
 #else
   nv_auth.hasValue = false;
-  val = TPM_NV_ReadValue(4, 0, 400, nv_auth, NULL);
+  val = TPM_NV_ReadValue(index, 0, 400, nv_auth, NULL);
   TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
 #endif
 
@@ -162,8 +162,8 @@ const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   return (const char *)unseal_ret.data;
 }
 
-void trusted_boot(void) {
-  TPM_STORED_DATA12 sealed_pp = read_passphrase();
+void trusted_boot(UINT32 index) {
+  TPM_STORED_DATA12 sealed_pp = read_passphrase(index);
 
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)

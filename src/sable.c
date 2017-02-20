@@ -34,8 +34,8 @@
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
-extern void configure(void);
-extern void trusted_boot(void);
+extern void configure(UINT32 index);
+extern void trusted_boot(UINT32 index);
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
@@ -120,6 +120,7 @@ static int prepare_tpm(void) {
  * and disable all localities.
  */
 int _main(struct mbi *m, unsigned flags) {
+
   out_string(version_string);
   ERROR(10, !m || flags != MBI_MAGIC2, "not loaded via multiboot");
 
@@ -157,6 +158,20 @@ int _main(struct mbi *m, unsigned flags) {
 int sable(struct mbi *m) {
   revert_skinit();
 
+  // TEMPORARY
+  char *args = (char *) m->cmdline;
+  args += 11;
+  UINT32 counter = 0;
+  UINT32 nvIndex = 0;
+
+  while (args[counter] != '\0') {
+
+    nvIndex *= 10;
+    nvIndex += args[counter] - '0';
+    counter++;
+  }
+  // TEMPORARY
+
   ERROR(20, !m, "no mbi in sable()");
 
   if (tis_init()) {
@@ -179,13 +194,13 @@ int sable(struct mbi *m) {
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
-      configure();
+      configure(nvIndex);
       ERROR(25, tis_deactivate_all(), "tis deactivate failed");
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
     } else {
-      trusted_boot();
+      trusted_boot(nvIndex);
     }
 
     ERROR(25, tis_deactivate_all(), "tis deactivate failed");

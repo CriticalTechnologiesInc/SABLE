@@ -502,7 +502,14 @@ int get_string(char *str, unsigned int strSize, bool show) {
     if (c == 0x0D)
       break; // user hit 'return'
 
-    if (c != 0) {
+    if (c == 0x08) {
+      memset(&str[i], 0, sizeof(c));
+      out_char(c);
+      if (i > 0) {
+        i--;
+      }
+    }
+    else if (c != 0) {
       str[i] = c;
       if (show)
         out_char(c);
