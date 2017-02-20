@@ -35,7 +35,6 @@ void out_hex(unsigned int value, unsigned int bitlen);
 /**
  * every message with out_description is prefixed with message_label
  */
-extern const char *const message_label;
 void out_description(const char *prefix, unsigned int value);
 void out_info(const char *msg);
 
@@ -44,11 +43,14 @@ void out_info(const char *msg);
  */
 void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size);
 void pad(BYTE *in, BYTE val, BYTE insize, BYTE outsize);
-void memcpy(void *dest, const void *src, UINT32 len);
+void *memcpy(void *dest, const void *src, UINT32 len);
+char *strncpy(char *dest, const char *src, UINT32 num);
+UINT32 strlen(const char *str);
 void memset(void *s, BYTE c, UINT32 len);
 UINT32 memcmp(const void *buf1, const void *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 void wait(int ms);
+void dump_error(void);
 void exit(void) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);

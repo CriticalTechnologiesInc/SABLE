@@ -18,51 +18,116 @@
 #include "tcg.h"
 #include "util.h"
 
-const char *const message_label = "SABLE:   ";
+static const char *const message_label = "SABLE:   ";
+
+/**
+ * Output a single hex value.
+ */
+void out_hex(unsigned value, unsigned bitlen) {
+  int i;
+  for (i = bsr(value | 1 << bitlen) & 0xfc; i >= 0; i -= 4) {
+    unsigned a = (value >> i) & 0xf;
+    if (a >= 10)
+      a += 7;
+    a += 0x30;
+
+    out_char(a);
+  }
+}
+
+/**
+ * Output a single hex value.
+ */
+void str_hex(char *str, unsigned value, unsigned bitlen) {
+  int i;
+  for (i = bsr(value | 1 << bitlen) & 0xfc; i >= 0; i -= 4) {
+    unsigned a = (value >> i) & 0xf;
+    if (a >= 10)
+      a += 7;
+    a += 0x30;
+
+    *(str++) = a;
+  }
+}
 
 #ifndef NDEBUG
+static char error_msg[256];
+
+void dump_error(void) { out_string(error_msg); }
+
+#define MARSHAL_ERROR_MSG_INIT UINT32 i = 0
+#define MARSHAL_ERROR_MSG(str)                                                 \
+  {                                                                            \
+    UINT32 len = strlen(str);                                                  \
+    i += len;                                                                  \
+    strncpy(error_msg, str, len);                                              \
+  }
+#define MARSHAL_ERROR_MSG_FINISH MARSHAL_ERROR_MSG("\n\0")
+
 void log(const char *file, const char *line, const char *message) {
-  out_string(message_label);
-  out_string(file);
-  out_char(':');
-  out_string(line);
-  out_string(" -- ");
-  out_string(message);
-  out_char('\n');
+  MARSHAL_ERROR_MSG_INIT;
+  MARSHAL_ERROR_MSG(message_label);
+  MARSHAL_ERROR_MSG(file);
+  MARSHAL_ERROR_MSG(":");
+  MARSHAL_ERROR_MSG(line);
+  MARSHAL_ERROR_MSG(" -- ");
+  MARSHAL_ERROR_MSG(message);
+  MARSHAL_ERROR_MSG_FINISH;
 }
 
 void log_tpm(const char *file, const char *line, const char *cmd,
              const char *message) {
-  out_string(message_label);
-  out_string(file);
-  out_char(':');
-  out_string(line);
-  out_string(" -- ");
-  out_string(cmd);
-  out_string("(): ");
-  out_string(message);
-  out_char('\n');
+  MARSHAL_ERROR_MSG_INIT;
+  MARSHAL_ERROR_MSG(message_label);
+  MARSHAL_ERROR_MSG(file);
+  MARSHAL_ERROR_MSG(":");
+  MARSHAL_ERROR_MSG(line);
+  MARSHAL_ERROR_MSG(" -- ");
+  MARSHAL_ERROR_MSG(cmd);
+  MARSHAL_ERROR_MSG("(): ");
+  MARSHAL_ERROR_MSG(message);
+  MARSHAL_ERROR_MSG_FINISH;
 }
 
 void log_desc(const char *file, const char *line, const char *message,
               unsigned hex) {
-  out_string(message_label);
-  out_string(file);
-  out_char(':');
-  out_string(line);
-  out_string(" -- ");
-  out_description(message, hex);
+  char hex_str[8];
+  MARSHAL_ERROR_MSG_INIT;
+  MARSHAL_ERROR_MSG(message_label);
+  MARSHAL_ERROR_MSG(file);
+  MARSHAL_ERROR_MSG(":");
+  MARSHAL_ERROR_MSG(line);
+  MARSHAL_ERROR_MSG(" -- ");
+  MARSHAL_ERROR_MSG(message);
+  MARSHAL_ERROR_MSG(" 0x");
+  str_hex(hex_str, hex, 7);
+  MARSHAL_ERROR_MSG(hex_str);
+  MARSHAL_ERROR_MSG_FINISH;
 }
 #endif
 
-void memcpy(void *dest, const void *src, UINT32 len) {
+void *memcpy(void *dest, const void *src, UINT32 len) {
   BYTE *dp = dest;
   const BYTE *sp = src;
-  for (UINT32 i = 0; i < len; i++) {
-    *dp = *sp;
-    dp++;
-    sp++;
+  while (len--)
+    *(dp++) = *(sp++);
+  return dest;
+}
+
+char *strncpy(char *dest, const char *src, UINT32 num) {
+  while (num-- && *src != '\0')
+    *(dest++) = *(src++);
+  while (num--)
+    *(dest++) = '\0';
+  return dest;
+}
+
+UINT32 strlen(const char *str) {
+  UINT32 size = 0;
+  while (*(str + size) != '\0') {
+    ++size;
   }
+  return size;
 }
 
 void do_xor(const BYTE *in1, const BYTE *in2, BYTE *out, UINT32 size) {
@@ -214,21 +279,6 @@ void hex_dump(unsigned char *bytestring, unsigned len) {
     out_hex(*(bytestring + i), 7);
   }
   out_char('\n');
-}
-
-/**
- * Output a single hex value.
- */
-void out_hex(unsigned value, unsigned bitlen) {
-  int i;
-  for (i = bsr(value | 1 << bitlen) & 0xfc; i >= 0; i -= 4) {
-    unsigned a = (value >> i) & 0xf;
-    if (a >= 10)
-      a += 7;
-    a += 0x30;
-
-    out_char(a);
-  }
 }
 
 /**
