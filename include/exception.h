@@ -1,5 +1,6 @@
 typedef enum tdRESULT {
   SUCCESS,
+  ERROR_BAD_ELF_HEADER,
   ERROR_AUTH_INTEGRITY,
   ERROR_TPM = 1 << 7,
 } RESULT;

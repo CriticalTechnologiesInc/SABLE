@@ -16,6 +16,7 @@
  * COPYING file for details.
  */
 
+#include "exception.h"
 #include "macro.h"
 #include "mbi.h"
 #include "elf.h"
@@ -69,7 +70,8 @@ static void gen_elf_segment(void *target, void *src, unsigned len,
   byte_out(0xAA); /* STOSB */
 }
 
-int start_module(struct mbi *mbi) {
+RESULT start_module(struct mbi *mbi) {
+  RESULT res;
   struct module *m;
   struct mbh *mb;
   struct eh *elf = NULL;
@@ -133,11 +135,11 @@ int start_module(struct mbi *mbi) {
     out_description("elf magic:", *elf_magic);
     out_description("elf class_data:", *elf_class_data);
 
-    ERROR(-31, *elf_magic != 0x464c457f || *elf_class_data != 0x0101,
+    ERROR(res, ERROR_BAD_ELF_HEADER, *elf_magic != 0x464c457f || *elf_class_data != 0x0101,
           "ELF header incorrect");
-    ERROR(-32, elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
+    ERROR(res, ERROR_BAD_ELF_HEADER, elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
           "ELF type incorrect");
-    ERROR(-33, sizeof(struct ph) > elf->e_phentsize, "e_phentsize to small");
+    ERROR(res, ERROR_BAD_ELF_HEADER, sizeof(struct ph) > elf->e_phentsize, "e_phentsize to small");
 
     for (unsigned i = 0; i < elf->e_phnum; i++) {
       struct ph *ph =
@@ -163,5 +165,5 @@ int start_module(struct mbi *mbi) {
   asm volatile("jmp *%%edx" ::"a"(0), "d"(TRAMPOLINE_ADDRESS), "b"(mbi));
 
   /* NOT REACHED */
-  return 0;
+  return SUCCESS;
 }

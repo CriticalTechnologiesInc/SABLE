@@ -40,5 +40,5 @@ struct ph {
   unsigned int p_align;
 };
 
-int start_module(struct mbi *mbi);
+RESULT start_module(struct mbi *mbi);
 int extract_module(struct mbi *mbi, unsigned *entry_point);
