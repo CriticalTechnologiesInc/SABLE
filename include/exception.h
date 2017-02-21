@@ -77,12 +77,14 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
   }
 
 /**
- * If the given EXCEPTION is an error, throw it (return it to the caller).
+ * Assign 'val' to 'call. If the given 'call' returns an error, throw it
+ * (return it to the caller).
  */
-#define THROW(e)                                                               \
+#define THROW(val, call)                                                       \
   {                                                                            \
-    if (e.error) {                                                             \
-      ret.exception = e;                                                       \
+    val = call;                                                                \
+    if (val.exception.error) {                                                 \
+      ret.exception = val.exception;                                           \
       return ret;                                                              \
     }                                                                          \
   }

@@ -20,5 +20,6 @@ typedef struct {
 } SHA1_Context;
 
 void sha1_init(SHA1_Context *ctx);
+/* EXCEPT: ERROR_SHA1_DATA_SIZE */
 RESULT sha1(SHA1_Context *ctx, const void *val, UINT32 count);
 void sha1_finish(SHA1_Context *ctx);
