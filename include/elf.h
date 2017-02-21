@@ -40,5 +40,9 @@ struct ph {
   unsigned int p_align;
 };
 
+/* EXCEPT:
+ * ERROR_BAD_ELF_HEADER
+ * ERROR_NO_MODULE
+ */
 RESULT start_module(struct mbi *mbi);
 int extract_module(struct mbi *mbi, unsigned *entry_point);

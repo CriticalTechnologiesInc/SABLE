@@ -50,7 +50,7 @@ void memset(void *s, BYTE c, UINT32 len);
 UINT32 memcmp(const void *buf1, const void *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 void wait(int ms);
-void dump_error(void);
+void dump_exception(EXCEPTION e);
 void exit(unsigned status) __attribute__((noreturn));
 int check_cpuid(void);
 int enable_svm(void);

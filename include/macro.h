@@ -8,29 +8,12 @@
 #define str(s) #s
 
 #ifndef NDEBUG
-void log(const char *file, const char *line, const char *message);
-#define LOG(message) log(__FILENAME__, xstr(__LINE__), message)
-void log_tpm(const char *file, const char *line, const char *cmd,
-             const char *message);
-#define LOG_TPM(cmd, message)                                                  \
-  log_tpm(__FILENAME__, xstr(__LINE__), str(cmd), message)
-void log_desc(const char *file, const char *line, const char *message,
-              unsigned hex);
-#define LOG_DESC(message, val)                                                 \
-  log_desc(__FILENAME__, xstr(__LINE__), message, val)
-#else
-#define LOG(message)
-#define LOG_TPM(cmd, message)
-#define LOG_DESC(message, val)
-#endif
-
-#ifndef NDEBUG
 #define ASSERT(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
       LOG("\nAssertion failed: '" xstr(X) "'\n\n");                            \
       dump_error();                                                            \
-      exit(-1);                                                                  \
+      exit(-1);                                                                \
     }                                                                          \
   }
 #else
@@ -39,51 +22,6 @@ inline void assert(void) {}
 #endif
 
 #define UNUSED(x) (void)(x)
-
-/**
- * A fatal error happens if value is true.
- */
-#define ERROR(ret, exception, value, msg)                                      \
-  {                                                                            \
-    if (value) {                                                               \
-      LOG(msg);                                                                \
-      ret = exception;                                                         \
-      return ret;                                                              \
-    }                                                                          \
-  }
-
-#define TPM_ERROR(ret, result, command_name)                                   \
-  {                                                                            \
-    if (result) {                                                              \
-      LOG_TPM(command_name, tpm_error_to_string(result));                      \
-      ret = ERROR_TPM | result;                                                \
-      return ret;                                                              \
-    }                                                                          \
-  }
-
-/**
- * Returns result and prints the msg, if value is true.
- */
-#define CHECK3(result, value, msg)                                             \
-  {                                                                            \
-    if (value) {                                                               \
-      LOG(msg);                                                                \
-      dump_error();                                                            \
-      return result;                                                           \
-    }                                                                          \
-  }
-
-/**
- * Returns result and prints the msg and hex, if value is true.
- */
-#define CHECK4(result, value, msg, hex)                                        \
-  {                                                                            \
-    if (value) {                                                               \
-      LOG_DESC(msg, hex);                                                      \
-      dump_error();                                                            \
-      return result;                                                           \
-    }                                                                          \
-  }
 
 /* TYPE GENERATORS */
 
@@ -104,6 +42,7 @@ inline void assert(void) {}
     Type value;                                                                \
     char hasValue;                                                             \
   }
+
 /* This is a trick to force makeheaders to recognize OPTION_GEN(Type) as
  * a dependency of OPTION(Type) */
 #ifndef BOGUS

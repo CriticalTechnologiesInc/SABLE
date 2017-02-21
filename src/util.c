@@ -15,10 +15,12 @@
 #include "macro.h"
 #include "asm.h"
 #include "platform.h"
+#include "exception.h"
 #include "tcg.h"
 #include "util.h"
 
 static const char *const message_label = "SABLE:   ";
+struct exception e;
 
 /**
  * Output a single hex value.
@@ -51,59 +53,16 @@ void str_hex(char *str, unsigned value, unsigned bitlen) {
 }
 
 #ifndef NDEBUG
-static char error_msg[256];
-
-void dump_error(void) { out_string(error_msg); }
-
-#define MARSHAL_ERROR_MSG_INIT UINT32 i = 0
-#define MARSHAL_ERROR_MSG(str)                                                 \
-  {                                                                            \
-    UINT32 len = strlen(str);                                                  \
-    i += len;                                                                  \
-    strncpy(error_msg, str, len);                                              \
-  }
-#define MARSHAL_ERROR_MSG_FINISH MARSHAL_ERROR_MSG("\n\0")
-
-void log(const char *file, const char *line, const char *message) {
-  MARSHAL_ERROR_MSG_INIT;
-  MARSHAL_ERROR_MSG(message_label);
-  MARSHAL_ERROR_MSG(file);
-  MARSHAL_ERROR_MSG(":");
-  MARSHAL_ERROR_MSG(line);
-  MARSHAL_ERROR_MSG(" -- ");
-  MARSHAL_ERROR_MSG(message);
-  MARSHAL_ERROR_MSG_FINISH;
+void dump_exception(EXCEPTION e) {
+  out_string(message_label);
+  out_string(e.fileName);
+  out_char(':');
+  out_string(e.lineNum);
+  out_string(" -- ");
+  out_string(e.msg);
 }
-
-void log_tpm(const char *file, const char *line, const char *cmd,
-             const char *message) {
-  MARSHAL_ERROR_MSG_INIT;
-  MARSHAL_ERROR_MSG(message_label);
-  MARSHAL_ERROR_MSG(file);
-  MARSHAL_ERROR_MSG(":");
-  MARSHAL_ERROR_MSG(line);
-  MARSHAL_ERROR_MSG(" -- ");
-  MARSHAL_ERROR_MSG(cmd);
-  MARSHAL_ERROR_MSG("(): ");
-  MARSHAL_ERROR_MSG(message);
-  MARSHAL_ERROR_MSG_FINISH;
-}
-
-void log_desc(const char *file, const char *line, const char *message,
-              unsigned hex) {
-  char hex_str[8];
-  MARSHAL_ERROR_MSG_INIT;
-  MARSHAL_ERROR_MSG(message_label);
-  MARSHAL_ERROR_MSG(file);
-  MARSHAL_ERROR_MSG(":");
-  MARSHAL_ERROR_MSG(line);
-  MARSHAL_ERROR_MSG(" -- ");
-  MARSHAL_ERROR_MSG(message);
-  MARSHAL_ERROR_MSG(" 0x");
-  str_hex(hex_str, hex, 7);
-  MARSHAL_ERROR_MSG(hex_str);
-  MARSHAL_ERROR_MSG_FINISH;
-}
+#else
+void dump_exception(void) {}
 #endif
 
 void *memcpy(void *dest, const void *src, UINT32 len) {

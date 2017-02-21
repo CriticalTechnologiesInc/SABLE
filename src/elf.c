@@ -71,7 +71,7 @@ static void gen_elf_segment(void *target, void *src, unsigned len,
 }
 
 RESULT start_module(struct mbi *mbi) {
-  RESULT res;
+  RESULT ret = { .exception.error = NONE };
   struct module *m;
   struct mbh *mb;
   struct eh *elf = NULL;
@@ -82,10 +82,7 @@ RESULT start_module(struct mbi *mbi) {
   unsigned int *elf_magic;
   unsigned short *elf_class_data;
 
-  if (mbi->mods_count == 0) {
-    out_info("No module to start.\n");
-    return -1;
-  }
+  ERROR(mbi->mods_count == 0, ERROR_NO_MODULE, "No module to start.\n");
 
   // skip module after loading
   m = (struct module *)mbi->mods_addr;
@@ -135,11 +132,12 @@ RESULT start_module(struct mbi *mbi) {
     out_description("elf magic:", *elf_magic);
     out_description("elf class_data:", *elf_class_data);
 
-    ERROR(res, ERROR_BAD_ELF_HEADER, *elf_magic != 0x464c457f || *elf_class_data != 0x0101,
-          "ELF header incorrect");
-    ERROR(res, ERROR_BAD_ELF_HEADER, elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
-          "ELF type incorrect");
-    ERROR(res, ERROR_BAD_ELF_HEADER, sizeof(struct ph) > elf->e_phentsize, "e_phentsize to small");
+    ERROR(*elf_magic != 0x464c457f || *elf_class_data != 0x0101,
+          ERROR_BAD_ELF_HEADER, "ELF header incorrect");
+    ERROR(elf->e_type != 2 || elf->e_machine != 3 || elf->e_version != 1,
+          ERROR_BAD_ELF_HEADER, "ELF type incorrect");
+    ERROR(sizeof(struct ph) > elf->e_phentsize, ERROR_BAD_ELF_HEADER,
+          "e_phentsize to small");
 
     for (unsigned i = 0; i < elf->e_phnum; i++) {
       struct ph *ph =
@@ -164,6 +162,6 @@ RESULT start_module(struct mbi *mbi) {
 
   asm volatile("jmp *%%edx" ::"a"(0), "d"(TRAMPOLINE_ADDRESS), "b"(mbi));
 
-  /* NOT REACHED */
-  return SUCCESS;
+  /* not reached */
+  return ret;
 }
