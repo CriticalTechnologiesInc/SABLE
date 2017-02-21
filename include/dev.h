@@ -50,9 +50,21 @@ enum dev_cr {
   DEV_CR_PROBE = 1 << 6,
 };
 
-int disable_dev_protection(void);
+/* EXCEPT:
+ * ERROR_PCI
+ * ERROR_DEV */
+RESULT disable_dev_protection(void);
 int pci_iterate_devices(void);
 unsigned pci_read_long(unsigned addr);
 void pci_write_long(unsigned addr, unsigned value);
 unsigned pci_find_device_per_class(unsigned short class);
-int revert_skinit(void);
+/* EXCEPT:
+ * ERROR_PCI
+ * ERROR_DEV
+ * ERROR_APIC
+ * ERROR_SVM
+ * ERROR_NO_EXT
+ * ERROR_NO_APIC
+ * ERROR_NO_SVM
+ */
+RESULT revert_skinit(void);

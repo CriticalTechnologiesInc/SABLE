@@ -21,6 +21,9 @@
 #include "dev.h"
 #include "mp.h"
 
+// Generate RESULT types
+RESULT_GEN(BYTE);
+
 #define CPU_NAME "AMD CPU booted by SABLE"
 const char *const cpu_name = CPU_NAME;
 
@@ -125,21 +128,24 @@ static unsigned pci_find_device(unsigned id) {
 }
 
 /**
+ * EXCEPT: ERROR_PCI
+ *
  * Find a capability for a device in the capability list.
  * @param addr - address of the device in the pci config space
  * @param id   - the capability id to search.
  * @return 0 on failiure or the offset into the pci device of the capability
  */
-static unsigned char pci_dev_find_cap(unsigned addr, unsigned char id) {
-  CHECK3(-11, !(pci_read_long(addr + PCI_CONF_HDR_CMD) & 0x100000),
+static RESULT(BYTE) pci_dev_find_cap(unsigned addr, unsigned char id) {
+  RESULT(BYTE) ret = { .exception.error = NONE };
+  ERROR(!(pci_read_long(addr + PCI_CONF_HDR_CMD) & 0x100000), ERROR_PCI,
          "no capability list support");
-  unsigned char cap_offset = pci_read_byte(addr + PCI_CONF_HDR_CAP);
-  while (cap_offset)
-    if (id == pci_read_byte(addr + cap_offset))
-      return cap_offset;
+  ret.value = pci_read_byte(addr + PCI_CONF_HDR_CAP);
+  while (ret.value)
+    if (id == pci_read_byte(addr + ret.value))
+      return ret;
     else
-      cap_offset = pci_read_byte(addr + cap_offset + PCI_CAP_OFFSET);
-  return 0;
+      ret.value = pci_read_byte(addr + ret.value + PCI_CAP_OFFSET);
+  return ret;
 }
 
 void myprintf(const char *fmt, char ch, unsigned high_base, unsigned base,
@@ -263,32 +269,42 @@ static void dev_write_reg(unsigned addr, unsigned char func,
   pci_write_long(addr + DEV_OFFSET_DATA, value);
 }
 
-static unsigned dev_get_addr(void) {
-  unsigned addr;
-  addr = pci_find_device(DEV_PCI_DEVICE_ID_OLD);
-  if (!addr)
-    addr = pci_find_device(DEV_PCI_DEVICE_ID_K10);
-  if (!addr)
-    addr = pci_find_device(DEV_PCI_DEVICE_ID_BLD);
-  CHECK3(-21, !addr, "device not found");
-  addr = addr + pci_dev_find_cap(addr, DEV_PCI_CAP_ID);
-  CHECK3(-22, !addr, "cap not found");
-  CHECK3(-23, 0xf != (pci_read_long(addr) & 0xf00ff), "invalid DEV_HDR");
-  return addr;
+/* EXCEPT:
+ * ERROR_PCI
+ * ERROR_DEV
+ */
+static RESULT(UINT32) dev_get_addr(void) {
+  RESULT(UINT32) ret = { .exception.error = NONE };
+  ret.value = pci_find_device(DEV_PCI_DEVICE_ID_OLD);
+  if (!ret.value)
+    ret.value = pci_find_device(DEV_PCI_DEVICE_ID_K10);
+  if (!ret.value)
+    ret.value = pci_find_device(DEV_PCI_DEVICE_ID_BLD);
+  ERROR(!ret.value, ERROR_DEV, "device not found");
+  RESULT(BYTE) cap_ret = pci_dev_find_cap(ret.value, DEV_PCI_CAP_ID);
+  THROW(cap_ret.exception);
+  ret.value = ret.value + cap_ret.value;
+  ERROR(!ret.value, ERROR_DEV, "cap not found");
+  ERROR(0xf != (pci_read_long(ret.value) & 0xf00ff), ERROR_DEV, "invalid DEV_HDR");
+  return ret;
 }
 
-/**
+/* EXCEPT:
+ * ERROR_PCI
+ * ERROR_DEV
+ *
  * Disable all dev protection.
  */
-int disable_dev_protection(void) {
-  unsigned addr;
+RESULT disable_dev_protection(void) {
+  RESULT ret = { .exception.error = NONE };
+  RESULT(UINT32) addr_ret;
   out_info("disable DEV and SLDEV protection");
-  addr = dev_get_addr();
-  CHECK3(-30, !addr, "DEV not found");
-  dev_write_reg(addr, DEV_REG_CR, 0,
-                dev_read_reg(addr, DEV_REG_CR, 0) &
+  addr_ret = dev_get_addr();
+  THROW(addr_ret.exception);
+  dev_write_reg(addr_ret.value, DEV_REG_CR, 0,
+                dev_read_reg(addr_ret.value, DEV_REG_CR, 0) &
                     ~(DEV_CR_SLDEV | DEV_CR_EN | DEV_CR_INVD));
-  return 0;
+  return ret;
 }
 
 static int enable_dev_bitmap(unsigned addr, unsigned base) {
@@ -304,22 +320,25 @@ static int enable_dev_bitmap(unsigned addr, unsigned base) {
   return 0;
 }
 
-/**
+/* EXCEPT:
+ * ERROR_DEV
+ * ERROR_PCI
+ *
  * Enable dev protection for all memory.
  *
  * @param sldev_buffer - SLDEV protected buffer of 4k size (above 128k).
  * @param buffer - 128k buffer to hold the DEV bitmap of 128k size and 4k
  * alignment.
  */
-int enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
-  unsigned addr;
+RESULT enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
+  RESULT ret = { .exception.error = NONE };
+  RESULT(UINT32) addr_ret;
   out_info("enable DEV protection");
-  CHECK3(-41, (unsigned)buffer & 0xfff, "DEV pointer invalid");
-  CHECK3(-42,
-         (unsigned)sldev_buffer < 1 << 17 || (unsigned)sldev_buffer & 0xfff,
-         "SL_DEV pointer invalid");
-  addr = dev_get_addr();
-  CHECK3(-43, !addr, "DEV not found");
+  ERROR((unsigned)buffer & 0xfff, ERROR_DEV, "DEV pointer invalid");
+  ERROR((unsigned)sldev_buffer < 1 << 17 || (unsigned)sldev_buffer & 0xfff,
+         ERROR_DEV, "SL_DEV pointer invalid");
+  addr_ret = dev_get_addr();
+  THROW(addr_ret.exception);
 
   /**
    * The DEV interface has a nasty race condition between memsetting
@@ -329,21 +348,26 @@ int enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
    */
   memset(sldev_buffer, 0xff, 1 << 12);
   unsigned base = (unsigned)sldev_buffer - ((unsigned)buffer >> 15);
-  enable_dev_bitmap(addr, (base + 0xfff) & 0xfffff000);
+  enable_dev_bitmap(addr_ret.value, (base + 0xfff) & 0xfffff000);
 
   /**
    * Now we have the dev bitmap protected - initialize and enable them.
    */
   memset(buffer, 0xff, 1 << 17);
-  enable_dev_bitmap(addr, base);
-  return 0;
+  enable_dev_bitmap(addr_ret.value, base);
+  return ret;
 }
 
 #define REALMODE_CODE 0x20000
 extern char smp_init_start;
 extern char smp_init_end;
 
-static int fixup(void) {
+/* EXCEPT:
+ * ERROR_APIC
+ * ERROR_SVM_ENABLE
+ */
+static RESULT fixup(void) {
+  RESULT ret = { .exception.error = NONE };
   unsigned i;
   out_info("patch CPU name tag");
 
@@ -351,31 +375,42 @@ static int fixup(void) {
     wrmsr(0xc0010030 + i, *(unsigned long long *)(cpu_name + i * 8));
 
   out_info("halt APs in init state");
-  int revision;
   /**
    * Start the stopped APs and execute some fixup code.
    */
   memcpy((char *)REALMODE_CODE, &smp_init_start,
          &smp_init_end - &smp_init_start);
-  CHECK3(-2, start_processors(REALMODE_CODE), "sending a STARTUP IPI");
-  revision = enable_svm();
-  CHECK3(12, revision, "could not enable SVM");
-  out_description("SVM Revision:", revision);
-  out_info("Enable global interrupt flag");
+  RESULT start_proc_ret = start_processors(REALMODE_CODE);
+  THROW(start_proc_ret.exception);
+  RESULT enable_svm_ret = enable_svm();
+  THROW(enable_svm_ret.exception);
 
+  out_info("Enable global interrupt flag");
   asm volatile("stgi");
 
-  return 0;
+  return ret;
 }
 
-int revert_skinit(void) {
-  if (0 < check_cpuid()) {
-    if (disable_dev_protection())
-      out_info("DEV disable failed");
+/* EXCEPT:
+ * ERROR_PCI
+ * ERROR_DEV
+ * ERROR_APIC
+ * ERROR_SVM
+ * ERROR_NO_EXT
+ * ERROR_NO_APIC
+ * ERROR_NO_SVM
+ */
+RESULT revert_skinit(void) {
+  RESULT ret = { .exception.error = NONE };
+  RESULT(UINT32) cpuid = check_cpuid();
+  THROW(cpuid.exception);
 
-    CHECK3(11, fixup(), "fixup failed");
-    out_info("fixup done");
-  }
+  RESULT dev_ret = disable_dev_protection();
+  THROW(dev_ret.exception);
 
-  return 0;
+  RESULT fixup_ret = fixup();
+  THROW(fixup_ret.exception);
+  out_info("fixup done");
+
+  return ret;
 }
