@@ -3,6 +3,8 @@ typedef enum tdERROR {
   ERROR_BAD_ELF_HEADER,
   ERROR_SHA1_DATA_SIZE,
   ERROR_NO_MODULE,
+  ERROR_BAD_MODULE,
+  ERROR_BAD_TPM_VENDOR,
   ERROR_TIS_TRANSMIT,
   ERROR_BUFFER_OVERFLOW,
   ERROR_TPM_BAD_OUTPUT_PARAM,
@@ -21,7 +23,7 @@ typedef struct tdEXCEPTION {
 
 typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 
-#define RESULT_GEN(Type)                                                    \
+#define RESULT_GEN(Type)                                                       \
   struct Type##_exception {                                                    \
     EXCEPTION exception;                                                       \
     Type value;                                                                \
@@ -72,36 +74,12 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
   }
 
 /**
- * Returns result and prints the msg, if value is true.
+ * If 'e' is an exception, return it
  */
-#define CHECK3(result, value, msg)                                             \
+#define THROW(e)                                                               \
   {                                                                            \
-    if (value) {                                                               \
-      EXCLUDE(out_string(msg);)                                                \
-      return result;                                                           \
-    }                                                                          \
-  }
-
-/**
- * Returns result and prints the msg and hex, if value is true.
- */
-#define CHECK4(result, value, msg, hex)                                        \
-  {                                                                            \
-    if (value) {                                                               \
-      EXCLUDE(out_description(msg, hex);)                                      \
-      return result;                                                           \
-    }                                                                          \
-  }
-
-/**
- * Assign 'val' to 'call. If the given 'call' returns an error, throw it
- * (return it to the caller).
- */
-#define THROW(val, call)                                                       \
-  {                                                                            \
-    val = call;                                                                \
-    if (val.exception.error) {                                                 \
-      ret.exception = val.exception;                                           \
+    if (e.error) {                                                             \
+      ret.exception = e;                                                       \
       return ret;                                                              \
     }                                                                          \
   }
