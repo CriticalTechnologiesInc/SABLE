@@ -17,6 +17,8 @@
 #define MSR_EFER 0xC0000080
 #define EFER_SVME 1 << 12
 
+RESULT_GEN(UINT32);
+
 /**
  * Swaps bytes in a short, like ntohl()
  */
@@ -52,6 +54,13 @@ UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 void wait(int ms);
 void dump_exception(EXCEPTION e);
 void exit(unsigned status) __attribute__((noreturn));
-int check_cpuid(void);
-int enable_svm(void);
+/**
+ * EXCEPT:
+ * ERROR_NO_EXT
+ * ERROR_NO_SVM
+ * ERROR_NO_APIC
+ */
+RESULT(UINT32) check_cpuid(void);
+/* EXCEPT: ERROR_SVM_ENABLE */
+RESULT enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);

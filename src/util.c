@@ -169,30 +169,37 @@ void exit(unsigned status) {
 }
 
 /**
+ * EXCEPT:
+ * ERROR_NO_EXT
+ * ERROR_NO_SVM
+ * ERROR_NO_APIC
+ *
  * Checks whether we have SVM support and a local APIC.
  *
  * @return: the SVM revision of the processor or a negative value, if
  * not supported.
  */
-int check_cpuid(void) {
-  int res;
-  CHECK3(-31, 0x8000000A > cpuid_eax(0x80000000), "no ext cpuid");
-  CHECK3(-32, !(0x4 & cpuid_ecx(0x80000001)), "no SVM support");
-  CHECK3(-33, !(0x200 & cpuid_edx(0x80000001)), "no APIC support");
-  res = cpuid_eax(0x8000000A) & 0xff;
-  return res;
+RESULT(UINT32) check_cpuid(void) {
+  RESULT(UINT32) ret = { .exception.error = NONE };
+  ERROR(0x8000000A > cpuid_eax(0x80000000), ERROR_NO_EXT, "no ext cpuid");
+  ERROR(!(0x4 & cpuid_ecx(0x80000001)), ERROR_NO_SVM, "no SVM support");
+  ERROR(!(0x200 & cpuid_edx(0x80000001)), ERROR_NO_APIC, "no APIC support");
+  ret.value = cpuid_eax(0x8000000A) & 0xff;
+  return ret;
 }
 
-/**
- * Enables SVM support.
+/* EXCEPT:
+ * ERROR_SVM_ENABLE
  *
+ * Enables SVM support.
  */
-int enable_svm(void) {
+RESULT enable_svm(void) {
+  RESULT ret = { .exception.error = NONE };
   unsigned long long value;
   value = rdmsr(MSR_EFER);
   wrmsr(MSR_EFER, value | EFER_SVME);
-  CHECK3(-40, !(rdmsr(MSR_EFER) & EFER_SVME), "could not enable SVM");
-  return 0;
+  ERROR(!(rdmsr(MSR_EFER) & EFER_SVME), ERROR_SVM_ENABLE, "could not enable SVM");
+  return ret;
 }
 
 /**
