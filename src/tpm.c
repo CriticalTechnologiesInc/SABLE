@@ -15,6 +15,7 @@
 #include "asm.h"
 #include "macro.h"
 #include "platform.h"
+#include "exception.h"
 #include "alloc.h"
 #include "tcg.h"
 #include "tis.h"
@@ -25,7 +26,8 @@
 #include "util.h"
 #include "tpm.h"
 
-TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
+RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
+  RESULT ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -45,7 +47,7 @@ TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   marshal_UINT16(startupType_in, &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -54,16 +56,20 @@ TPM_RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
+  TPM_ERROR(res, TPM_Startup);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
-  return res;
+  return ret;
 }
 
-TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
-                         UINT32 bytesRequested_in) {
+RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
+                     UINT32 bytesRequested_in) {
+  RESULT ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -84,7 +90,7 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   marshal_UINT32(bytesRequested_in, &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -93,21 +99,24 @@ TPM_RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  if (res)
-    return res;
+  TPM_ERROR(res, TPM_GetRandom);
   unmarshal_UINT32(&randomBytesSize_out, &uctx, NULL);
-  assert(bytesRequested_in == randomBytesSize_out);
+  ERROR(bytesRequested_in != randomBytesSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Did not get the requested number of random bytes");
   unmarshal_array(randomBytes_out, randomBytesSize_out, &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
-  return res;
+  return ret;
 }
 
-struct TPM_PCRRead_ret TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
-  struct TPM_PCRRead_ret ret;
+RESULT(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
+  RESULT(TPM_PCRVALUE) ret = {.exception.error = NONE};
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -126,7 +135,7 @@ struct TPM_PCRRead_ret TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
   marshal_UINT32(pcrIndex_in, &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -134,21 +143,23 @@ struct TPM_PCRRead_ret TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret.returnCode, &uctx, NULL);
-  if (ret.returnCode)
-    return ret;
-  unmarshal_array(&ret.outDigest, sizeof(TPM_PCRVALUE), &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+  TPM_ERROR(res, TPM_PCRRead);
+  unmarshal_array(&ret.value, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
   return ret;
 }
 
-struct TPM_Extend_ret TPM_Extend(TPM_PCRINDEX pcrNum_in,
-                                 TPM_DIGEST inDigest_in) {
-  struct TPM_Extend_ret ret;
+RESULT(TPM_PCRVALUE)
+TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
+  RESULT(TPM_PCRVALUE) ret;
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -169,7 +180,7 @@ struct TPM_Extend_ret TPM_Extend(TPM_PCRINDEX pcrNum_in,
   marshal_array(&inDigest_in, sizeof(TPM_DIGEST), &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -177,20 +188,22 @@ struct TPM_Extend_ret TPM_Extend(TPM_PCRINDEX pcrNum_in,
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret.returnCode, &uctx, NULL);
-  if (ret.returnCode)
-    return ret;
-  unmarshal_array(&ret.outDigest, sizeof(TPM_PCRVALUE), &uctx, NULL);
+  unmarshal_UINT32(&res, &uctx, NULL);
+  TPM_ERROR(res, TPM_Extend);
+  unmarshal_array(&ret.value, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
   return ret;
 }
 
-TPM_RESULT TPM_OIAP(TPM_SESSION **session) {
-  assert(session);
+RESULT TPM_OIAP(TPM_SESSION **session) {
+  ASSERT(session);
+  RESULT ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -209,7 +222,7 @@ TPM_RESULT TPM_OIAP(TPM_SESSION **session) {
   marshal_UINT32(ordinal_in, &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -218,24 +231,26 @@ TPM_RESULT TPM_OIAP(TPM_SESSION **session) {
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  if (res)
-    return res;
+  TPM_ERROR(res, TPM_OIAP);
   TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
   unmarshal_array(&s->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
   s->osap = NULL;
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
-  return res;
+  return ret;
 }
 
-TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
-                    TPM_NONCE nonceOddOSAP, TPM_SESSION **session) {
-  assert(session);
-  TPM_RESULT ret;
+RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
+                TPM_NONCE nonceOddOSAP, TPM_SESSION **session) {
+  ASSERT(session);
+  RESULT ret = {.exception.error = NONE};
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
 
@@ -257,7 +272,7 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   marshal_array(&nonceOddOSAP, sizeof(TPM_NONCE), &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -265,9 +280,8 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
 
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret, &uctx, NULL);
-  if (ret)
-    return ret;
+  unmarshal_UINT32(&res, &uctx, NULL);
+  TPM_ERROR(res, TPM_OSAP);
   TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
   s->osap = alloc(sizeof(TPM_OSAP_EXTENSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
@@ -275,19 +289,22 @@ TPM_RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unmarshal_array(&s->osap->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
-  assert(tag_out == TPM_TAG_RSP_COMMAND);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
   s->osap->nonceOddOSAP = nonceOddOSAP;
 
   return ret;
 }
 
-TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
-                                 TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
-                                 TPM_AUTHDATA nv_auth, TPM_SESSION **session) {
-  assert(session);
-  TPM_RESULT ret;
+RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
+                             TPM_NV_INDEX nvIndex_in, UINT32 offset_in,
+                             TPM_AUTHDATA nv_auth, TPM_SESSION **session) {
+  ASSERT(session);
+  RESULT ret = {.exception.error = NONE};
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -329,7 +346,7 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   marshal_array(&hctx.sctx.hash, sizeof(TPM_DIGEST), &pctx, NULL); //
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
@@ -338,10 +355,8 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   sha1_init(&sctx);                              // compute outParamDigest
   unmarshal_UINT16(&tag_out, &uctx, NULL);       //
   unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
-  unmarshal_UINT32(&ret, &uctx, &sctx);          // 1S
-  if (ret)                                       //
-    return ret;                                  //
-  assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);  //
+  unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
+  TPM_ERROR(res, TPM_NV_WriteValueAuth);         //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
   sha1_finish(&sctx);                            // outParamDigest = sctx.hash
 
@@ -356,26 +371,27 @@ TPM_RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   hmac_finish(&hctx); // HM = hctx.sctx.hash
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_AUTH1_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
-  assert(bytes_unpacked == paramSize_out);
-  assert(s->continueAuthSession == FALSE);
-  // clear session; TPM_Seal CANNOT continue an authorization session
-  *session = NULL;
+  if (!s->continueAuthSession)
+    *session = NULL;
 
-  ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
-        "MiM attack detected!");
+  ERROR(memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
+        ERROR_TPM_BAD_OUTPUT_AUTH, "Bad nvAuth out");
 
   return ret;
 }
 
-struct TPM_NV_ReadValue_ret
+RESULT(HEAP_DATA)
 TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
                  OPTION(TPM_AUTHDATA) ownerAuth_in, TPM_SESSION **session) {
-  struct TPM_NV_ReadValue_ret ret;
-
-  assert((ownerAuth_in.hasValue && session) ||
+  ASSERT((ownerAuth_in.hasValue && session) ||
          (!ownerAuth_in.hasValue && !session));
-
+  RESULT(HEAP_DATA) ret = {.exception.error = NONE};
+  TPM_RESULT res;
   TPM_TAG tag_in;
   UINT32 paramSize_in;
   TPM_COMMAND_CODE ordinal_in = TPM_ORD_NV_ReadValue;
@@ -424,7 +440,7 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   }
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
   tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
@@ -432,18 +448,11 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   unmarshal_UINT16(&tag_out, &uctx, NULL);
 
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
-  if (ret.returnCode) {
-    return ret;
-  }
-  if (session != NULL) {
-    assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);
-  } else {
-    assert(tag_out == TPM_TAG_RSP_COMMAND);
-  }
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);           // 2S
-  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);        // 3S
-  unmarshal_ptr(&ret.data, ret.dataSize, &uctx, &sctx); // 4S
+  unmarshal_UINT32(&res, &uctx, &sctx);                             // 1S
+  TPM_ERROR(res, TPM_NV_ReadValue);                                 //
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);                       // 2S
+  unmarshal_UINT32(&ret.value.dataSize, &uctx, &sctx);              // 3S
+  unmarshal_ptr(&ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   if (session != NULL) {
@@ -463,20 +472,29 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   }
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
   if (session != NULL) {
-    ERROR(-1, memcmp(&hctx.sctx.hash, &ownerAuth_out, sizeof(TPM_AUTHDATA)),
-          "MiM attack detected!");
+    ERROR(tag_out != TPM_TAG_RSP_AUTH1_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+          "Bad tag_out");
+  } else {
+    ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+          "Bad tag_out");
+  }
+  if (session != NULL) {
+    ERROR(memcmp(&hctx.sctx.hash, &ownerAuth_out, sizeof(TPM_AUTHDATA)),
+          ERROR_TPM_BAD_OUTPUT_AUTH, "Bad output ownerAuth");
   }
   return ret;
 }
 
-struct TPM_Unseal_ret
+RESULT(HEAP_DATA)
 TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
            TPM_AUTHDATA parentAuth, TPM_SESSION **parentSession,
            TPM_AUTHDATA dataAuth, TPM_SESSION **dataSession) {
-  assert(parentSession && dataSession);
-  struct TPM_Unseal_ret ret;
+  ASSERT(parentSession && dataSession);
+  RESULT(HEAP_DATA) ret = {.exception.error = NONE};
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -533,24 +551,20 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   marshal_array(&hctx.sctx.hash, sizeof(TPM_DIGEST), &pctx, NULL);
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
-  sha1_init(&sctx); // compute outParamDigest
-  unmarshal_UINT16(&tag_out, &uctx, NULL);
-  unmarshal_UINT32(&paramSize_out, &uctx, NULL);
-  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
-  if (ret.returnCode) {
-    return ret;
-  }
-  assert(tag_out == TPM_TAG_RSP_AUTH2_COMMAND);
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);            // 2S
-  unmarshal_UINT32(&ret.dataSize, &uctx, &sctx);         // 3S
-  ret.data = alloc(ret.dataSize);                        //
-  unmarshal_array(ret.data, ret.dataSize, &uctx, &sctx); // 4S
+  sha1_init(&sctx);                                    // compute outParamDigest
+  unmarshal_UINT16(&tag_out, &uctx, NULL);             //
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL);       //
+  unmarshal_UINT32(&res, &uctx, &sctx);                // 1S
+  TPM_ERROR(res, TPM_Unseal);                          //
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);          // 2S
+  unmarshal_UINT32(&ret.value.dataSize, &uctx, &sctx); // 3S
+  unmarshal_ptr(ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, parentAuth.authdata, sizeof(TPM_SECRET)); // compute HM1
@@ -567,8 +581,8 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
     *parentSession = NULL;
   }
 
-  ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
-        "MiM attack detected!");
+  ERROR(memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
+        ERROR_TPM_BAD_OUTPUT_AUTH, "Bad output parentAuth");
 
   hmac_init(&hctx, dataAuth.authdata, sizeof(TPM_SECRET)); // compute HM2
   unmarshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx);      // 1H2
@@ -580,10 +594,13 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   hmac_finish(&hctx); // HM = hctx.sctx.hash
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_AUTH2_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
-  ERROR(-1, memcmp(&hctx.sctx.hash, &dataAuth_out, sizeof(TPM_AUTHDATA)),
-        "MiM attack detected!");
+  ERROR(memcmp(&hctx.sctx.hash, &dataAuth_out, sizeof(TPM_AUTHDATA)),
+        ERROR_TPM_BAD_OUTPUT_AUTH, "Bad output dataAuth");
 
   if (!dataS->continueAuthSession) {
     *dataSession = NULL;
@@ -592,13 +609,13 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   return ret;
 }
 
-struct TPM_Seal_ret TPM_Seal(TPM_KEY_HANDLE keyHandle_in,
-                             TPM_ENCAUTH encAuth_in,
-                             TPM_PCR_INFO_LONG pcrInfo_in,
-                             const BYTE *inData_in, UINT32 inDataSize_in,
-                             TPM_SESSION **session, TPM_SECRET sharedSecret) {
-  assert(session);
-  struct TPM_Seal_ret ret;
+RESULT(TPM_STORED_DATA12)
+TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+         TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
+         UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret) {
+  ASSERT(session);
+  RESULT(TPM_STORED_DATA12) ret = {.exception.error = NONE};
+  TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
   SHA1_Context sctx;
@@ -644,21 +661,19 @@ struct TPM_Seal_ret TPM_Seal(TPM_KEY_HANDLE keyHandle_in,
   marshal_array(&hctx.sctx.hash, sizeof(TPM_DIGEST), &pctx, NULL); //
 
   UINT32 bytes_packed = pack_finish(&pctx);
-  assert(bytes_packed == paramSize_in);
+  ASSERT(bytes_packed == paramSize_in);
 
   tis_transmit();
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
-  sha1_init(&sctx);                                // compute outParamDigest
-  unmarshal_UINT16(&tag_out, &uctx, NULL);         //
-  unmarshal_UINT32(&paramSize_out, &uctx, NULL);   //
-  unmarshal_UINT32(&ret.returnCode, &uctx, &sctx); // 1S
-  if (ret.returnCode)                              //
-    return ret;                                    //
-  assert(tag_out == TPM_TAG_RSP_AUTH1_COMMAND);    //
-  unmarshal_UINT32(&ordinal_in, NULL, &sctx);      // 2S
-  unmarshal_TPM_STORED_DATA12(&ret.sealedData, &uctx, &sctx); // 3S
+  sha1_init(&sctx);                              // compute outParamDigest
+  unmarshal_UINT16(&tag_out, &uctx, NULL);       //
+  unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
+  unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
+  TPM_ERROR(res, TPM_Seal);                      //
+  unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
+  unmarshal_TPM_STORED_DATA12(&ret.value, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, sharedSecret.authdata, sizeof(TPM_SECRET)); // compute HM
@@ -672,14 +687,17 @@ struct TPM_Seal_ret TPM_Seal(TPM_KEY_HANDLE keyHandle_in,
   hmac_finish(&hctx); // HM = hctx.sctx.hash
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
-  assert(bytes_unpacked == paramSize_out);
+  ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad paramSize_out");
+  ERROR(tag_out != TPM_TAG_RSP_AUTH1_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "Bad tag_out");
 
-  ERROR(-1, memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
-        "MiM attack detected!");
+  ERROR(memcmp(&hctx.sctx.hash, &resAuth_out, sizeof(TPM_AUTHDATA)),
+        ERROR_TPM_BAD_OUTPUT_AUTH, "Bad output sealing key auth");
+  ERROR(s->continueAuthSession, ERROR_TPM_BAD_OUTPUT_PARAM,
+        "TPM_Seal did not end the ADIP session");
 
-  if (!s->continueAuthSession) {
-    *session = NULL;
-  }
+  *session = NULL;
 
   return ret;
 }
