@@ -16,6 +16,7 @@
 
 #include "macro.h"
 #include "platform.h"
+#include "exception.h"
 #include "tcg.h"
 #include "util.h"
 #include "tpm_error.h"

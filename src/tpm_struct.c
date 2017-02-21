@@ -1,6 +1,7 @@
 #include "macro.h"
 #include "asm.h"
 #include "platform.h"
+#include "exception.h"
 #include "alloc.h"
 #include "tcg.h"
 #include "sha.h"
@@ -22,13 +23,17 @@ void unpack_init(Unpack_Context *ctx, const BYTE *buffer, UINT32 bufferSize) {
 UINT32 pack_finish(Pack_Context *ctx) { return ctx->bytes_packed; }
 UINT32 unpack_finish(Unpack_Context *ctx) { return ctx->bytes_unpacked; }
 
-static void check_pack_overflow(Pack_Context *ctx, UINT32 sizeOfPack) {
-  ERROR(-1, !(ctx->bytes_packed + sizeOfPack <= ctx->size),
+static RESULT check_pack_overflow(Pack_Context *ctx, UINT32 sizeOfPack) {
+  RESULT ret = { .exception.error = NONE };
+  ERROR(!(ctx->bytes_packed + sizeOfPack <= ctx->size), ERROR_BUFFER_OVERFLOW,
         "Buffer overflow during pack");
+  return ret;
 }
-static void check_unpack_overflow(Unpack_Context *ctx, UINT32 sizeOfUnpack) {
+static RESULT check_unpack_overflow(Unpack_Context *ctx, UINT32 sizeOfUnpack) {
+  RESULT ret = { .exception.error = NONE };
   ERROR(-1, !(ctx->bytes_unpacked + sizeOfUnpack <= ctx->size),
         "Unpacking beyond buffer's end");
+  return ret;
 }
 
 /*
@@ -61,8 +66,8 @@ void marshal_BYTE(BYTE val, Pack_Context *ctx, SHA1_Context *sctx) {
   }
 }
 void unmarshal_BYTE(BYTE *val, Unpack_Context *ctx, SHA1_Context *sctx) {
-  assert(val);
-  assert(ctx || sctx);
+  ASSERT(val);
+  ASSERT(ctx || sctx);
   if (sctx && !ctx) {
     sha1(sctx, val, sizeof(BYTE));
     return;
@@ -89,8 +94,8 @@ void marshal_UINT16(UINT16 val, Pack_Context *ctx, SHA1_Context *sctx) {
   }
 }
 void unmarshal_UINT16(UINT16 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
-  assert(val);
-  assert(ctx || sctx);
+  ASSERT(val);
+  ASSERT(ctx || sctx);
   if (sctx && !ctx) {
     UINT16 tmp = htonl(*val);
     sha1(sctx, &tmp, sizeof(UINT16));
@@ -119,8 +124,8 @@ void marshal_UINT32(UINT32 val, Pack_Context *ctx, SHA1_Context *sctx) {
   }
 }
 void unmarshal_UINT32(UINT32 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
-  assert(val);
-  assert(ctx || sctx);
+  ASSERT(val);
+  ASSERT(ctx || sctx);
   if (sctx && !ctx) {
     UINT32 tmp = htonl(*val);
     sha1(sctx, &tmp, sizeof(UINT32));
@@ -138,7 +143,7 @@ void unmarshal_UINT32(UINT32 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
 
 void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
                    SHA1_Context *sctx) {
-  assert(data);
+  ASSERT(data);
   if (sctx) {
     sha1(sctx, data, size);
   }
@@ -150,7 +155,7 @@ void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
 }
 void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
                      SHA1_Context *sctx) {
-  assert(ctx || sctx);
+  ASSERT(ctx || sctx);
   if (sctx && !ctx) {
     sha1(sctx, data, size);
     return;
@@ -167,12 +172,12 @@ void unmarshal_array(void *data, UINT32 size, Unpack_Context *ctx,
 }
 void unmarshal_ptr(void *ptr, UINT32 size, Unpack_Context *ctx,
                    SHA1_Context *sctx) {
-  assert(ptr);
-  assert(ctx);
+  ASSERT(ptr);
+  ASSERT(ctx);
   void **tmp = (void **)ptr;
   check_unpack_overflow(ctx, size);
   *tmp = alloc(size);
-  assert(*tmp);
+  ASSERT(*tmp);
   memcpy(*tmp, ctx->unpack_buffer + ctx->bytes_unpacked, size);
   ctx->bytes_unpacked += size;
   if (sctx) {

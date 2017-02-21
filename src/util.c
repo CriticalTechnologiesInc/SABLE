@@ -20,7 +20,6 @@
 #include "util.h"
 
 static const char *const message_label = "SABLE:   ";
-struct exception e;
 
 /**
  * Output a single hex value.
