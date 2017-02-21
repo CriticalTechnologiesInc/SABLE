@@ -9,6 +9,7 @@ typedef enum tdERROR {
   ERROR_TIS_LOCALITY_REGISTER_INVALID,
   ERROR_TIS_LOCALITY_ACCESS_TIMEOUT,
   ERROR_TIS_LOCALITY_ALREADY_ACCESSED,
+  ERROR_TIS_LOCALITY_DEACTIVATE,
   ERROR_PCI,
   ERROR_APIC,
   ERROR_DEV,
@@ -100,16 +101,18 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #define CATCH_ANY(e, handler)                                                  \
   {                                                                            \
     if (e.error) {                                                             \
-      handler;                                                                 \
+      {handler;};                                                               \
+      e.error = NONE;                                                          \
     }                                                                          \
   }
 
 /**
  * If 'e' is the error 'error', execute 'handler'
  */
-#define CATCH(e, error, handler)                                               \
+#define CATCH(e, ex, handler)                                               \
   {                                                                            \
-    if (e.error == error) {                                                    \
-      handler;                                                                 \
+    if (e.error == (ex)) {                                                  \
+      {handler;};                                                               \
+      e.error = NONE;                                                          \
     }                                                                          \
   }

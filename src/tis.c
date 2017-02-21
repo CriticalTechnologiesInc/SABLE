@@ -86,11 +86,13 @@ enum TIS_TPM_VENDOR tis_init() {
   }
 }
 
-/**
+/* EXCEPT: ERROR_TIS_LOCALITY_DEACTIVATE
+ *
  * Deactivate all localities.
  * Returns zero if no locality is active.
  */
-int tis_deactivate_all(void) {
+RESULT tis_deactivate_all(void) {
+  RESULT ret = {.exception.error = NONE};
   int res = 0;
   unsigned i;
   for (i = 0; i < 4; i++) {
@@ -100,7 +102,8 @@ int tis_deactivate_all(void) {
       res |= mmap->access & TIS_ACCESS_ACTIVE;
     }
   }
-  return res;
+  ERROR(res, ERROR_TIS_LOCALITY_DEACTIVATE, "tis deactivate failed");
+  return ret;
 }
 
 /* EXCEPT:

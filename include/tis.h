@@ -84,7 +84,8 @@ enum TIS_STS_BITS {
 
 void tis_dump(void);
 enum TIS_TPM_VENDOR tis_init(void);
-int tis_deactivate_all(void);
+/* EXCEPT: ERROR_TIS_LOCALITY_DEACTIVATE */
+RESULT tis_deactivate_all(void);
 /* EXCEPT:
  * ERROR_TIS_LOCALITY_REGISTER_INVALID
  * ERROR_TIS_LOCALITY_ACCESS_TIMEOUT
