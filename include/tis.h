@@ -85,6 +85,11 @@ enum TIS_STS_BITS {
 void tis_dump(void);
 enum TIS_TPM_VENDOR tis_init(void);
 int tis_deactivate_all(void);
-int tis_access(enum TIS_LOCALITY locality, int force);
+/* EXCEPT:
+ * ERROR_TIS_LOCALITY_REGISTER_INVALID
+ * ERROR_TIS_LOCALITY_ACCESS_TIMEOUT
+ * ERROR_TIS_LOCALITY_ALREADY_ACCESSED
+ */
+RESULT tis_access(enum TIS_LOCALITY locality, int force);
 /* EXCEPT: ERROR_TIS_TRANSMIT */
 RESULT tis_transmit(void);

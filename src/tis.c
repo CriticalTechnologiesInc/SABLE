@@ -103,12 +103,17 @@ int tis_deactivate_all(void) {
   return res;
 }
 
-/**
+/* EXCEPT:
+ * ERROR_TIS_LOCALITY_REGISTER_INVALID
+ * ERROR_TIS_LOCALITY_ACCESS_TIMEOUT
+ * ERROR_TIS_LOCALITY_ALREADY_ACCESSED
+ *
  * Request access for a given locality.
  * @param locality: address of the locality e.g. TIS_LOCALITY_2
  * Returns 0 if we could not gain access.
  */
-int tis_access(enum TIS_LOCALITY locality, int force) {
+RESULT tis_access(enum TIS_LOCALITY locality, int force) {
+  RESULT ret = {.exception.error = NONE};
   volatile struct TIS_MMAP *mmap;
 
   // a force on locality0 is unnecessary
@@ -118,9 +123,12 @@ int tis_access(enum TIS_LOCALITY locality, int force) {
   tis_locality = TIS_BASE + locality;
   mmap = (struct TIS_MMAP *)tis_locality;
 
-  CHECK3(0, !(mmap->access & TIS_ACCESS_VALID), "access register not valid");
-  CHECK3(0, mmap->access == 0xff, "access register invalid")
-  CHECK3(2, mmap->access & TIS_ACCESS_ACTIVE, "locality already active");
+  ERROR(!(mmap->access & TIS_ACCESS_VALID), ERROR_TIS_LOCALITY_REGISTER_INVALID,
+        "access register not valid");
+  ERROR(mmap->access == 0xff, ERROR_TIS_LOCALITY_REGISTER_INVALID,
+        "access register invalid")
+  ERROR(mmap->access & TIS_ACCESS_ACTIVE, ERROR_TIS_LOCALITY_ALREADY_ACCESSED,
+        "locality already active");
 
   // first try it the normal way
   mmap->access = TIS_ACCESS_REQUEST;
@@ -137,7 +145,9 @@ int tis_access(enum TIS_LOCALITY locality, int force) {
     // make the tpm ready -> abort a command
     mmap->sts_base = TIS_STS_CMD_READY;
   }
-  return mmap->access & TIS_ACCESS_ACTIVE;
+  ERROR(mmap->access & TIS_ACCESS_ACTIVE, ERROR_TIS_LOCALITY_ACCESS_TIMEOUT,
+        "TIS access timed out");
+  return ret;
 }
 
 static void wait_state(volatile struct TIS_MMAP *mmap, unsigned char state) {
@@ -153,7 +163,7 @@ static void wait_state(volatile struct TIS_MMAP *mmap, unsigned char state) {
  * Returns the numbers of bytes transfered or an value < 0 on errors.
  */
 static RESULT(int) tis_write(void) {
-  RESULT(int) ret = { .exception.error = NONE };
+  RESULT(int) ret = {.exception.error = NONE};
   volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   const unsigned char *in = tis_buffers.in;
   const TPM_COMMAND_HEADER *header = (const TPM_COMMAND_HEADER *)tis_buffers.in;
@@ -163,7 +173,8 @@ static RESULT(int) tis_write(void) {
     mmap->sts_base = TIS_STS_CMD_READY;
     wait_state(mmap, TIS_STS_CMD_READY);
   }
-  ERROR(!(mmap->sts_base & TIS_STS_CMD_READY), ERROR_TIS_TRANSMIT, "tis_write() not ready");
+  ERROR(!(mmap->sts_base & TIS_STS_CMD_READY), ERROR_TIS_TRANSMIT,
+        "tis_write() not ready");
 
   int size = htonl(header->paramSize);
   for (ret.value = 0; ret.value < size; ret.value++) {
@@ -172,7 +183,8 @@ static RESULT(int) tis_write(void) {
   }
 
   wait_state(mmap, TIS_STS_VALID);
-  ERROR(mmap->sts_base & TIS_STS_EXPECT, ERROR_TIS_TRANSMIT, "TPM expects more data");
+  ERROR(mmap->sts_base & TIS_STS_EXPECT, ERROR_TIS_TRANSMIT,
+        "TPM expects more data");
 
   // execute the command
   mmap->sts_base = TIS_STS_TPM_GO;
@@ -187,7 +199,7 @@ static RESULT(int) tis_write(void) {
  * Returns the numbers of bytes received or an value < 0 on errors.
  */
 static RESULT(int) tis_read(void) {
-  RESULT(int) ret = { .exception.error = NONE };
+  RESULT(int) ret = {.exception.error = NONE};
   volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   unsigned char *out = tis_buffers.out;
   TPM_COMMAND_HEADER *header = (TPM_COMMAND_HEADER *)tis_buffers.out;
@@ -195,8 +207,8 @@ static RESULT(int) tis_read(void) {
   wait_state(mmap, TIS_STS_VALID | TIS_STS_DATA_AVAIL);
   ERROR(!(mmap->sts_base & TIS_STS_VALID), ERROR_TIS_TRANSMIT, "sts not valid");
 
-  for (ret.value = 0;
-       ret.value < sizeof(TPM_COMMAND_HEADER) && mmap->sts_base & TIS_STS_DATA_AVAIL;
+  for (ret.value = 0; ret.value < sizeof(TPM_COMMAND_HEADER) &&
+                      mmap->sts_base & TIS_STS_DATA_AVAIL;
        ret.value++) {
     *out = mmap->data_fifo;
     out++;
@@ -207,7 +219,8 @@ static RESULT(int) tis_read(void) {
     out++;
   }
 
-  ERROR(mmap->sts_base & TIS_STS_DATA_AVAIL, ERROR_TIS_TRANSMIT, "more data available");
+  ERROR(mmap->sts_base & TIS_STS_DATA_AVAIL, ERROR_TIS_TRANSMIT,
+        "more data available");
 
   // make the tpm ready again -> this allows tpm background jobs to complete
   mmap->sts_base = TIS_STS_CMD_READY;
@@ -219,10 +232,13 @@ static RESULT(int) tis_read(void) {
  * This is our high level TIS function used by all TPM commands.
  */
 RESULT tis_transmit(void) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT(int) res;
 
-  THROW(res, tis_write());
-  THROW(res, tis_read());
+  res = tis_write();
+  THROW(res.exception);
+  res = tis_read();
+  THROW(res.exception);
+
   return ret;
 }
