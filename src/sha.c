@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#include "exception.h"
 #include "macro.h"
 #include "asm.h"
 #include "platform.h"
@@ -92,6 +93,8 @@ void sha1_init(SHA1_Context *ctx) {
 }
 
 /**
+ * EXCEPT: ERROR_SHA1_DATA_SIZE
+ *
  * Hash a count bytes from value.
  *
  * @param ctx    - store immediate values like unprocessed bytes and the overall
@@ -99,18 +102,20 @@ void sha1_init(SHA1_Context *ctx) {
  * @param value  - a string to hash
  * @param count  - the number of characters in value
  */
-void sha1(SHA1_Context *ctx, const void *val, UINT32 count) {
+RESULT sha1(SHA1_Context *ctx, const void *val, UINT32 count) {
+  RESULT ret = { .exception.error = NONE };
   const BYTE *value = val;
   for (; count + ctx->index >= 64;
        count -= 64 - ctx->index, value += 64 - ctx->index, ctx->index = 0) {
     memcpy(ctx->buffer + ctx->index, value, 64 - ctx->index);
     process_block(ctx);
     ctx->blocks++;
-    ERROR(-20, ctx->blocks >= 1 << 23, "SHA data exceeds maximum size");
+    ERROR(ctx->blocks >= 1 << 23, ERROR_SHA1_DATA_SIZE, "SHA data exceeds maximum size");
   }
 
   memcpy(ctx->buffer + ctx->index, value, count);
   ctx->index += count;
+  return ret;
 }
 
 /**
