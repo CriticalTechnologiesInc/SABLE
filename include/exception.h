@@ -5,6 +5,7 @@ typedef enum tdERROR {
   ERROR_NO_MODULE,
   ERROR_TIS_TRANSMIT,
   ERROR_AUTH_INTEGRITY,
+  ERROR_TPM_BAD_OUTPUT_PARAM,
   ERROR_TPM = 1 << 7,
 } ERROR;
 
@@ -19,7 +20,7 @@ typedef struct tdEXCEPTION {
 
 typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 
-#define EXCEPTION_GEN(Type)                                                    \
+#define RESULT_GEN(Type)                                                    \
   struct Type##_exception {                                                    \
     EXCEPTION exception;                                                       \
     Type value;                                                                \
@@ -28,9 +29,9 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 /* This is a trick to force makeheaders to recognize EXCEPTION_GEN(Type) as
  * a dependency of EXCEPTION(Type) */
 #ifndef BOGUS
-#define EXCEPTION(Type) struct Type##_exception
+#define RESULT(Type) struct Type##_exception
 #else
-#define EXCEPTION(Type) EXCEPTION_GEN(Type)
+#define RESULT(Type) RESULT_GEN(Type)
 #endif
 
 #ifndef NDEBUG
@@ -40,7 +41,7 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
   ret.exception.lineNum = str(__LINE__);                                       \
   ret.exception.msg = message;
 #else
-#define EXCEPT(message)
+#define EXCEPT(message) ret.exception.error = exp;
 #endif
 
 /**
@@ -61,9 +62,9 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
  * 'msg' may be displayed if the error is caught. When 'value' is true,
  * 'ret' is returned to the caller.
  */
-#define TPM_ERROR(value, error, command_name)                                  \
+#define TPM_ERROR(error, command_name)                                         \
   {                                                                            \
-    if (value) {                                                               \
+    if (error) {                                                               \
       EXCEPT(ERROR_TPM | error, xstr(command_name))                            \
       return ret;                                                              \
     }                                                                          \
