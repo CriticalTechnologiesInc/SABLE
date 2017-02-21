@@ -3,6 +3,7 @@ typedef enum tdERROR {
   ERROR_BAD_ELF_HEADER,
   ERROR_SHA1_DATA_SIZE,
   ERROR_NO_MODULE,
+  ERROR_TIS_TRANSMIT,
   ERROR_AUTH_INTEGRITY,
   ERROR_TPM = 1 << 7,
 } ERROR;
@@ -17,6 +18,20 @@ typedef struct tdEXCEPTION {
 } EXCEPTION;
 
 typedef struct tdRESULT { EXCEPTION exception; } RESULT;
+
+#define EXCEPTION_GEN(Type)                                                    \
+  struct Type##_exception {                                                    \
+    EXCEPTION exception;                                                       \
+    Type value;                                                                \
+  }
+
+/* This is a trick to force makeheaders to recognize EXCEPTION_GEN(Type) as
+ * a dependency of EXCEPTION(Type) */
+#ifndef BOGUS
+#define EXCEPTION(Type) struct Type##_exception
+#else
+#define EXCEPTION(Type) EXCEPTION_GEN(Type)
+#endif
 
 #ifndef NDEBUG
 #define EXCEPT(exp, message)                                                   \

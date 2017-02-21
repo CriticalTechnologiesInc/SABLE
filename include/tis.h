@@ -86,4 +86,5 @@ void tis_dump(void);
 enum TIS_TPM_VENDOR tis_init(void);
 int tis_deactivate_all(void);
 int tis_access(enum TIS_LOCALITY locality, int force);
-void tis_transmit(void);
+/* EXCEPT: ERROR_TIS_TRANSMIT */
+RESULT tis_transmit(void);

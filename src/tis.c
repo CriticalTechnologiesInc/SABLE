@@ -15,9 +15,12 @@
 #include "macro.h"
 #include "asm.h"
 #include "platform.h"
+#include "exception.h"
 #include "tcg.h"
 #include "util.h"
 #include "tis.h"
+
+EXCEPTION_GEN(int);
 
 struct TIS_BUFFERS tis_buffers = {.in = {0}, .out = {0}};
 
@@ -109,8 +112,8 @@ int tis_access(enum TIS_LOCALITY locality, int force) {
   volatile struct TIS_MMAP *mmap;
 
   // a force on locality0 is unnecessary
-  assert(locality != TIS_LOCALITY_0 || !force);
-  assert(locality >= TIS_LOCALITY_0 && locality <= TIS_LOCALITY_4);
+  ASSERT(locality != TIS_LOCALITY_0 || !force);
+  ASSERT(locality >= TIS_LOCALITY_0 && locality <= TIS_LOCALITY_4);
 
   tis_locality = TIS_BASE + locality;
   mmap = (struct TIS_MMAP *)tis_locality;
@@ -144,80 +147,82 @@ static void wait_state(volatile struct TIS_MMAP *mmap, unsigned char state) {
 }
 
 /**
+ * EXCEPT: ERROR_TIS_TRANSMIT
+ *
  * Write the given buffer to the TPM.
  * Returns the numbers of bytes transfered or an value < 0 on errors.
  */
-static int tis_write(void) {
+static EXCEPTION(int) tis_write(void) {
+  EXCEPTION(int) ret = { .exception.error = NONE };
   volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   const unsigned char *in = tis_buffers.in;
   const TPM_COMMAND_HEADER *header = (const TPM_COMMAND_HEADER *)tis_buffers.in;
-  unsigned res;
 
   if (!(mmap->sts_base & TIS_STS_CMD_READY)) {
     // make the tpm ready -> wakeup from idle state
     mmap->sts_base = TIS_STS_CMD_READY;
     wait_state(mmap, TIS_STS_CMD_READY);
   }
-  CHECK3(-1, !(mmap->sts_base & TIS_STS_CMD_READY), "tis_write() not ready");
+  ERROR(!(mmap->sts_base & TIS_STS_CMD_READY), ERROR_TIS_TRANSMIT, "tis_write() not ready");
 
   int size = htonl(header->paramSize);
-  for (res = 0; res < size; res++) {
+  for (ret.value = 0; ret.value < size; ret.value++) {
     mmap->data_fifo = *in;
     in++;
   }
 
   wait_state(mmap, TIS_STS_VALID);
-  CHECK3(-2, mmap->sts_base & TIS_STS_EXPECT, "TPM expects more data");
+  ERROR(mmap->sts_base & TIS_STS_EXPECT, ERROR_TIS_TRANSMIT, "TPM expects more data");
 
   // execute the command
   mmap->sts_base = TIS_STS_TPM_GO;
 
-  return res;
+  return ret;
 }
 
 /**
+ * EXCEPT: ERROR_TIS_TRANSMIT
+ *
  * Read into the given buffer from the TPM.
  * Returns the numbers of bytes received or an value < 0 on errors.
  */
-static int tis_read(void) {
+static EXCEPTION(int) tis_read(void) {
+  EXCEPTION(int) ret = { .exception.error = NONE };
   volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   unsigned char *out = tis_buffers.out;
   TPM_COMMAND_HEADER *header = (TPM_COMMAND_HEADER *)tis_buffers.out;
-  unsigned res = 0;
 
   wait_state(mmap, TIS_STS_VALID | TIS_STS_DATA_AVAIL);
-  CHECK4(-2, !(mmap->sts_base & TIS_STS_VALID), "sts not valid",
-         mmap->sts_base);
+  ERROR(!(mmap->sts_base & TIS_STS_VALID), ERROR_TIS_TRANSMIT, "sts not valid");
 
-  for (res = 0;
-       res < sizeof(TPM_COMMAND_HEADER) && mmap->sts_base & TIS_STS_DATA_AVAIL;
-       res++) {
+  for (ret.value = 0;
+       ret.value < sizeof(TPM_COMMAND_HEADER) && mmap->sts_base & TIS_STS_DATA_AVAIL;
+       ret.value++) {
     *out = mmap->data_fifo;
     out++;
   }
   int size = htonl(header->paramSize);
-  for (; res < size && mmap->sts_base & TIS_STS_DATA_AVAIL; res++) {
+  for (; ret.value < size && mmap->sts_base & TIS_STS_DATA_AVAIL; ret.value++) {
     *out = mmap->data_fifo;
     out++;
   }
 
-  CHECK3(-3, mmap->sts_base & TIS_STS_DATA_AVAIL, "more data available");
+  ERROR(mmap->sts_base & TIS_STS_DATA_AVAIL, ERROR_TIS_TRANSMIT, "more data available");
 
   // make the tpm ready again -> this allows tpm background jobs to complete
   mmap->sts_base = TIS_STS_CMD_READY;
-  return res;
+  return ret;
 }
 
 /**
  * Transmit a command to the TPM and wait for the response.
  * This is our high level TIS function used by all TPM commands.
  */
-void tis_transmit(void) {
-  unsigned int res;
+RESULT tis_transmit(void) {
+  RESULT ret = { .exception.error = NONE };
+  EXCEPTION(int) res;
 
-  res = tis_write();
-  ERROR(-1, res <= 0, "  TIS write error:");
-
-  res = tis_read();
-  ERROR(-2, res <= 0, "  TIS read error:");
+  THROW(res, tis_write());
+  THROW(res, tis_read());
+  return ret;
 }
