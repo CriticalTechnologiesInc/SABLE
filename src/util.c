@@ -272,3 +272,11 @@ void show_hash(const char *s, TPM_DIGEST hash) {
     out_hex(hash.digest[i], 7);
   out_char('\n');
 }
+
+#ifndef NDEBUG
+#else
+void assert(bool b) {
+  if (!b)
+    exit(-1);
+}
+#endif
