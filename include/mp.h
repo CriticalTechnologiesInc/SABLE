@@ -27,15 +27,24 @@ enum APIC_DEFS {
   APIC_ICR_STARTUP = 0x6 << 8,
 };
 
-int send_ipi(unsigned param);
+/* EXCEPT:
+ * ERROR_APIC
+ *
+ * Send an IPI to all APs.
+ */
+RESULT send_ipi(unsigned param);
 
-/**
+/* EXCEPT:
+ * ERROR_APIC
+ *
  * Stop all application processors by sending them an INIT IPI.
  */
-int stop_processors(void);
+RESULT stop_processors(void);
 
-/**
+/* EXCEPT:
+ * ERROR_APIC
+ *
  * Sending all APs a Startup IPI and let them execute real mode code
  * at address.
  */
-int start_processors(unsigned address);
+RESULT start_processors(unsigned address);
