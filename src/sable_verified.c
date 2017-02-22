@@ -11,9 +11,13 @@ extern TPM_NONCE get_nonce(void);
 
 static TPM_SESSION *sessions[2] = {NULL, NULL};
 
+// Generate RESULT types
+RESULT_GEN(TPM_PCR_INFO_LONG);
+
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
-TPM_PCR_INFO_LONG get_pcr_info(void) {
+static RESULT(TPM_PCR_INFO_LONG) get_pcr_info(void) {
+  RESULT ret = { .exception.error = NONE };
   TPM_PCRVALUE *pcr_values = alloc(2 * sizeof(TPM_PCRVALUE));
   BYTE *pcr_select_bytes = alloc(3);
   pcr_select_bytes[0] = 0x00;
@@ -22,8 +26,8 @@ TPM_PCR_INFO_LONG get_pcr_info(void) {
   TPM_PCR_SELECTION pcr_select = {.sizeOfSelect = 3,
                                   .pcrSelect = (BYTE *)pcr_select_bytes};
   RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
-  TPM_ERROR(pcr17.returnCode, TPM_PCRRead);
-  pcr_values[0] = pcr17.outDigest;
+  THROW(pcr17.exception);
+  pcr_values[0] = pcr17.value;
   struct TPM_PCRRead_ret pcr19 = TPM_PCRRead(19);
   TPM_ERROR(pcr19.returnCode, TPM_PCRRead);
   pcr_values[1] = pcr19.outDigest;
@@ -41,7 +45,7 @@ TPM_PCR_INFO_LONG get_pcr_info(void) {
   return pcr_info;
 }
 
-TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+static TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
                                   const char *passphrase,
                                   UINT32 lenPassphrase) {
   TPM_RESULT res;
@@ -73,7 +77,7 @@ TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
   return seal_ret.sealedData;
 }
 
-void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
+static void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
   TPM_RESULT res;
 
   res = TPM_OIAP(&sessions[0]);
@@ -114,7 +118,7 @@ void configure(void) {
   write_passphrase(nv_auth, sealedData);
 }
 
-TPM_STORED_DATA12 read_passphrase(void) {
+static TPM_STORED_DATA12 read_passphrase(void) {
   struct TPM_NV_ReadValue_ret val;
   OPTION(TPM_AUTHDATA) nv_auth;
 
@@ -141,7 +145,7 @@ TPM_STORED_DATA12 read_passphrase(void) {
   return unpack_TPM_STORED_DATA12(val.data, val.dataSize);
 }
 
-const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+static const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
                               TPM_STORED_DATA12 sealed_pp) {
   TPM_RESULT res;
 
