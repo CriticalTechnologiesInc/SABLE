@@ -114,8 +114,8 @@ RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   return ret;
 }
 
-RESULT(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
-  RESULT(TPM_PCRVALUE) ret = {.exception.error = NONE};
+RESULT_(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
+  RESULT_(TPM_PCRVALUE) ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -156,9 +156,9 @@ RESULT(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
   return ret;
 }
 
-RESULT(TPM_PCRVALUE)
+RESULT_(TPM_PCRVALUE)
 TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
-  RESULT(TPM_PCRVALUE) ret;
+  RESULT_(TPM_PCRVALUE) ret;
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -385,12 +385,12 @@ RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   return ret;
 }
 
-RESULT(HEAP_DATA)
+RESULT_(HEAP_DATA)
 TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
                  OPTION(TPM_AUTHDATA) ownerAuth_in, TPM_SESSION **session) {
   ASSERT((ownerAuth_in.hasValue && session) ||
          (!ownerAuth_in.hasValue && !session));
-  RESULT(HEAP_DATA) ret = {.exception.error = NONE};
+  RESULT_(HEAP_DATA) ret = {.exception.error = NONE};
   TPM_RESULT res;
   TPM_TAG tag_in;
   UINT32 paramSize_in;
@@ -488,12 +488,12 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   return ret;
 }
 
-RESULT(HEAP_DATA)
+RESULT_(HEAP_DATA)
 TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
            TPM_AUTHDATA parentAuth, TPM_SESSION **parentSession,
            TPM_AUTHDATA dataAuth, TPM_SESSION **dataSession) {
   ASSERT(parentSession && dataSession);
-  RESULT(HEAP_DATA) ret = {.exception.error = NONE};
+  RESULT_(HEAP_DATA) ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -609,12 +609,12 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   return ret;
 }
 
-RESULT(TPM_STORED_DATA12)
+RESULT_(TPM_STORED_DATA12)
 TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
          TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
          UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret) {
   ASSERT(session);
-  RESULT(TPM_STORED_DATA12) ret = {.exception.error = NONE};
+  RESULT_(TPM_STORED_DATA12) ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;

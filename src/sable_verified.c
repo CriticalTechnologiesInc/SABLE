@@ -21,7 +21,7 @@ TPM_PCR_INFO_LONG get_pcr_info(void) {
   pcr_select_bytes[2] = 0x0a;
   TPM_PCR_SELECTION pcr_select = {.sizeOfSelect = 3,
                                   .pcrSelect = (BYTE *)pcr_select_bytes};
-  struct TPM_PCRRead_ret pcr17 = TPM_PCRRead(17);
+  RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
   TPM_ERROR(pcr17.returnCode, TPM_PCRRead);
   pcr_values[0] = pcr17.outDigest;
   struct TPM_PCRRead_ret pcr19 = TPM_PCRRead(19);

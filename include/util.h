@@ -60,7 +60,7 @@ void exit(unsigned status) __attribute__((noreturn));
  * ERROR_NO_SVM
  * ERROR_NO_APIC
  */
-RESULT(UINT32) check_cpuid(void);
+RESULT_(UINT32) check_cpuid(void);
 /* EXCEPT: ERROR_SVM_ENABLE */
 RESULT enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);

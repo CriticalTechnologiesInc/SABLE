@@ -165,8 +165,8 @@ static void wait_state(volatile struct TIS_MMAP *mmap, unsigned char state) {
  * Write the given buffer to the TPM.
  * Returns the numbers of bytes transfered or an value < 0 on errors.
  */
-static RESULT(int) tis_write(void) {
-  RESULT(int) ret = {.exception.error = NONE};
+static RESULT_(int) tis_write(void) {
+  RESULT_(int) ret = {.exception.error = NONE};
   volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   const unsigned char *in = tis_buffers.in;
   const TPM_COMMAND_HEADER *header = (const TPM_COMMAND_HEADER *)tis_buffers.in;
@@ -201,8 +201,8 @@ static RESULT(int) tis_write(void) {
  * Read into the given buffer from the TPM.
  * Returns the numbers of bytes received or an value < 0 on errors.
  */
-static RESULT(int) tis_read(void) {
-  RESULT(int) ret = {.exception.error = NONE};
+static RESULT_(int) tis_read(void) {
+  RESULT_(int) ret = {.exception.error = NONE};
   volatile struct TIS_MMAP *mmap = (struct TIS_MMAP *)tis_locality;
   unsigned char *out = tis_buffers.out;
   TPM_COMMAND_HEADER *header = (TPM_COMMAND_HEADER *)tis_buffers.out;
@@ -236,7 +236,7 @@ static RESULT(int) tis_read(void) {
  */
 RESULT tis_transmit(void) {
   RESULT ret = {.exception.error = NONE};
-  RESULT(int) res;
+  RESULT_(int) res;
 
   res = tis_write();
   THROW(res.exception);

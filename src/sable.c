@@ -48,8 +48,8 @@ const char *const version_string =
 /* EXCEPT:
  * ERROR_SHA1_DATA_SIZE
  */
-RESULT(TPM_AUTHDATA) get_authdata(void) {
-  RESULT(TPM_AUTHDATA) ret = {.exception.error = NONE};
+RESULT_(TPM_AUTHDATA) get_authdata(void) {
+  RESULT_(TPM_AUTHDATA) ret = {.exception.error = NONE};
   static const TPM_AUTHDATA zero_authdata = {{0}};
   int res;
   SHA1_Context sctx;
@@ -74,8 +74,8 @@ RESULT(TPM_AUTHDATA) get_authdata(void) {
  * ERROR_TPM_BAD_OUTPUT_PARAM
  * temporary solution, in the long term we should not rely on the TPM to
  * generate nonces. */
-RESULT(TPM_NONCE) get_nonce(void) {
-  RESULT(TPM_NONCE) ret = {.exception.error = NONE};
+RESULT_(TPM_NONCE) get_nonce(void) {
+  RESULT_(TPM_NONCE) ret = {.exception.error = NONE};
   RESULT get_random_res;
   get_random_res = TPM_GetRandom(ret.value.nonce, sizeof(TPM_NONCE));
   THROW(get_random_res.exception);
@@ -92,7 +92,7 @@ RESULT(TPM_NONCE) get_nonce(void) {
  */
 static RESULT mbi_calc_hash(struct mbi *mbi) {
   RESULT ret = {.exception.error = NONE};
-  RESULT(TPM_PCRVALUE) extend_ret;
+  RESULT_(TPM_PCRVALUE) extend_ret;
   RESULT sha1_ret;
   SHA1_Context sctx;
 
@@ -165,7 +165,7 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
 
-  RESULT(UINT32) cpuid = check_cpuid();
+  RESULT_(UINT32) cpuid = check_cpuid();
   THROW(cpuid.exception);
   out_description("SVM revision:", cpuid.value);
 
@@ -209,11 +209,11 @@ RESULT post_skinit(struct mbi *m) {
     THROW(mbi_calc_hash_ret.exception);
 
 #ifndef NDEBUG
-    RESULT(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
+    RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
     THROW(pcr17.exception);
     show_hash("PCR[17]: ", pcr17.value);
 
-    RESULT(TPM_PCRVALUE) pcr19 = TPM_PCRRead(19);
+    RESULT_(TPM_PCRVALUE) pcr19 = TPM_PCRRead(19);
     THROW(pcr19.exception);
     show_hash("PCR[19]: ", pcr19.value);
 
