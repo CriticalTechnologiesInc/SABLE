@@ -66,6 +66,7 @@ add_dependencies (sable sable_verified_h)
 
 # These are include files used to generate sable.h only
 set (SABLE_H_HEADER_FILES
+  ${PROJECT_SOURCE_DIR}/include/option.h
   ${PROJECT_SOURCE_DIR}/include/macro.h
   ${PROJECT_SOURCE_DIR}/include/alloc.h
   ${PROJECT_SOURCE_DIR}/include/asm.h

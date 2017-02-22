@@ -13,12 +13,13 @@
  */
 
 #include "asm.h"
+#include "macro.h"
+#include "option.h"
 #include "platform.h"
 #include "exception.h"
 #include "dev.h"
 #include "mbi.h"
 #include "elf.h"
-#include "macro.h"
 #include "mp.h"
 #include "tcg.h"
 #include "keyboard.h"

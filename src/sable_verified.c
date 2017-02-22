@@ -11,12 +11,9 @@ extern TPM_NONCE get_nonce(void);
 
 static TPM_SESSION *sessions[2] = {NULL, NULL};
 
-// Generate RESULT types
-RESULT_GEN(TPM_PCR_INFO_LONG);
-
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
-static RESULT(TPM_PCR_INFO_LONG) get_pcr_info(void) {
+static RESULT_(TPM_PCR_INFO_LONG) get_pcr_info(void) {
   RESULT ret = { .exception.error = NONE };
   TPM_PCRVALUE *pcr_values = alloc(2 * sizeof(TPM_PCRVALUE));
   BYTE *pcr_select_bytes = alloc(3);

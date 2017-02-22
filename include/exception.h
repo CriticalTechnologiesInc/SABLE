@@ -45,9 +45,9 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 /* This is a trick to force makeheaders to recognize EXCEPTION_GEN(Type) as
  * a dependency of EXCEPTION(Type) */
 #ifndef BOGUS
-#define RESULT_(Type) struct Type##_exception
+#define RESULT_(T) struct T##_exception
 #else
-#define RESULT_(Type) RESULT_GEN(Type)
+#define RESULT_(T) RESULT_GEN(T)
 #endif
 
 #ifndef NDEBUG
