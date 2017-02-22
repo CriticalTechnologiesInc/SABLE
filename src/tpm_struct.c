@@ -25,14 +25,18 @@ UINT32 unpack_finish(Unpack_Context *ctx) { return ctx->bytes_unpacked; }
 
 static RESULT check_pack_overflow(Pack_Context *ctx, UINT32 sizeOfPack) {
   RESULT ret = { .exception.error = NONE };
-  ERROR(!(ctx->bytes_packed + sizeOfPack <= ctx->size), ERROR_BUFFER_OVERFLOW,
-        "Buffer overflow during pack");
+  if (!(ctx->bytes_packed + sizeOfPack <= ctx->size))
+    exit(-1); // FIXME: should throw an error
+  /*ERROR(!(ctx->bytes_packed + sizeOfPack <= ctx->size), ERROR_BUFFER_OVERFLOW,
+        "Buffer overflow during pack");*/
   return ret;
 }
 static RESULT check_unpack_overflow(Unpack_Context *ctx, UINT32 sizeOfUnpack) {
   RESULT ret = { .exception.error = NONE };
-  ERROR(-1, !(ctx->bytes_unpacked + sizeOfUnpack <= ctx->size),
-        "Unpacking beyond buffer's end");
+  if (!(ctx->bytes_unpacked + sizeOfUnpack <= ctx->size))
+    exit(-1); // FIXME: should throw an error
+  /*ERROR(!(ctx->bytes_unpacked + sizeOfUnpack <= ctx->size), ERROR_BUFFER_OVERFLOW,
+        "Unpacking beyond buffer's end");*/
   return ret;
 }
 
