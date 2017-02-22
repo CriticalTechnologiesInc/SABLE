@@ -71,6 +71,7 @@ set (SABLE_H_HEADER_FILES
   ${PROJECT_SOURCE_DIR}/include/asm.h
   ${PROJECT_SOURCE_DIR}/include/dev.h
   ${PROJECT_SOURCE_DIR}/include/elf.h
+  ${PROJECT_SOURCE_DIR}/include/exception.h
   ${PROJECT_SOURCE_DIR}/include/sha.h
   ${PROJECT_SOURCE_DIR}/include/hmac.h
   ${PROJECT_SOURCE_DIR}/include/keyboard.h
