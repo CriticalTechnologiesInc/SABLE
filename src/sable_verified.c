@@ -1,20 +1,43 @@
 #include "sable_verified.h"
 
+/*#include "alloc.h"
+#include "asm.h"
+#include "macro.h"
+#include "option.h"
+#include "platform.h"
+#include "exception.h"
+#include "dev.h"
+#include "mbi.h"
+#include "elf.h"
+#include "mp.h"
+#include "tcg.h"
+#include "keyboard.h"
+#include "sha.h"
+#include "hmac.h"
+#include "tis.h"
+#include "tpm.h"
+#include "tpm_error.h"
+#include "tpm_ordinal.h"
+#include "tpm_struct.h"
+#include "util.h"
+#include "version.h"*/
+
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
-typedef TPM_SEALED_DATA
-    BOGUS1; // just to get makeheaders to include TPM_SEALED_DATA
-
-extern TPM_AUTHDATA get_authdata(void);
-extern TPM_NONCE get_nonce(void);
+extern RESULT_(TPM_AUTHDATA) get_authdata(void);
+extern RESULT_(TPM_NONCE) get_nonce(void);
 
 static TPM_SESSION *sessions[2] = {NULL, NULL};
+
+RESULT_GEN(TPM_PCR_INFO_LONG)
+RESULT_GEN(TPM_NONCE)
+RESULT_GEN(TPM_AUTHDATA)
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
 static RESULT_(TPM_PCR_INFO_LONG) get_pcr_info(void) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT_(TPM_PCR_INFO_LONG) ret = {.exception.error = NONE};
   TPM_PCRVALUE *pcr_values = alloc(2 * sizeof(TPM_PCRVALUE));
   BYTE *pcr_select_bytes = alloc(3);
   pcr_select_bytes[0] = 0x00;
@@ -25,33 +48,38 @@ static RESULT_(TPM_PCR_INFO_LONG) get_pcr_info(void) {
   RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
   THROW(pcr17.exception);
   pcr_values[0] = pcr17.value;
-  struct TPM_PCRRead_ret pcr19 = TPM_PCRRead(19);
-  TPM_ERROR(pcr19.returnCode, TPM_PCRRead);
-  pcr_values[1] = pcr19.outDigest;
+  RESULT_(TPM_PCRVALUE) pcr19 = TPM_PCRRead(19);
+  THROW(pcr19.exception);
+  pcr_values[1] = pcr19.value;
   TPM_PCR_COMPOSITE composite = {.select = pcr_select,
                                  .valueSize = 2 * sizeof(TPM_PCRVALUE),
                                  .pcrValue = (TPM_PCRVALUE *)pcr_values};
   TPM_COMPOSITE_HASH composite_hash = get_TPM_COMPOSITE_HASH(composite);
-  TPM_PCR_INFO_LONG pcr_info = {.tag = TPM_TAG_PCR_INFO_LONG,
-                                .localityAtCreation = TPM_LOC_TWO,
-                                .localityAtRelease = TPM_LOC_TWO,
-                                .creationPCRSelection = pcr_select,
-                                .releasePCRSelection = pcr_select,
-                                .digestAtCreation = composite_hash,
-                                .digestAtRelease = composite_hash};
-  return pcr_info;
+  ret.value.tag = TPM_TAG_PCR_INFO_LONG;
+  ret.value.localityAtCreation = TPM_LOC_TWO;
+  ret.value.localityAtRelease = TPM_LOC_TWO;
+  ret.value.creationPCRSelection = pcr_select;
+  ret.value.releasePCRSelection = pcr_select;
+  ret.value.digestAtCreation = composite_hash;
+  ret.value.digestAtRelease = composite_hash;
+  return ret;
 }
 
-static TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
-                                  const char *passphrase,
-                                  UINT32 lenPassphrase) {
-  TPM_RESULT res;
+static RESULT_(TPM_STORED_DATA12)
+    seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+                    const char *passphrase, UINT32 lenPassphrase) {
+  RESULT_(TPM_STORED_DATA12) ret = {.exception.error = NONE};
 
   // Initialize an OSAP session for the SRK
-  TPM_NONCE nonceOddOSAP = get_nonce();
-  res = TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, nonceOddOSAP, &sessions[0]);
-  TPM_ERROR(res, TPM_Start_OSAP);
-  sessions[0]->nonceOdd = get_nonce();
+  RESULT_(TPM_NONCE) nonceOddOSAP = get_nonce();
+  THROW(nonceOddOSAP.exception);
+  RESULT osap_ret =
+      TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, nonceOddOSAP.value, &sessions[0]);
+  THROW(osap_ret.exception);
+
+  RESULT_(TPM_NONCE) nonceOdd = get_nonce();
+  THROW(nonceOdd.exception);
+  sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
 
   // Generate the shared secret (for SRK authorization)
@@ -63,32 +91,32 @@ static TPM_STORED_DATA12 seal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_
   TPM_ENCAUTH encAuth =
       encAuth_gen(pp_auth, sharedSecret, sessions[0]->nonceEven);
 
-  TPM_PCR_INFO_LONG pcr_info = get_pcr_info();
+  RESULT_(TPM_PCR_INFO_LONG) pcr_info = get_pcr_info();
+  THROW(pcr_info.exception);
 
   // Encrypt the passphrase using the SRK
-  struct TPM_Seal_ret seal_ret =
-      TPM_Seal(TPM_KH_SRK, encAuth, pcr_info, (const BYTE *)passphrase,
-               lenPassphrase, &sessions[0], sharedSecret);
-  TPM_ERROR(seal_ret.returnCode, TPM_Seal);
-
-  return seal_ret.sealedData;
+  return TPM_Seal(TPM_KH_SRK, encAuth, pcr_info.value, (const BYTE *)passphrase,
+                  lenPassphrase, &sessions[0], sharedSecret);
 }
 
-static void write_passphrase(TPM_AUTHDATA nv_auth, TPM_STORED_DATA12 sealedData) {
-  TPM_RESULT res;
+static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
+                               TPM_STORED_DATA12 sealedData) {
+  RESULT ret = {.exception.error = NONE};
 
-  res = TPM_OIAP(&sessions[0]);
-  TPM_ERROR(res, TPM_Start_OIAP);
-  sessions[0]->nonceOdd = get_nonce();
+  RESULT oiap_ret = TPM_OIAP(&sessions[0]);
+  THROW(oiap_ret.exception);
+  RESULT_(TPM_NONCE) nonceOdd = get_nonce();
+  THROW(nonceOdd.exception);
+  sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
-  res =
-      TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth, &sessions[0]);
-  TPM_ERROR(res, TPM_NV_WriteValueAuth);
+  return TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth,
+                               &sessions[0]);
 }
 
-void configure(void) {
+RESULT configure(void) {
+  RESULT ret = {.exception.error = NONE};
   char *passphrase = alloc(PASSPHRASE_STR_SIZE);
 
   // get the passphrase, passphrase authdata, and SRK authdata
@@ -98,89 +126,110 @@ void configure(void) {
       get_string(passphrase, PASSPHRASE_STR_SIZE - 1, true) + 1;
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
-  TPM_AUTHDATA pp_auth = get_authdata();
+  RESULT_(TPM_AUTHDATA) pp_auth = get_authdata();
+  THROW(pp_auth.exception);
   EXCLUDE(out_string("Please enter the srkAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
-  TPM_AUTHDATA srk_auth = get_authdata();
+  RESULT_(TPM_AUTHDATA) srk_auth = get_authdata();
+  THROW(srk_auth.exception);
 
   // seal the passphrase to the pp_blob buffer
-  TPM_STORED_DATA12 sealedData =
-      seal_passphrase(srk_auth, pp_auth, passphrase, lenPassphrase);
+  RESULT_(TPM_STORED_DATA12)
+  sealedData =
+      seal_passphrase(srk_auth.value, pp_auth.value, passphrase, lenPassphrase);
+  THROW(sealedData.exception);
 
   EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
-  TPM_AUTHDATA nv_auth = get_authdata();
+  RESULT_(TPM_AUTHDATA) nv_auth = get_authdata();
+  THROW(nv_auth.exception);
 
   // write the sealed passphrase to disk
-  write_passphrase(nv_auth, sealedData);
+  return write_passphrase(nv_auth.value, sealedData.value);
 }
 
-static TPM_STORED_DATA12 read_passphrase(void) {
-  struct TPM_NV_ReadValue_ret val;
+static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
+  RESULT_(TPM_STORED_DATA12) ret = {.exception.error = NONE};
   OPTION(TPM_AUTHDATA) nv_auth;
 
 #ifdef NV_OWNER_REQUIRED
   EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
-  nv_auth.value = get_authdata();
+  RESULT_(TPM_AUTHDATA) nv_auth_ret = get_authdata();
+  THROW(nv_auth_ret.exception);
+  nv_auth.value = nv_auth_ret.value;
   nv_auth.hasValue = true;
 
-  TPM_SESSION *owner_session = &sessions[0];
-  res = TPM_OIAP(&owner_session);
-  TPM_ERROR(res, TPM_OIAP);
-  owner_session->nonceOdd = get_nonce();
-  owner_session->continueAuthSession = FALSE;
-
-  val = TPM_NV_ReadValue(404, 0, 400, nv_auth, nv_session);
-  TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
+  RESULT owner_oiap_ret = TPM_OIAP(&sessions[0]);
+  THROW(owner_oiap_ret.exception);
+  RESULT_(TPM_NONCE) nonceOdd = get_nonce();
+  THROW(nonceOdd.exception);
+  sessions[0]->nonceOdd = nonceOdd.value;
+  sessions[0]->continueAuthSession = FALSE;
 #else
   nv_auth.hasValue = false;
-  val = TPM_NV_ReadValue(4, 0, 400, nv_auth, NULL);
-  TPM_ERROR(val.returnCode, TPM_NV_ReadValue);
 #endif
 
-  return unpack_TPM_STORED_DATA12(val.data, val.dataSize);
+  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(4, 0, 400, nv_auth, &sessions[0]);
+  THROW(val.exception);
+  ret.value = unpack_TPM_STORED_DATA12(val.value.data, val.value.dataSize);
+  return ret;
 }
 
-static const char *unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
-                              TPM_STORED_DATA12 sealed_pp) {
-  TPM_RESULT res;
+typedef const char *CSTRING;
+RESULT_GEN(CSTRING)
 
-  res = TPM_OIAP(&sessions[0]);
-  TPM_ERROR(res, TPM_OIAP);
-  sessions[0]->nonceOdd = get_nonce();
+static RESULT_(CSTRING)
+    unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
+                      TPM_STORED_DATA12 sealed_pp) {
+  RESULT_(CSTRING) ret = {.exception.error = NONE};
+
+  RESULT srk_oiap_ret = TPM_OIAP(&sessions[0]);
+  THROW(srk_oiap_ret.exception);
+  RESULT_(TPM_NONCE) nonceOdd = get_nonce();
+  THROW(nonceOdd.exception);
+  sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
 
-  res = TPM_OIAP(&sessions[1]);
-  TPM_ERROR(res, TPM_OIAP);
-  sessions[1]->nonceOdd = get_nonce();
+  RESULT pp_oiap_ret = TPM_OIAP(&sessions[1]);
+  THROW(pp_oiap_ret.exception);
+  nonceOdd = get_nonce();
+  THROW(nonceOdd.exception);
+  sessions[1]->nonceOdd = nonceOdd.value;
   sessions[1]->continueAuthSession = FALSE;
 
-  TPM_Unseal_ret unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, srk_auth,
-                                         &sessions[0], pp_auth, &sessions[1]);
-  TPM_ERROR(unseal_ret.returnCode, TPM_Unseal);
+  RESULT_(HEAP_DATA)
+  unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, srk_auth, &sessions[0],
+                          pp_auth, &sessions[1]);
+  THROW(unseal_ret.exception);
+  ret.value = (CSTRING)unseal_ret.value.data;
 
-  return (const char *)unseal_ret.data;
+  return ret;
 }
 
-void trusted_boot(void) {
-  TPM_STORED_DATA12 sealed_pp = read_passphrase();
+RESULT trusted_boot(void) {
+  RESULT ret = {.exception.error = NONE};
+  RESULT_(TPM_STORED_DATA12) sealed_pp = read_passphrase();
 
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
-  TPM_AUTHDATA pp_auth = get_authdata();
+  RESULT_(TPM_AUTHDATA) pp_auth = get_authdata();
+  THROW(pp_auth.exception);
   EXCLUDE(out_string("Please enter the srkAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
-  TPM_AUTHDATA srk_auth = get_authdata();
+  RESULT_(TPM_AUTHDATA) srk_auth = get_authdata();
+  THROW(srk_auth.exception);
 
-  const char *passphrase = unseal_passphrase(srk_auth, pp_auth, sealed_pp);
+  RESULT_(CSTRING)
+  passphrase =
+      unseal_passphrase(srk_auth.value, pp_auth.value, sealed_pp.value);
+  THROW(passphrase.exception);
 
   EXCLUDE(out_string("Please confirm that the passphrase is correct:\n\n");)
-  EXCLUDE(out_string(passphrase);)
+  EXCLUDE(out_string(passphrase.value);)
   EXCLUDE(
       out_string("\n\nIf this is correct, please type YES in all capitals: ");)
 
   EXCLUDE(char *yes_string = alloc(4); get_string(yes_string, 4, true);
-
           if (memcmp("YES", yes_string, 3)) reboot();)
 }

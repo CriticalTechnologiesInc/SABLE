@@ -40,8 +40,8 @@
 RESULT_GEN(TPM_NONCE);
 RESULT_GEN(TPM_AUTHDATA);
 
-extern void configure(void);
-extern void trusted_boot(void);
+extern RESULT configure(void);
+extern RESULT trusted_boot(void);
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
@@ -225,14 +225,16 @@ RESULT post_skinit(struct mbi *m) {
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
-      configure();
+      RESULT configure_ret = configure();
+      THROW(configure_ret.exception);
       RESULT tis_deactiv = tis_deactivate_all();
       THROW(tis_deactiv.exception);
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
     } else {
-      trusted_boot();
+      RESULT trusted_boot_ret = trusted_boot();
+      THROW(trusted_boot_ret.exception);
       RESULT tis_deactiv = tis_deactivate_all();
       THROW(tis_deactiv.exception);
     }
