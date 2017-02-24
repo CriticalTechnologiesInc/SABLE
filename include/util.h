@@ -12,6 +12,32 @@
  * COPYING file for details.
  */
 
+/* some useful macros */
+
+#ifndef ISABELLE
+#define EXCLUDE(X) X
+#else
+#define EXCLUDE(X)
+#endif
+
+#define xstr(s) str(s)
+#define str(s) #s
+
+#ifndef NDEBUG
+#define ASSERT(X)                                                              \
+  {                                                                            \
+    if (!(X)) {                                                                \
+      out_string("\nAssertion failed: '" xstr(X) "'\n\n");                            \
+      exit(-1);                                                                \
+    }                                                                          \
+  }
+#else
+void assert(bool);
+#define ASSERT(X) assert(X);
+#endif
+
+#define UNUSED(x) (void)(x)
+
 #define NULL 0
 
 #define MSR_EFER 0xC0000080
