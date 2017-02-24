@@ -103,7 +103,7 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #define CATCH_ANY(e, handler)                                                  \
   {                                                                            \
     if (e.error) {                                                             \
-      {handler;};                                                               \
+      { handler; };                                                            \
       e.error = NONE;                                                          \
     }                                                                          \
   }
@@ -111,10 +111,10 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 /**
  * If 'e' is the error 'error', execute 'handler'
  */
-#define CATCH(e, ex, handler)                                               \
+#define CATCH(e, ex, handler)                                                  \
   {                                                                            \
-    if (e.error == (ex)) {                                                  \
-      {handler;};                                                               \
+    if (e.error == (ex)) {                                                     \
+      { handler; };                                                            \
       e.error = NONE;                                                          \
     }                                                                          \
   }
