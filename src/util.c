@@ -60,7 +60,7 @@ void dump_exception(EXCEPTION e) {
   out_string(e.msg);
 }
 #else
-void dump_exception(void) {}
+void dump_exception(EXCEPTION e) {}
 #endif
 
 void *memcpy(void *dest, const void *src, UINT32 len) {
