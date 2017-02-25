@@ -62,52 +62,81 @@ target_include_directories (sable PUBLIC
   "${PROJECT_BINARY_DIR}/include/"
   )
 set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
-add_dependencies (sable sable_verified_h)
+add_dependencies (sable macros sable_verified_h)
 
 # These are include files used to generate sable.h only
 set (SABLE_H_HEADER_FILES
-  ${PROJECT_SOURCE_DIR}/include/option.h
-  ${PROJECT_SOURCE_DIR}/include/macro.h
-  ${PROJECT_SOURCE_DIR}/include/alloc.h
   ${PROJECT_SOURCE_DIR}/include/asm.h
-  ${PROJECT_SOURCE_DIR}/include/dev.h
-  ${PROJECT_SOURCE_DIR}/include/elf.h
+  ${PROJECT_SOURCE_DIR}/include/option.h
+  ${PROJECT_SOURCE_DIR}/include/platform.h
   ${PROJECT_SOURCE_DIR}/include/exception.h
+  ${PROJECT_SOURCE_DIR}/include/alloc.h
+  ${PROJECT_SOURCE_DIR}/include/dev.h
+  ${PROJECT_SOURCE_DIR}/include/mbi.h
+  ${PROJECT_SOURCE_DIR}/include/elf.h
+  ${PROJECT_SOURCE_DIR}/include/mp.h
+  ${PROJECT_SOURCE_DIR}/include/tcg.h
+  ${PROJECT_SOURCE_DIR}/include/keyboard.h
   ${PROJECT_SOURCE_DIR}/include/sha.h
   ${PROJECT_SOURCE_DIR}/include/hmac.h
-  ${PROJECT_SOURCE_DIR}/include/keyboard.h
-  ${PROJECT_SOURCE_DIR}/include/mbi.h
-  ${PROJECT_SOURCE_DIR}/include/mp.h
-  ${PROJECT_SOURCE_DIR}/include/platform.h
-  ${PROJECT_SOURCE_DIR}/include/tcg.h
   ${PROJECT_SOURCE_DIR}/include/tis.h
+  ${PROJECT_SOURCE_DIR}/include/tpm.h
   ${PROJECT_SOURCE_DIR}/include/tpm_error.h
   ${PROJECT_SOURCE_DIR}/include/tpm_ordinal.h
   ${PROJECT_SOURCE_DIR}/include/tpm_struct.h
-  ${PROJECT_SOURCE_DIR}/include/tpm.h
   ${PROJECT_SOURCE_DIR}/include/util.h
-  ${PROJECT_BINARY_DIR}/include/version.h
   )
 
-# custom command and target to generate sable.h
+find_package( PythonInterp 3.4 REQUIRED )
+
+file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/intermediate )
+
+# generate macro.h, which contains all header-defined macros
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/include/macro.h
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_macros.py ${SABLE_H_HEADER_FILES}
+    > ${PROJECT_BINARY_DIR}/include/macro.h
+  DEPENDS ${SABLE_H_HEADER_FILES}
+  )
+add_custom_target (macros DEPENDS ${PROJECT_BINARY_DIR}/include/macro.h)
+
+# generate all_headers.h, i.e. all source headers concatenated together
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py ${SABLE_H_HEADER_FILES}
+    > ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
+  DEPENDS ${SABLE_H_HEADER_FILES}
+  )
+
+# generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
+  COMMAND ${CMAKE_C_COMPILER} -E
+    ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
+    -DISABELLE -DNDEBUG
+    -o ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
+  DEPENDS ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
+  )
+
+# generate sable_verified.h
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/include/sable_verified.h
   COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
     ${PROJECT_SOURCE_DIR}/src/sable_verified.c:${PROJECT_BINARY_DIR}/include/sable_verified.h
-    ${SABLE_H_HEADER_FILES}
-  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${SABLE_H_HEADER_FILES}
+    ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
+  DEPENDS makeheaders ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h ${PROJECT_SOURCE_DIR}/src/sable_verified.c
   )
-add_custom_target (sable_verified_h DEPENDS makeheaders ${PROJECT_BINARY_DIR}/include/sable_verified.h)
+add_custom_target (sable_verified_h DEPENDS ${PROJECT_BINARY_DIR}/include/sable_verified.h)
 
-# custom command and target to generate sable.cpp
+# Build the input file for Isabelle/HOL
+# custom command and target to generate sable_verified_pp.c
 add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/sable_verified.cpp
+  OUTPUT ${PROJECT_BINARY_DIR}/sable_verified_pp.c
   COMMAND ${CMAKE_C_COMPILER} -E
     ${PROJECT_SOURCE_DIR}/src/sable_verified.c
     -DISABELLE -DNDEBUG
-    -I${PROJECT_SOURCE_DIR}/include/
     -I${PROJECT_BINARY_DIR}/include/
-    > ${PROJECT_BINARY_DIR}/sable_verified.cpp
+    -o ${PROJECT_BINARY_DIR}/sable_verified_pp.c
   DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${PROJECT_BINARY_DIR}/include/sable_verified.h
   )
-add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/sable_verified.cpp)
+add_custom_target (sable-isa DEPENDS macros sable_verified_h)
