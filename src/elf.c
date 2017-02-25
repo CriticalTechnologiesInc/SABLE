@@ -17,7 +17,6 @@
  */
 
 #include "exception.h"
-#include "macro.h"
 #include "mbi.h"
 #include "elf.h"
 #include "platform.h"

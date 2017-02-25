@@ -1,4 +1,3 @@
-#include "macro.h"
 #include "exception.h"
 #include "platform.h"
 #include "tcg.h"

@@ -13,7 +13,6 @@
  */
 
 #include "exception.h"
-#include "macro.h"
 #include "asm.h"
 #include "platform.h"
 #include "tcg.h"

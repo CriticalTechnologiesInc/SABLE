@@ -13,7 +13,6 @@
  */
 
 #include "asm.h"
-#include "macro.h"
 #include "option.h"
 #include "platform.h"
 #include "exception.h"
