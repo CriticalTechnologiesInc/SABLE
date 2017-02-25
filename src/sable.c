@@ -130,14 +130,16 @@ static RESULT prepare_tpm(void) {
   enum TIS_TPM_VENDOR vendor;
 
   vendor = tis_init();
-
   ERROR(0 >= vendor, ERROR_BAD_TPM_VENDOR, "tis init failed");
+
   RESULT tis_access_ret = tis_access(TIS_LOCALITY_0, 0);
+  CATCH(tis_access_ret.exception, ERROR_TIS_LOCALITY_ALREADY_ACCESSED,
+        out_info("Already in Locality 0"));
   THROW(tis_access_ret.exception);
 
   RESULT tpm_startup_ret = TPM_Startup(TPM_ST_CLEAR);
   CATCH(tpm_startup_ret.exception, ERROR_TPM | TPM_E_INVALID_POSTINIT,
-        out_string("TPM already initialized\n"));
+        out_info("TPM already initialized"));
   THROW(tpm_startup_ret.exception);
 
   RESULT tis_deactivate_res = tis_deactivate_all();

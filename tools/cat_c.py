@@ -1,5 +1,4 @@
 import sys
-import os
 
 def main():
     for fp in sys.argv[1:]:
