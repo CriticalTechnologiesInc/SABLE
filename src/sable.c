@@ -99,7 +99,7 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   ERROR(~mbi->flags & (enum mbi_enum)MBI_FLAG_MODS, ERROR_BAD_MODULE,
         "module flag missing");
   ERROR(!mbi->mods_count, ERROR_NO_MODULE, "no module to hash");
-  out_description("Hashing modules count:", mbi->mods_count);
+  out_description("Hashing modules count", mbi->mods_count);
 
   struct module *m = (struct module *)(mbi->mods_addr);
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
@@ -166,7 +166,7 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
 
   RESULT_(UINT32) cpuid = check_cpuid();
   THROW(cpuid.exception);
-  out_description("SVM revision:", cpuid.value);
+  out_description("SVM revision", cpuid.value);
 
   RESULT svm = enable_svm();
   THROW(svm.exception);

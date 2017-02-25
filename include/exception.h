@@ -54,7 +54,7 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #define EXCEPT(exp, message)                                                   \
   ret.exception.error = exp;                                                   \
   ret.exception.fileName = __FILENAME__;                                       \
-  ret.exception.lineNum = str(__LINE__);                                       \
+  ret.exception.lineNum = xstr(__LINE__);                                      \
   ret.exception.msg = message;
 #else
 #define EXCEPT(exp, message) ret.exception.error = exp;

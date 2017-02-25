@@ -56,8 +56,9 @@ void dump_exception(EXCEPTION e) {
   out_string(e.fileName);
   out_char(':');
   out_string(e.lineNum);
-  out_string(" -- ");
+  out_string(": ");
   out_string(e.msg);
+  out_char('\n');
 }
 #else
 void dump_exception(EXCEPTION e) {}
@@ -159,7 +160,7 @@ void wait(int ms) {
  * Print the exit status and reboot the machine.
  */
 void exit(unsigned status) {
-  out_description("ERROR ", status);
+  out_description("ERROR", status);
   for (unsigned i = 0; i < 1000; i++) {
     wait(1000);
   }
@@ -253,7 +254,7 @@ void hex_dump(unsigned char *bytestring, unsigned len) {
 void out_description(const char *prefix, unsigned int value) {
   out_string(message_label);
   out_string(prefix);
-  out_char(' ');
+  out_string(": 0x");
   out_hex(value, 0);
   out_char('\n');
 }
