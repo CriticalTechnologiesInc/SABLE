@@ -14,6 +14,13 @@
 
 /* some useful macros */
 
+// This allows us to use LOCAL to prevent makeheaders from generating certain
+// definitions or declarations in header files
+#ifdef LOCAL
+#undef LOCAL
+#define LOCAL
+#endif
+
 #ifndef ISABELLE
 #define EXCLUDE(X) X
 #else

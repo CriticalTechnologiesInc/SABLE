@@ -1,37 +1,17 @@
-//#include "sable_verified.h"
-
-#include "asm.h"
-#include "option.h"
-#include "platform.h"
-#include "alloc.h"
-#include "exception.h"
-#include "dev.h"
-#include "mbi.h"
-#include "elf.h"
-#include "mp.h"
-#include "tcg.h"
-#include "keyboard.h"
-#include "sha.h"
-#include "hmac.h"
-#include "tis.h"
-#include "tpm.h"
-#include "tpm_error.h"
-#include "tpm_ordinal.h"
-#include "tpm_struct.h"
-#include "util.h"
-#include "version.h"
+#include "sable_verified.h"
+#include "macro.h"
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
-extern RESULT_(TPM_AUTHDATA) get_authdata(void);
-extern RESULT_(TPM_NONCE) get_nonce(void);
+LOCAL extern RESULT_(TPM_AUTHDATA) get_authdata(void);
+LOCAL extern RESULT_(TPM_NONCE) get_nonce(void);
 
 static TPM_SESSION *sessions[2] = {NULL, NULL};
 
-RESULT_GEN(TPM_PCR_INFO_LONG);
-RESULT_GEN(TPM_NONCE);
-RESULT_GEN(TPM_AUTHDATA);
+LOCAL RESULT_GEN(TPM_PCR_INFO_LONG);
+LOCAL RESULT_GEN(TPM_NONCE);
+LOCAL RESULT_GEN(TPM_AUTHDATA);
 
 // Construct pcr_info, which contains the TPM state conditions under which
 // the passphrase may be sealed/unsealed
@@ -176,7 +156,7 @@ static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
 }
 
 typedef const char *CSTRING;
-RESULT_GEN(CSTRING);
+LOCAL RESULT_GEN(CSTRING);
 
 static RESULT_(CSTRING)
     unseal_passphrase(TPM_AUTHDATA srk_auth, TPM_AUTHDATA pp_auth,
