@@ -127,7 +127,6 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
  */
 static RESULT prepare_tpm(void) {
   RESULT ret = {.exception.error = NONE};
-  RESULT tpm_ret;
   enum TIS_TPM_VENDOR vendor;
 
   vendor = tis_init();
@@ -139,7 +138,7 @@ static RESULT prepare_tpm(void) {
   RESULT tpm_startup_ret = TPM_Startup(TPM_ST_CLEAR);
   CATCH(tpm_startup_ret.exception, ERROR_TPM | TPM_E_INVALID_POSTINIT,
         out_string("TPM already initialized\n"));
-  THROW(tpm_ret.exception);
+  THROW(tpm_startup_ret.exception);
 
   RESULT tis_deactivate_res = tis_deactivate_all();
   THROW(tis_deactivate_res.exception);
