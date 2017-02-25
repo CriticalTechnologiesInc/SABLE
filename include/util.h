@@ -34,13 +34,18 @@
 #define ASSERT(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
-      out_string("\nAssertion failed: '" xstr(X) "'\n\n");                            \
+      out_string("\nAssertion failed: '" xstr(X) "'\n\n");                     \
       exit(-1);                                                                \
     }                                                                          \
   }
 #else
-void assert(bool);
-#define ASSERT(X) assert(X);
+void fail(void);
+#define ASSERT(X)                                                              \
+  {                                                                            \
+    if (!(X)) {                                                                \
+      fail();                                                                  \
+    }                                                                          \
+  }
 #endif
 
 #define UNUSED(x) (void)(x)

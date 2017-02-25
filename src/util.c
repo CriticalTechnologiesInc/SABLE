@@ -280,8 +280,7 @@ void show_hash(const char *s, TPM_DIGEST hash) {
 
 #ifndef NDEBUG
 #else
-void assert(bool b) {
-  if (!b)
-    exit(-1);
+void fail(void) {
+  exit(-1);
 }
 #endif
