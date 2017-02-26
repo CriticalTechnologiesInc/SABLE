@@ -574,7 +574,7 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   TPM_ERROR(res);                                      //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);          // 2S
   unmarshal_UINT32(&ret.value.dataSize, &uctx, &sctx); // 3S
-  unmarshal_ptr(ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
+  unmarshal_ptr(&ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
   hmac_init(&hctx, parentAuth.authdata, sizeof(TPM_SECRET)); // compute HM1
