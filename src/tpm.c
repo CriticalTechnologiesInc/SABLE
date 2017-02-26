@@ -161,7 +161,7 @@ RESULT_(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
 
 RESULT_(TPM_PCRVALUE)
 TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
-  RESULT_(TPM_PCRVALUE) ret = { .exception.error = NONE };
+  RESULT_(TPM_PCRVALUE) ret = {.exception.error = NONE};
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;

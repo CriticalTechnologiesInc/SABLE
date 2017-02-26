@@ -34,7 +34,9 @@
 #define ASSERT(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
-      out_string("\nAssertion failed: '" xstr(X) "'\n\n");                     \
+      out_info(__FILENAME__                                                    \
+               ":" xstr(__LINE__) ":"                                          \
+                                  "Assertion failed: '" xstr(X) "'");          \
       exit(-1);                                                                \
     }                                                                          \
   }
