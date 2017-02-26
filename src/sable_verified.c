@@ -189,6 +189,7 @@ static RESULT_(CSTRING)
 RESULT trusted_boot(void) {
   RESULT ret = {.exception.error = NONE};
   RESULT_(TPM_STORED_DATA12) sealed_pp = read_passphrase();
+  THROW(sealed_pp.exception);
 
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
