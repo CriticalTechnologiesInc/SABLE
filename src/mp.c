@@ -29,7 +29,7 @@ RESULT stop_processors(void) { return send_ipi(APIC_ICR_INIT); }
  * ERROR_APIC
  */
 RESULT start_processors(unsigned address) {
-  ASSERT(address & 0xfff00fff && "address not aligned or larger than 1MB");
+  ASSERT(!(address & 0xfff00fff) && "address not aligned or larger than 1MB");
   return send_ipi(APIC_ICR_STARTUP | address >> 12);
 }
 
