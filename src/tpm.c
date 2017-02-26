@@ -49,7 +49,8 @@ RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -92,7 +93,8 @@ RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -137,7 +139,8 @@ RESULT_(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -158,7 +161,7 @@ RESULT_(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
 
 RESULT_(TPM_PCRVALUE)
 TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
-  RESULT_(TPM_PCRVALUE) ret;
+  RESULT_(TPM_PCRVALUE) ret = { .exception.error = NONE };
   TPM_RESULT res;
   Pack_Context pctx;
   Unpack_Context uctx;
@@ -182,7 +185,8 @@ TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -224,7 +228,8 @@ RESULT TPM_OIAP(TPM_SESSION **session) {
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -274,7 +279,8 @@ RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -348,7 +354,8 @@ RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -388,8 +395,8 @@ RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
 RESULT_(HEAP_DATA)
 TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
                  OPTION(TPM_AUTHDATA) ownerAuth_in, TPM_SESSION **session) {
-  ASSERT((ownerAuth_in.hasValue && session) ||
-         (!ownerAuth_in.hasValue && !session));
+  ASSERT((ownerAuth_in.hasValue && session && *session) ||
+         (!ownerAuth_in.hasValue && (!session || !*session)));
   RESULT_(HEAP_DATA) ret = {.exception.error = NONE};
   TPM_RESULT res;
   TPM_TAG tag_in;
@@ -441,7 +448,9 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
 
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
-  tis_transmit();
+
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
   sha1_init(&sctx); // compute outParamDigest
@@ -553,7 +562,8 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
@@ -663,7 +673,8 @@ TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
   UINT32 bytes_packed = pack_finish(&pctx);
   ASSERT(bytes_packed == paramSize_in);
 
-  tis_transmit();
+  RESULT transmit_ret = tis_transmit();
+  THROW(transmit_ret.exception);
 
   unpack_init(&uctx, tis_buffers.out, sizeof(tis_buffers.out));
 
