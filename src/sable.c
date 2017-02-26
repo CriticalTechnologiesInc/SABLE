@@ -205,7 +205,7 @@ RESULT post_skinit(struct mbi *m) {
 #endif
   THROW(revert_skinit_ret.exception);
 
-  ERROR(20, !m, "no mbi in sable()");
+  ERROR(!m, ERROR_NO_MBI, "no mbi in sable()");
 
   if (tis_init()) {
     RESULT tis_access_ret = tis_access(TIS_LOCALITY_2, 0);
