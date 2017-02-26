@@ -59,6 +59,7 @@ void dump_exception(EXCEPTION e) {
   out_char('\n');
   out_info("Call Stack:");
   for (SOURCE_LOCATION_LIST *l = e.loc; l; l = l->next) {
+    out_string(message_label);
     out_string(l->l.function);
     out_string("():");
     out_string(l->l.file);

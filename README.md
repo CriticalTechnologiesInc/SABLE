@@ -19,6 +19,7 @@ Requirements
 To build SABLE:
 - CMake >= 3.0.2
 - gcc >= 4.3
+- python >= 3.4
 
 To configure and boot SABLE:
 - Any AMD CPU with support for AMD-V virtualization
@@ -48,10 +49,19 @@ $ make
 Additional build options can be accessed by running `ccmake`, from a build
 directory, see the CMake documention for examples.
 
+To compile SABLE source as input for Isabelle/HOL, run
+```
+$ make sable-isa
+```
+This should only be done with a non-DEBUG build.
+
+Note: When building for the Qemu environment, use `ccmake` to add `-DTARGET_QEMU`
+to the `CMAKE_C_FLAGS` variable. This will disable certain checks on platform hardware.
+
 Note: Some systems may be configured in such a manner that TPM NVRAM can only
 be read by the TPM owner. In this case, SABLE should be build with the
-`NV_OWNER_REQUIRED` option enabled. This can be set by appending `NV_OWNER_REQUIRED`
-to the `CMAKE_C_FLAGS` option in `ccmake`.
+`NV_OWNER_REQUIRED` option enabled. This can be set by appending `-DNV_OWNER_REQUIRED`
+to the `CMAKE_C_FLAGS` variable in `ccmake`.
 
 Installation
 ---------------
