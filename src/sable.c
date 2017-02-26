@@ -200,6 +200,9 @@ RESULT post_skinit(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
   RESULT revert_skinit_ret = revert_skinit();
+#ifdef TARGET_QEMU
+  CATCH(revert_skinit_ret.exception, ERROR_DEV,);
+#endif
   THROW(revert_skinit_ret.exception);
 
   ERROR(20, !m, "no mbi in sable()");
