@@ -93,10 +93,10 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
  * 'msg' may be displayed if the error is caught. When 'value' is true,
  * 'ret' is returned to the caller.
  */
-#define TPM_ERROR(error, command_name)                                         \
+#define TPM_ERROR(error)                                                       \
   {                                                                            \
     if (error) {                                                               \
-      EXCEPT(ERROR_TPM | error, xstr(command_name))                            \
+      EXCEPT(ERROR_TPM | error, tpm_error_to_string(error))                    \
       return ret;                                                              \
     }                                                                          \
   }

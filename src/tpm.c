@@ -21,6 +21,7 @@
 #include "tis.h"
 #include "sha.h"
 #include "hmac.h"
+#include "tpm_error.h"
 #include "tpm_ordinal.h"
 #include "tpm_struct.h"
 #include "util.h"
@@ -57,7 +58,7 @@ RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in) {
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  TPM_ERROR(res, TPM_Startup);
+  TPM_ERROR(res);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
@@ -101,7 +102,7 @@ RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */,
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  TPM_ERROR(res, TPM_GetRandom);
+  TPM_ERROR(res);
   unmarshal_UINT32(&randomBytesSize_out, &uctx, NULL);
   ERROR(bytesRequested_in != randomBytesSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
         "Did not get the requested number of random bytes");
@@ -147,7 +148,7 @@ RESULT_(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in) {
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  TPM_ERROR(res, TPM_PCRRead);
+  TPM_ERROR(res);
   unmarshal_array(&ret.value, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
@@ -193,7 +194,7 @@ TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in) {
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  TPM_ERROR(res, TPM_Extend);
+  TPM_ERROR(res);
   unmarshal_array(&ret.value, sizeof(TPM_PCRVALUE), &uctx, NULL);
 
   UINT32 bytes_unpacked = unpack_finish(&uctx);
@@ -236,7 +237,7 @@ RESULT TPM_OIAP(TPM_SESSION **session) {
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  TPM_ERROR(res, TPM_OIAP);
+  TPM_ERROR(res);
   TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
   unmarshal_array(&s->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
@@ -287,7 +288,7 @@ RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unmarshal_UINT16(&tag_out, &uctx, NULL);
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
-  TPM_ERROR(res, TPM_OSAP);
+  TPM_ERROR(res);
   TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
   s->osap = alloc(sizeof(TPM_OSAP_EXTENSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
@@ -363,7 +364,7 @@ RESULT TPM_NV_WriteValueAuth(const BYTE *data_in, UINT32 dataSize_in,
   unmarshal_UINT16(&tag_out, &uctx, NULL);       //
   unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
   unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
-  TPM_ERROR(res, TPM_NV_WriteValueAuth);         //
+  TPM_ERROR(res);                                //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
   sha1_finish(&sctx);                            // outParamDigest = sctx.hash
 
@@ -458,7 +459,7 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
 
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, &sctx);                             // 1S
-  TPM_ERROR(res, TPM_NV_ReadValue);                                 //
+  TPM_ERROR(res);                                                   //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);                       // 2S
   unmarshal_UINT32(&ret.value.dataSize, &uctx, &sctx);              // 3S
   unmarshal_ptr(&ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
@@ -571,7 +572,7 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
   unmarshal_UINT16(&tag_out, &uctx, NULL);             //
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);       //
   unmarshal_UINT32(&res, &uctx, &sctx);                // 1S
-  TPM_ERROR(res, TPM_Unseal);                          //
+  TPM_ERROR(res);                                      //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);          // 2S
   unmarshal_UINT32(&ret.value.dataSize, &uctx, &sctx); // 3S
   unmarshal_ptr(ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
@@ -682,7 +683,7 @@ TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
   unmarshal_UINT16(&tag_out, &uctx, NULL);       //
   unmarshal_UINT32(&paramSize_out, &uctx, NULL); //
   unmarshal_UINT32(&res, &uctx, &sctx);          // 1S
-  TPM_ERROR(res, TPM_Seal);                      //
+  TPM_ERROR(res);                                //
   unmarshal_UINT32(&ordinal_in, NULL, &sctx);    // 2S
   unmarshal_TPM_STORED_DATA12(&ret.value, &uctx, &sctx); // 3S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
