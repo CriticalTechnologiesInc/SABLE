@@ -35,7 +35,7 @@ For a typical build, use:
 $ cd <path/to/sable>
 $ mkdir build
 $ cd build
-$ cmake ../
+$ cmake -DCMAKE_BUILD_TYPE=RELEASE ../
 $ make
 ```
 For a debug build, you can instead do:
@@ -47,13 +47,14 @@ $ cmake -DCMAKE_BUILD_TYPE=DEBUG ../
 $ make
 ```
 Additional build options can be accessed by running `ccmake`, from a build
-directory, see the CMake documention for examples.
+directory, see the CMake documention for examples. At this time, the only
+supported build types are RELEASE and DEBUG.
 
 To compile SABLE source as input for Isabelle/HOL, run
 ```
 $ make sable-isa
 ```
-This should only be done with a non-DEBUG build.
+This build target is only valid with a RELEASE build.
 
 Note: When building for the Qemu environment, use `ccmake` to add `-DTARGET_QEMU`
 to the `CMAKE_C_FLAGS` variable. This will disable certain checks on platform hardware.
