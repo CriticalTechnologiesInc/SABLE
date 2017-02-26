@@ -137,6 +137,6 @@ add_custom_command (
     -DISABELLE -DNDEBUG
     -I${PROJECT_BINARY_DIR}/include/
     -o ${PROJECT_BINARY_DIR}/sable_verified_pp.c
-  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c ${PROJECT_BINARY_DIR}/include/sable_verified.h
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c macros sable_verified_h
   )
-add_custom_target (sable-isa DEPENDS macros sable_verified_h)
+add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/sable_verified_pp.c)
