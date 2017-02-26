@@ -407,12 +407,13 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   Unpack_Context uctx;
   SHA1_Context sctx;
   HMAC_Context hctx;
+  TPM_SESSION *s = session && *session ? *session : NULL;
 
   TPM_TAG tag_out;
   UINT32 paramSize_out;
   TPM_AUTHDATA ownerAuth_out;
 
-  if (session != NULL) {
+  if (s) {
     tag_in = TPM_TAG_RQU_AUTH1_COMMAND;
     paramSize_in = sizeof(TPM_TAG) + sizeof(UINT32) + sizeof(TPM_COMMAND_CODE) +
                    sizeof(TPM_NV_INDEX) + sizeof(UINT32) + sizeof(UINT32) +
@@ -434,8 +435,7 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   marshal_UINT32(dataSize_in, &pctx, &sctx); // 4S
   sha1_finish(&sctx);                        // inParamDigest = sctx.hash
 
-  if (session != NULL) {
-    TPM_SESSION *s = *session;
+  if (s) {
     hmac_init(&hctx, ownerAuth_in.value.authdata,
               sizeof(TPM_SECRET)); // compute ownerAuth
     marshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx); // 1H1
@@ -465,8 +465,7 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   unmarshal_ptr(&ret.value.data, ret.value.dataSize, &uctx, &sctx); // 4S
   sha1_finish(&sctx); // outParamDigest = sctx.hash
 
-  if (session != NULL) {
-    TPM_SESSION *s = *session;
+  if (s) {
     hmac_init(&hctx, ownerAuth_in.value.authdata,
               sizeof(TPM_SECRET)); // compute HM
     unmarshal_array(&sctx.hash, sizeof(TPM_DIGEST), NULL, &hctx.sctx);    // 1H1
@@ -484,14 +483,14 @@ TPM_NV_ReadValue(TPM_NV_INDEX nvIndex_in, UINT32 offset_in, UINT32 dataSize_in,
   UINT32 bytes_unpacked = unpack_finish(&uctx);
   ERROR(bytes_unpacked != paramSize_out, ERROR_TPM_BAD_OUTPUT_PARAM,
         "Bad paramSize_out");
-  if (session != NULL) {
+  if (s) {
     ERROR(tag_out != TPM_TAG_RSP_AUTH1_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
           "Bad tag_out");
   } else {
     ERROR(tag_out != TPM_TAG_RSP_COMMAND, ERROR_TPM_BAD_OUTPUT_PARAM,
           "Bad tag_out");
   }
-  if (session != NULL) {
+  if (s) {
     ERROR(memcmp(&hctx.sctx.hash, &ownerAuth_out, sizeof(TPM_AUTHDATA)),
           ERROR_TPM_BAD_OUTPUT_AUTH, "Bad output ownerAuth");
   }
