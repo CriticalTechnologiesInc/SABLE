@@ -148,7 +148,7 @@ RESULT tis_access(enum TIS_LOCALITY locality, int force) {
     // make the tpm ready -> abort a command
     mmap->sts_base = TIS_STS_CMD_READY;
   }
-  ERROR(mmap->access & TIS_ACCESS_ACTIVE, ERROR_TIS_LOCALITY_ACCESS_TIMEOUT,
+  ERROR(!(mmap->access & TIS_ACCESS_ACTIVE), ERROR_TIS_LOCALITY_ACCESS_TIMEOUT,
         "TIS access timed out");
   return ret;
 }
