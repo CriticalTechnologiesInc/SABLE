@@ -15,6 +15,7 @@
 #include "asm.h"
 #include "option.h"
 #include "platform.h"
+#include "alloc.h"
 #include "exception.h"
 #include "dev.h"
 #include "mbi.h"

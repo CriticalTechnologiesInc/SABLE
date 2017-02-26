@@ -14,6 +14,7 @@
 
 #include "asm.h"
 #include "platform.h"
+#include "alloc.h"
 #include "exception.h"
 #include "mp.h"
 #include "tcg.h"

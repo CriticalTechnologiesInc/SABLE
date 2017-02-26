@@ -113,7 +113,7 @@ add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
   COMMAND ${CMAKE_C_COMPILER} -E
     ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
-    -DISABELLE -DNDEBUG
+    ${COMPILE_DEFINITIONS}
     -o ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
   DEPENDS ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
   )

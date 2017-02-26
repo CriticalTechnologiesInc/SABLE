@@ -25,11 +25,23 @@ typedef enum tdERROR {
   ERROR_TPM = 1 << 7,
 } ERROR;
 
+#ifndef NDEBUG
+typedef struct {
+  const char *file;
+  const char *line;
+  const char *function;
+} SOURCE_LOCATION;
+
+typedef struct SOURCE_LOCATION_LIST {
+  SOURCE_LOCATION l;
+  struct SOURCE_LOCATION_LIST *next;
+} SOURCE_LOCATION_LIST;
+#endif
+
 typedef struct tdEXCEPTION {
   ERROR error;
 #ifndef NDEBUG
-  const char *fileName;
-  const char *lineNum;
+  SOURCE_LOCATION_LIST *loc;
   const char *msg;
 #endif
 } EXCEPTION;
@@ -53,8 +65,11 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #ifndef NDEBUG
 #define EXCEPT(exp, message)                                                   \
   ret.exception.error = exp;                                                   \
-  ret.exception.fileName = __FILENAME__;                                       \
-  ret.exception.lineNum = xstr(__LINE__);                                      \
+  ret.exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST));                     \
+  ret.exception.loc->l.file = __FILENAME__;                                    \
+  ret.exception.loc->l.line = xstr(__LINE__);                                  \
+  ret.exception.loc->l.function = __func__;                                    \
+  ret.exception.loc->next = NULL;                                              \
   ret.exception.msg = message;
 #else
 #define EXCEPT(exp, message) ret.exception.error = exp;
@@ -89,6 +104,20 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 /**
  * If 'e' is an exception, return it
  */
+#ifndef NDEBUG
+#define THROW(e)                                                               \
+  {                                                                            \
+    if (e.error) {                                                             \
+      ret.exception = e;                                                       \
+      ret.exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST));                 \
+      ret.exception.loc->l.file = __FILENAME__;                                \
+      ret.exception.loc->l.line = xstr(__LINE__);                              \
+      ret.exception.loc->l.function = __func__;                                \
+      ret.exception.loc->next = e.loc;                                         \
+      return ret;                                                              \
+    }                                                                          \
+  }
+#else
 #define THROW(e)                                                               \
   {                                                                            \
     if (e.error) {                                                             \
@@ -96,6 +125,7 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
       return ret;                                                              \
     }                                                                          \
   }
+#endif
 
 /**
  * If 'e' is any error, execute 'handler'

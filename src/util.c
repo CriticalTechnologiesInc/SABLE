@@ -14,6 +14,7 @@
 
 #include "asm.h"
 #include "platform.h"
+#include "alloc.h"
 #include "exception.h"
 #include "tcg.h"
 #include "util.h"
@@ -53,12 +54,18 @@ void str_hex(char *str, unsigned value, unsigned bitlen) {
 #ifndef NDEBUG
 void dump_exception(EXCEPTION e) {
   out_string(message_label);
-  out_string(e.fileName);
-  out_char(':');
-  out_string(e.lineNum);
-  out_string(": ");
+  out_string("EXCEPTION: ");
   out_string(e.msg);
   out_char('\n');
+  out_info("Call Stack:");
+  for (SOURCE_LOCATION_LIST *l = e.loc; l; l = l->next) {
+    out_string(l->l.function);
+    out_string("():");
+    out_string(l->l.file);
+    out_char(':');
+    out_string(l->l.line);
+    out_char('\n');
+  }
 }
 #else
 void dump_exception(EXCEPTION e) {}
