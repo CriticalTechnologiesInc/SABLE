@@ -1,7 +1,9 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
-set (SABLE_VERSION_MINOR 3)
+set (SABLE_VERSION_MINOR 4)
+
+message("CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
@@ -111,10 +113,9 @@ add_custom_command (
 # generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
-  COMMAND ${CMAKE_C_COMPILER} -E
-    ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
-    ${COMPILE_DEFINITIONS}
+  COMMAND ${CMAKE_C_COMPILER} -DNDEBUG -E
     -o ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
+    ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
   DEPENDS ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
   )
 
@@ -130,13 +131,14 @@ add_custom_target (sable_verified_h DEPENDS ${PROJECT_BINARY_DIR}/include/sable_
 
 # Build the input file for Isabelle/HOL
 # custom command and target to generate sable_verified_pp.c
+if (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/sable_verified_pp.c
-  COMMAND ${CMAKE_C_COMPILER} -E
-    ${PROJECT_SOURCE_DIR}/src/sable_verified.c
-    -DISABELLE -DNDEBUG
+  COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
     -I${PROJECT_BINARY_DIR}/include/
     -o ${PROJECT_BINARY_DIR}/sable_verified_pp.c
+    ${PROJECT_SOURCE_DIR}/src/sable_verified.c
   DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c macros sable_verified_h
   )
 add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/sable_verified_pp.c)
+endif (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
