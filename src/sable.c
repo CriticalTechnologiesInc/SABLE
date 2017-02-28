@@ -177,7 +177,7 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
   THROW(sp.exception);
 
   out_info("call skinit");
-  wait(1000);
+  wait(1000); // we need to wait to ensure that all APs have halted
   do_skinit();
 
   return ret;
