@@ -176,10 +176,8 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
   RESULT sp = stop_processors();
   THROW(sp.exception);
 
-#ifndef NDEBUG
   out_info("call skinit");
   wait(1000);
-#endif
   do_skinit();
 
   return ret;
