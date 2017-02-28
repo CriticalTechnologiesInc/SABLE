@@ -89,6 +89,12 @@ set (SABLE_H_HEADER_FILES
   ${PROJECT_SOURCE_DIR}/include/util.h
   )
 
+set (DEFINITIONS "")
+if (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
+  set (DEFINITIONS "${DEFINITIONS}" "-DNDEBUG")
+endif (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
+
+
 find_package( PythonInterp 3.4 REQUIRED )
 
 file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/intermediate )
@@ -113,7 +119,7 @@ add_custom_command (
 # generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
-  COMMAND ${CMAKE_C_COMPILER} -DNDEBUG -E
+  COMMAND ${CMAKE_C_COMPILER} ${DEFINITIONS} -E
     -o ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
     ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
   DEPENDS ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
