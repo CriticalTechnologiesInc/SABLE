@@ -128,31 +128,31 @@ RESULT configure(void) {
 }
 
 static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
-  RESULT_(TPM_STORED_DATA12) ret = {.exception.error = NONE};
-  OPTION(TPM_AUTHDATA) nv_auth;
-
 #ifdef NV_OWNER_REQUIRED
   EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
   RESULT_(TPM_AUTHDATA) nv_auth_ret = get_authdata();
-  THROW(nv_auth_ret.exception);
-  nv_auth.value = nv_auth_ret.value;
-  nv_auth.hasValue = true;
+  THROW_TYPE(RESULT_(TPM_STORED_DATA12), nv_auth_ret.exception);
+
+  const OPTION(TPM_AUTHDATA) nv_auth = {
+    .value = nv_auth_ret.value,
+    .hasValue = true};
 
   RESULT owner_oiap_ret = TPM_OIAP(&sessions[0]);
-  THROW(owner_oiap_ret.exception);
+  THROW_TYPE(RESULT_(TPM_STORED_DATA12), owner_oiap_ret.exception);
   RESULT_(TPM_NONCE) nonceOdd = get_nonce();
-  THROW(nonceOdd.exception);
+  THROW_TYPE(RESULT_(TPM_STORED_DATA12), nonceOdd.exception);
   sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
 #else
-  nv_auth.hasValue = false;
+  const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
 #endif
 
   RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(4, 0, 400, nv_auth, &sessions[0]);
-  THROW(val.exception);
-  ret.value = unpack_TPM_STORED_DATA12(val.value.data, val.value.dataSize);
-  return ret;
+  THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
+  return (RESULT_(TPM_STORED_DATA12)){
+      .exception.error = NONE,
+      .value = unpack_TPM_STORED_DATA12(val.value.data, val.value.dataSize)};
 }
 
 typedef const char *CSTRING;

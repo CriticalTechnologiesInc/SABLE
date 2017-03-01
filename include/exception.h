@@ -88,6 +88,28 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
     }                                                                          \
   }
 
+#ifndef NDEBUG
+#define ERROR_TYPE(type, value, error, msg)                                    \
+  {                                                                            \
+    if (value) {                                                               \
+      return (type){.exception.error = error,                                  \
+                    .exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST)),      \
+                    .exception.loc->l.file = __FILENAME__,                     \
+                    .exception.loc->l.line = xstr(__LINE__),                   \
+                    .exception.loc->l.function = __func__,                     \
+                    .exception.loc->next = NULL,                               \
+                    .exception.msg = message};                                 \
+    }                                                                          \
+  }
+#else
+#define ERROR_TYPE(type, value, error, msg)                                    \
+  {                                                                            \
+    if (value) {                                                               \
+      return (type){.exception.error = error};                                 \
+    }                                                                          \
+  }
+#endif
+
 /**
  * An exception 'error' is thrown when 'value' is true. In DEBUG mode,
  * 'msg' may be displayed if the error is caught. When 'value' is true,
@@ -123,6 +145,27 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
     if (e.error) {                                                             \
       ret.exception = e;                                                       \
       return ret;                                                              \
+    }                                                                          \
+  }
+#endif
+
+#ifndef NDEBUG
+#define THROW_TYPE(type, e)                                                    \
+  {                                                                            \
+    if (e.error) {                                                             \
+      return (type){.exception.error = e,                                      \
+                    .exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST)),      \
+                    .exception.loc->l.file = __FILENAME__,                     \
+                    .exception.loc->l.line = xstr(__LINE__),                   \
+                    .exception.loc->l.function = __func__,                     \
+                    .exception.loc->next = e.loc};                             \
+    }                                                                          \
+  }
+#else
+#define THROW_TYPE(type, e)                                                    \
+  {                                                                            \
+    if (e.error) {                                                             \
+      return (type){.exception = e};                                           \
     }                                                                          \
   }
 #endif
