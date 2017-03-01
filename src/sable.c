@@ -30,6 +30,7 @@
 #include "tpm_struct.h"
 #include "util.h"
 #include "version.h"
+#include "../include/alloc.h"
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
@@ -158,19 +159,9 @@ int _main(struct mbi *m, unsigned flags) {
 int sable(struct mbi *m) {
   revert_skinit();
 
-  // TEMPORARY
-  char *args = (char *) m->cmdline;
-  args += 11;
-  UINT32 counter = 0;
-  UINT32 nvIndex = 0;
-
-  while (args[counter] != '\0') {
-
-    nvIndex *= 10;
-    nvIndex += args[counter] - '0';
-    counter++;
-  }
-  // TEMPORARY
+  CommandLineArgs ctx;
+  initCommandLineArgs(&ctx);
+  cmdlineReader(&ctx, (char *) m->cmdline);
 
   ERROR(20, !m, "no mbi in sable()");
 
@@ -194,13 +185,13 @@ int sable(struct mbi *m) {
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
-      configure(nvIndex);
+      configure(ctx.nvIndex);
       ERROR(25, tis_deactivate_all(), "tis deactivate failed");
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
     } else {
-      trusted_boot(nvIndex);
+      trusted_boot(ctx.nvIndex);
     }
 
     ERROR(25, tis_deactivate_all(), "tis deactivate failed");
@@ -209,3 +200,5 @@ int sable(struct mbi *m) {
   ERROR(27, start_module(m), "start module failed");
   return 28;
 }
+
+

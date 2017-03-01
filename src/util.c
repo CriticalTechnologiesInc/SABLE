@@ -262,3 +262,43 @@ void show_hash(const char *s, TPM_DIGEST hash) {
     out_hex(hash.digest[i], 7);
   out_char('\n');
 }
+
+/* Find substring in string */
+int indexOf(char * sub, char * str) {
+
+  int i = -1;
+
+  while (i++, str[i] != '\0') {
+   for (int index = i, j = 0; str[i] != '\0'; j++, i++) {
+      if (sub[j] == str[i] && sub[j+1] == '\0') return index;
+      if (sub[j] != str[i]) break;
+    }
+  }
+
+  return -1;
+}
+
+/* Parse through command line arguments */
+void cmdlineReader (CommandLineArgs *ctx, char * cmdline) {
+
+  int index;
+
+  // nv index argument
+  char *tmp = cmdline;
+  index = (indexOf("--nv-index=", (char *) cmdline));
+  assert(index != -1);
+  tmp += (index+11);
+  while ((int) tmp[0] != 0 && (int) tmp[0] != 32) {
+	ctx->nvIndex *= 10;
+	ctx->nvIndex += tmp[0] - '0';
+	tmp++;
+	}
+}
+
+/* Initialize CommandLineArgs structure */
+void initCommandLineArgs(CommandLineArgs *ctx) {
+
+  ctx->nvIndex = 0;
+}
+
+
