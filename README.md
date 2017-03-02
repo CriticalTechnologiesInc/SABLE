@@ -19,13 +19,15 @@ Requirements
 To build SABLE:
 - CMake >= 3.0.2
 - gcc >= 4.3
-- python >= 3.4
 
 To configure and boot SABLE:
 - Any AMD CPU with support for AMD-V virtualization
 - A v1.2 TPM chip
 - GRUB2
 - tpm-tools
+
+To build SABLE for Isabelle/HOL:
+- python >= 3.4
 
 Build
 ----------------
@@ -50,11 +52,14 @@ Additional build options can be accessed by running `ccmake`, from a build
 directory, see the CMake documention for examples. At this time, the only
 supported build types are RELEASE and DEBUG.
 
-To compile SABLE source as input for Isabelle/HOL, run
+To compile SABLE source as input for Isabelle/HOL, cmake should additionally be
+configured using `-DGENERATE_ISABELLE=ON`, which can also be set using the
+`ccmake` GUI. You may then run
 ```
 $ make sable-isa
 ```
-This build target is only valid with a RELEASE build.
+which will generate `sable_isa.c` in the `isabelle/` directory. This file will
+be the input for the Norrish C Parser in Isabelle/HOL.
 
 Note: When building for the Qemu environment, use `ccmake` to add `-DTARGET_QEMU`
 to the `CMAKE_C_FLAGS` variable. This will disable certain checks on platform hardware.
