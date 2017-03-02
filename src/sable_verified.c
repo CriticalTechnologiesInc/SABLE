@@ -144,12 +144,15 @@ static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), nonceOdd.exception);
   sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
-#else
-  const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
-#endif
 
   RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(4, 0, 400, nv_auth, &sessions[0]);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
+#else
+  const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
+
+  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(4, 0, 400, nv_auth, NULL);
+  THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
+#endif
   return (RESULT_(TPM_STORED_DATA12)){
       .exception.error = NONE,
       .value = unpack_TPM_STORED_DATA12(val.value.data, val.value.dataSize)};
