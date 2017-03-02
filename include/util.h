@@ -21,15 +21,6 @@
 #define LOCAL
 #endif
 
-#ifndef ISABELLE
-#define EXCLUDE(X) X
-#else
-#define EXCLUDE(X)
-#endif
-
-#define xstr(s) str(s)
-#define str(s) #s
-
 #ifndef NDEBUG
 #define ASSERT(X)                                                              \
   {                                                                            \
@@ -51,8 +42,6 @@ void fail(void);
 #endif
 
 #define UNUSED(x) (void)(x)
-
-#define NULL 0
 
 #define MSR_EFER 0xC0000080
 #define EFER_SVME 1 << 12

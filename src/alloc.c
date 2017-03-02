@@ -30,11 +30,10 @@
  */
 
 #include "platform.h"
+#include "tcg.h"
+#include "exception.h"
+#include "util.h"
 #include "alloc.h"
-
-#ifndef NULL
-#define NULL ((void *)0)
-#endif
 
 /* Minimum granuality of the allocator (log2 of number of bytes). */
 #define ALLOC_CHUNK_SIZE_BITS 3
@@ -42,71 +41,26 @@
 /* Minimum alignment that the allocator will return. */
 #define DEFAULT_ALIGNMENT_BITS 3
 
-/* Disable "printk" error messages. */
-#define printk(x...)
-
-/*
- * Ensure condition "x" is true.
- */
-#define assert(x)                                                              \
-  do {                                                                         \
-    if (!(x)) {                                                                \
-      for (;;)                                                                 \
-        ;                                                                      \
-    }                                                                          \
-  } while (0)
-
 /* Is the given value aligned to the given alignment? */
 #define IS_ALIGNED(x, val) (((x) % (1UL << val)) == 0UL)
 
 /* Align "val" up to the next "2 ** align_bits" boundary. */
 static UINT32 align_up(UINT32 val, UINT32 align_bits) {
-  assert(align_bits < 32UL);
+  ASSERT(align_bits < 32UL);
   return (val + ((1UL << align_bits) - 1UL)) & (~((1UL << align_bits) - 1UL));
 }
-
-/*
- * This simple allocator uses a linked list of "mem_nodes", each which
- * contain a size (indicating that the 'size' bytes from the beginning
- * of the mem_node are free, other than containing the mem_node itself),
- * and a pointer to the next. The list of "mem_nodes" are in sorted
- * order by their virtual address.
- *
- * We additionally have an initial "dummy" mem_node that begins the list
- * of size 0. This is to make the code simpler by each node having
- * a previous node. The typical method of dealing with this (taking
- * a pointer the previous node's next pointer) unfortunately does not
- * work due to limitations in the verification framework. (Pointers
- * can't be taken to a field of a struct.)
- *
- * To allocate, we find a mem_node which contains a valid range and
- * allocate the range out of the mem_node. This may completely use up
- * the mem_node (in which case, it is taken out of the list), be
- * allocated from the start or end of the mem_node (in which case it is
- * adjusted/moved), or be allocated from the middle of the mem_node (in
- * which case, we end up with one more mem_node than we begun with).
- *
- * Free'ing is the reverse process, ensuring that we correctly merge
- * mem_nodes as required.
- */
 
 #define KB 1024
 BYTE heap[8 * KB] = {0};
 
-/*
- * Allocator memory node.
- *
- * Used as a node in a linked list tracking free memory regions.
- */
 struct mem_node {
   UINT32 size;
   struct mem_node *next;
 };
 struct mem_node *prev = NULL;
 
-/* Allocate a chunk of memory. */
 void *alloc(UINT32 size) {
-  assert(size > 0);
+  ASSERT(size > 0);
   if (!prev) {
     prev = (struct mem_node *)heap;
     prev->size = sizeof(heap) - sizeof(struct mem_node);

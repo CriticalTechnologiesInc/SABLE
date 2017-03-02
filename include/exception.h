@@ -153,19 +153,19 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #define THROW_TYPE(type, e)                                                    \
   {                                                                            \
     if (e.error) {                                                             \
-      return (type){.exception.error = e,                                      \
-                    .exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST)),      \
-                    .exception.loc->l.file = __FILENAME__,                     \
-                    .exception.loc->l.line = xstr(__LINE__),                   \
-                    .exception.loc->l.function = __func__,                     \
-                    .exception.loc->next = e.loc};                             \
+      SOURCE_LOCATION_LIST *loc = alloc(sizeof(SOURCE_LOCATION_LIST));              \
+      *loc = (SOURCE_LOCATION_LIST){.l.file = __FILENAME__,                         \
+                               .l.line = xstr(__LINE__),                       \
+                               .l.function = __func__,                         \
+                               .next = e.loc};                                 \
+      return (type){.exception.error = e.error, .exception.loc = loc};         \
     }                                                                          \
   }
 #else
 #define THROW_TYPE(type, e)                                                    \
   {                                                                            \
     if (e.error) {                                                             \
-      return (type){.exception = e};                                           \
+      return (type){.exception.error = e.error};                               \
     }                                                                          \
   }
 #endif

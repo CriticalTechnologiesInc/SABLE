@@ -17,6 +17,17 @@ typedef char bool;
 #define true 1
 #define false 0
 
+#define NULL 0
+
+#ifndef ISABELLE
+#define EXCLUDE(X) X
+#else
+#define EXCLUDE(X)
+#endif
+
+#define xstr(s) str(s)
+#define str(s) #s
+
 /* Include this so that applications that use names as defined in the
  * 1.1 TSS specification can still compile
  */
