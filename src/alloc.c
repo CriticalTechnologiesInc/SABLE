@@ -35,50 +35,32 @@
 #include "util.h"
 #include "alloc.h"
 
-/* Minimum granuality of the allocator (log2 of number of bytes). */
-#define ALLOC_CHUNK_SIZE_BITS 3
-
-/* Minimum alignment that the allocator will return. */
-#define DEFAULT_ALIGNMENT_BITS 3
-
-/* Is the given value aligned to the given alignment? */
-#define IS_ALIGNED(x, val) (((x) % (1UL << val)) == 0UL)
-
-/* Align "val" up to the next "2 ** align_bits" boundary. */
-static UINT32 align_up(UINT32 val, UINT32 align_bits) {
-  ASSERT(align_bits < 32UL);
-  return (val + ((1UL << align_bits) - 1UL)) & (~((1UL << align_bits) - 1UL));
-}
-
 #define KB 1024
 BYTE heap[8 * KB] = {0};
 
 struct mem_node {
-  UINT32 size;
+  UINT32 size; /* size of this data, in blocks */
   struct mem_node *next;
 };
 struct mem_node *prev = NULL;
+
+#define BLOCK_SIZE sizeof(struct mem_node)
 
 void *alloc(UINT32 size) {
   ASSERT(size > 0);
   if (!prev) {
     prev = (struct mem_node *)heap;
-    prev->size = sizeof(heap) - sizeof(struct mem_node);
-    prev->next = NULL;
+    *prev = (struct mem_node){.size = (sizeof(heap) / BLOCK_SIZE) - 1,
+                              .next = NULL};
   }
 
   if (prev->size < size)
     return NULL;
 
-  /* Round size and alignment up to ALLOC_CHUNK_SIZE_BITS */
-  size = align_up(size, ALLOC_CHUNK_SIZE_BITS);
-  UINT32 total_size = size + sizeof(struct mem_node);
-
-  struct mem_node *current = (struct mem_node *)((BYTE *)prev + total_size);
-  current->size = prev->size - total_size;
-  current->next = NULL;
-  prev->size = size;
-  prev->next = current;
+  UINT32 blocks = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  struct mem_node *current = (struct mem_node *)(prev + blocks + 1);
+  *current = (struct mem_node){.size = prev->size - (blocks + 1), .next = NULL};
+  *prev = (struct mem_node){.size = size, .next = current};
   void *ret = (void *)(prev + 1);
   prev = current;
   return ret;
