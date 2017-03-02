@@ -4,6 +4,6 @@
 
 set (CMAKE_C_FLAGS "-ansi")
 
-add_executable (makeheaders
+add_executable (makeheaders EXCLUDE_FROM_ALL
   makeheaders.c
   )

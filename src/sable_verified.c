@@ -1,5 +1,25 @@
-#include "sable_verified.h"
-#include "macro.h"
+#ifndef ISABELLE
+#include "asm.h"
+#include "option.h"
+#include "platform.h"
+#include "alloc.h"
+#include "exception.h"
+#include "dev.h"
+#include "mbi.h"
+#include "elf.h"
+#include "mp.h"
+#include "tcg.h"
+#include "keyboard.h"
+#include "sha.h"
+#include "hmac.h"
+#include "tis.h"
+#include "tpm.h"
+#include "tpm_error.h"
+#include "tpm_ordinal.h"
+#include "tpm_struct.h"
+#include "util.h"
+#include "version.h"
+#endif
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64

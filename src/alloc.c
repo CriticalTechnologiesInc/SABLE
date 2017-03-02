@@ -29,11 +29,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef ISABELLE
 #include "platform.h"
 #include "tcg.h"
 #include "exception.h"
 #include "util.h"
 #include "alloc.h"
+#endif
 
 #define KB 1024
 BYTE heap[8 * KB] = {0};

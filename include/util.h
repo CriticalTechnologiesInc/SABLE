@@ -18,8 +18,8 @@
 // definitions or declarations in header files
 #ifdef LOCAL
 #undef LOCAL
-#define LOCAL
 #endif
+#define LOCAL
 
 #ifndef NDEBUG
 #define ASSERT(X)                                                              \

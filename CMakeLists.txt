@@ -64,10 +64,18 @@ target_include_directories (sable PUBLIC
   "${PROJECT_BINARY_DIR}/include/"
   )
 set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
-add_dependencies (sable macros sable_verified_h)
 
-# These are include files used to generate sable.h only
-set (SABLE_H_HEADER_FILES
+option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
+
+# Build the input file for Isabelle/HOL
+# custom command and target to generate sable_isa.c
+if (${GENERATE_ISABELLE})
+
+find_package (PythonInterp 3.4 REQUIRED)
+
+# NOTE: order of header files is very important, since we do not employ
+# automatic dependency analysis
+set (HEADER_FILES
   ${PROJECT_SOURCE_DIR}/include/asm.h
   ${PROJECT_SOURCE_DIR}/include/option.h
   ${PROJECT_SOURCE_DIR}/include/platform.h
@@ -89,62 +97,85 @@ set (SABLE_H_HEADER_FILES
   ${PROJECT_SOURCE_DIR}/include/util.h
   )
 
-set (DEFINITIONS "")
-if (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
-  set (DEFINITIONS "${DEFINITIONS}" "-DNDEBUG")
-endif (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
+set (VERIFIED_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/alloc.c"
+  "${PROJECT_SOURCE_DIR}/src/sable_verified.c"
+  )
 
+file (MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/isabelle/intermediate)
 
-find_package( PythonInterp 3.4 REQUIRED )
-
-file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/intermediate )
+# generate verified_sources.c, i.e. all source files to be verified,
+# concatenated together
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py -n ${VERIFIED_SOURCES}
+    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+    DEPENDS ${VERIFIED_SOURCES}
+  )
 
 # generate macro.h, which contains all header-defined macros
 add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/include/macro.h
-  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_macros.py ${SABLE_H_HEADER_FILES}
-    > ${PROJECT_BINARY_DIR}/include/macro.h
-  DEPENDS ${SABLE_H_HEADER_FILES}
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_macros.py ${HEADER_FILES}
+    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
+    DEPENDS ${HEADER_FILES}
   )
-add_custom_target (macros DEPENDS ${PROJECT_BINARY_DIR}/include/macro.h)
 
 # generate all_headers.h, i.e. all source headers concatenated together
 add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
-  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py ${SABLE_H_HEADER_FILES}
-    > ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
-  DEPENDS ${SABLE_H_HEADER_FILES}
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py ${HEADER_FILES}
+    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
+    DEPENDS ${HEADER_FILES}
   )
 
 # generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
 add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
-  COMMAND ${CMAKE_C_COMPILER} ${DEFINITIONS} -E
-    -o ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
-    ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
-  DEPENDS ${PROJECT_BINARY_DIR}/intermediate/all_headers.h
-  )
-
-# generate sable_verified.h
-add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/include/sable_verified.h
-  COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
-    ${PROJECT_SOURCE_DIR}/src/sable_verified.c:${PROJECT_BINARY_DIR}/include/sable_verified.h
-    ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h
-  DEPENDS makeheaders ${PROJECT_BINARY_DIR}/intermediate/all_headers_pp.h ${PROJECT_SOURCE_DIR}/src/sable_verified.c
-  )
-add_custom_target (sable_verified_h DEPENDS ${PROJECT_BINARY_DIR}/include/sable_verified.h)
-
-# Build the input file for Isabelle/HOL
-# custom command and target to generate sable_verified_pp.c
-if (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
-add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/sable_verified_pp.c
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
-    -I${PROJECT_BINARY_DIR}/include/
-    -o ${PROJECT_BINARY_DIR}/sable_verified_pp.c
-    ${PROJECT_SOURCE_DIR}/src/sable_verified.c
-  DEPENDS ${PROJECT_SOURCE_DIR}/src/sable_verified.c macros sable_verified_h
+    -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
+    DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
   )
-add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/sable_verified_pp.c)
-endif (${CMAKE_BUILD_TYPE} STREQUAL "RELEASE")
+
+# generate sable_isa.h
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
+  COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c:${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
+  DEPENDS
+    makeheaders
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+  )
+
+# generate sable_isa_cat.c, which is the following concatenated together:
+# sable_isa.h
+# macro.h
+# verified_sources.c
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
+    DEPENDS
+      ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
+      ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
+      ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+  )
+
+# generate sable_isa.c
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/sable_isa.c
+  COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
+    -I${PROJECT_BINARY_DIR}/isabelle/intermediate/
+    -o ${PROJECT_BINARY_DIR}/isabelle/sable_isa.c
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
+  DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
+  )
+add_custom_target (sable-isa DEPENDS ${PROJECT_BINARY_DIR}/isabelle/sable_isa.c)
+
+endif (${GENERATE_ISABELLE})
