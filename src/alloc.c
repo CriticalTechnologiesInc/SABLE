@@ -38,13 +38,13 @@
 #endif
 
 #define KB 1024
-BYTE heap[8 * KB] = {0};
+static BYTE heap[8 * KB] = {0};
 
 struct mem_node {
   UINT32 size; /* size of this data, in blocks */
   struct mem_node *next;
 };
-struct mem_node *prev = NULL;
+static struct mem_node *prev = NULL;
 
 #define BLOCK_SIZE sizeof(struct mem_node)
 
