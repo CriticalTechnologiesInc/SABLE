@@ -18,7 +18,7 @@ def main():
             continue
         f = open(fp, 'r')
         if printLines:
-            print('#line 1 \"', fp, '\"')
+            print('#line 1 \"' + fp + '\"')
         print(f.read())
         f.close()
 
