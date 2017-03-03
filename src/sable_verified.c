@@ -24,6 +24,7 @@
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
+extern void fail(void);
 LOCAL extern RESULT_(TPM_AUTHDATA) get_authdata(void);
 LOCAL extern RESULT_(TPM_NONCE) get_nonce(void);
 

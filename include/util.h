@@ -28,11 +28,10 @@
       out_info(__FILENAME__                                                    \
                ":" xstr(__LINE__) ":"                                          \
                                   "Assertion failed: '" xstr(X) "'");          \
-      exit(-1);                                                                \
+      fail();                                                                \
     }                                                                          \
   }
 #else
-void fail(void);
 #define ASSERT(X)                                                              \
   {                                                                            \
     if (!(X)) {                                                                \
@@ -82,6 +81,7 @@ UINT32 memcmp(const void *buf1, const void *buf2, UINT32 size);
 UINT32 nextln(BYTE **mptr, UINT32 mod_end);
 void wait(int ms);
 void dump_exception(EXCEPTION e);
+void fail(void) __attribute__((noreturn));
 void exit(unsigned status) __attribute__((noreturn));
 /**
  * EXCEPT:

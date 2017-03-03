@@ -287,9 +287,6 @@ void show_hash(const char *s, TPM_DIGEST hash) {
   out_char('\n');
 }
 
-#ifndef NDEBUG
-#else
 void fail(void) {
   exit(-1);
 }
-#endif
