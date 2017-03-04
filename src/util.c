@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "alloc.h"
@@ -290,3 +291,4 @@ void show_hash(const char *s, TPM_DIGEST hash) {
 void fail(void) {
   exit(-1);
 }
+#endif

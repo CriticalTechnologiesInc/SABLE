@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "alloc.h"
@@ -60,3 +61,4 @@ RESULT send_ipi(unsigned param) {
 
   return ret;
 }
+#endif

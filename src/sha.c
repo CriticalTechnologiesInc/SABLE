@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "alloc.h"
@@ -138,3 +139,4 @@ void sha1_finish(SHA1_Context *ctx) {
   ((unsigned long *)ctx->buffer)[15] = ntohl(tmp & 0xffffffff);
   process_block(ctx);
 }
+#endif

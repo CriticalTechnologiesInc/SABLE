@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "asm.h"
 #include "option.h"
 #include "platform.h"
@@ -712,3 +713,4 @@ TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
 
   return ret;
 }
+#endif

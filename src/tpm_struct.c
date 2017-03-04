@@ -1,3 +1,4 @@
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "exception.h"
@@ -338,3 +339,4 @@ struct extracted_TPM_STORED_DATA12 extract_TPM_STORED_DATA12(TPM_STORED_DATA12 s
   pack_TPM_STORED_DATA12(ret.data, ret.dataSize, &storedData);
   return ret;
 }
+#endif

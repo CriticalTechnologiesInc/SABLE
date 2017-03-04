@@ -1,3 +1,4 @@
+#ifndef ISABELLE
 #include "platform.h"
 #include "alloc.h"
 #include "exception.h"
@@ -61,3 +62,4 @@ RESULT hmac_finish(HMAC_Context *ctx) {
   sha1_finish(&ctx->sctx);
   return ret;
 }
+#endif

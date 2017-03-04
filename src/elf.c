@@ -16,6 +16,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "exception.h"
 #include "mbi.h"
 #include "elf.h"
@@ -165,3 +166,4 @@ RESULT start_module(struct mbi *mbi) {
   /* not reached */
   return ret;
 }
+#endif

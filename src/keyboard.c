@@ -1,3 +1,4 @@
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "exception.h"
@@ -513,3 +514,4 @@ int get_string(char *str, unsigned int strSize, bool show) {
   out_char('\n');
   return i;
 }
+#endif

@@ -34,6 +34,10 @@ set (CMAKE_C_FLAGS
 
 set (CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
 
+file (GLOB C_SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
+
+file (GLOB ASM_SOURCES ${PROJECT_SOURCE_DIR}/src/*.S)
+
 set (CMAKE_EXE_LINKER_FLAGS
   "${CMAKE_EXE_LINKER_FLAGS} \
   -gc-sections \
@@ -42,21 +46,8 @@ set (CMAKE_EXE_LINKER_FLAGS
   )
 
 add_executable (sable
-  src/asm.S
-  src/alloc.c
-  src/dev.c
-  src/elf.c
-  src/hmac.c
-  src/keyboard.c
-  src/mp.c
-  src/sha.c
-  src/tis.c
-  src/tpm.c
-  src/tpm_error.c
-  src/tpm_struct.c
-  src/util.c
-  src/sable.c
-  src/sable_verified.c
+  ${C_SOURCES}
+  ${ASM_SOURCES}
   )
 
 target_include_directories (sable PUBLIC
@@ -97,21 +88,7 @@ set (HEADER_FILES
   ${PROJECT_SOURCE_DIR}/include/util.h
   )
 
-set (VERIFIED_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/alloc.c"
-  "${PROJECT_SOURCE_DIR}/src/sable_verified.c"
-  )
-
 file (MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/isabelle/intermediate)
-
-# generate verified_sources.c, i.e. all source files to be verified,
-# concatenated together
-add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
-  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py -n ${VERIFIED_SOURCES}
-    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
-    DEPENDS ${VERIFIED_SOURCES}
-  )
 
 # generate macro.h, which contains all header-defined macros
 add_custom_command (
@@ -119,6 +96,25 @@ add_custom_command (
   COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_macros.py ${HEADER_FILES}
     > ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
     DEPENDS ${HEADER_FILES}
+  )
+
+# generate all_sources.c, i.e. all source files, concatenated together
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
+  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py -n
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
+    ${C_SOURCES}
+    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
+    DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h ${C_SOURCES}
+  )
+
+# generate all_sources_pp.h, i.e. all source files concatenated together, preprocessed
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
+  COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
+    -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
+    DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
   )
 
 # generate all_headers.h, i.e. all source headers concatenated together
@@ -142,29 +138,29 @@ add_custom_command (
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
   COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c:${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c:${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
   DEPENDS
     makeheaders
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
   )
 
 # generate sable_isa_cat.c, which is the following concatenated together:
 # sable_isa.h
 # macro.h
-# verified_sources.c
+# all_sources_pp.c
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
   COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
     > ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
     DEPENDS
       ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
       ${PROJECT_BINARY_DIR}/isabelle/intermediate/macro.h
-      ${PROJECT_BINARY_DIR}/isabelle/intermediate/verified_sources.c
+      ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
   )
 
 # generate sable_isa.c

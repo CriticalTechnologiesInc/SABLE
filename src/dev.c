@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "alloc.h"
@@ -414,3 +415,4 @@ RESULT revert_skinit(void) {
 
   return ret;
 }
+#endif

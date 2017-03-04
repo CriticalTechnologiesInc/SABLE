@@ -14,6 +14,7 @@
  * $Id: tpm_error.c 364 2010-02-11 10:24:45Z mast $
  */
 
+#ifndef ISABELLE
 #include "platform.h"
 #include "exception.h"
 #include "tcg.h"
@@ -251,3 +252,4 @@ const char *tpm_error_to_string(TPM_RESULT res) {
     return "Unknown TPM error";
   }
 }
+#endif

@@ -12,6 +12,7 @@
  * COPYING file for details.
  */
 
+#ifndef ISABELLE
 #include "asm.h"
 #include "platform.h"
 #include "alloc.h"
@@ -245,3 +246,4 @@ RESULT tis_transmit(void) {
 
   return ret;
 }
+#endif
