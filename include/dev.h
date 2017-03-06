@@ -1,3 +1,6 @@
+#ifndef __DEV_H__
+#define __DEV_H__
+
 /*
  * \brief header used for DEV protection
  * \date    2006-10-25
@@ -68,3 +71,5 @@ unsigned pci_find_device_per_class(unsigned short class);
  * ERROR_NO_SVM
  */
 RESULT revert_skinit(void);
+
+#endif

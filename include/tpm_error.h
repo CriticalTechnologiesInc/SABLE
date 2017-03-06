@@ -1,3 +1,6 @@
+#ifndef __TPM_ERROR_H__
+#define __TPM_ERROR_H__
+
 /*
  * The TPM error codes extracted from the TPM main specification
  * version 1.2 revision 85.
@@ -955,3 +958,5 @@
 #define TPM_E_DEFEND_LOCK_RUNNING ((UINT32)(TPM_E_BASE + TPM_E_NON_FATAL + 3))
 
 const char *tpm_error_to_string(TPM_RESULT res);
+
+#endif

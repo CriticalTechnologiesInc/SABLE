@@ -1,3 +1,6 @@
+#ifndef __TIS_H__
+#define __TIS_H__
+
 /*
  * \brief   TIS data structures and header of tis.c
  * \date    2006-03-28
@@ -94,3 +97,5 @@ RESULT tis_deactivate_all(void);
 RESULT tis_access(enum TIS_LOCALITY locality, int force);
 /* EXCEPT: ERROR_TIS_TRANSMIT */
 RESULT tis_transmit(void);
+
+#endif

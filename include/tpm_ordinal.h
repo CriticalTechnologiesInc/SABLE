@@ -1,3 +1,6 @@
+#ifndef __TPM_ORDINAL_H__
+#define __TPM_ORDINAL_H__
+
 /*
  * TPM Ordinal definitions extracted from the TPM 1.2 specification, rev 85.
  */
@@ -143,3 +146,5 @@
 
 #define TSC_ORD_PhysicalPresence ((UINT32)0x4000000A)
 #define TSC_ORD_ResetEstablishmentBit ((UINT32)0x4000000B)
+
+#endif

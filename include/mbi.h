@@ -1,3 +1,6 @@
+#ifndef __MBI_H__
+#define __MBI_H__
+
 /*
  * \brief   multiboot structures
  * \date    2006-03-28
@@ -67,3 +70,5 @@ struct mmap {
   unsigned long long length __attribute__((packed));
   unsigned type;
 };
+
+#endif

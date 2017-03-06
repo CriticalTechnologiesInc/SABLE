@@ -1,3 +1,6 @@
+#ifndef __SHA_H__
+#define __SHA_H__
+
 /*
  * \brief   header of sha.c
  * \date    2006-03-28
@@ -23,3 +26,5 @@ void sha1_init(SHA1_Context *ctx);
 /* EXCEPT: ERROR_SHA1_DATA_SIZE */
 RESULT sha1(SHA1_Context *ctx, const void *val, UINT32 count);
 void sha1_finish(SHA1_Context *ctx);
+
+#endif

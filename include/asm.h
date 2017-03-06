@@ -1,3 +1,6 @@
+#ifndef __ASM_H__
+#define __ASM_H__
+
 /*
  * \brief   ASM inline helper routines.
  * \date    2006-03-28
@@ -108,3 +111,5 @@ static inline unsigned bsf(unsigned int value) {
   asm volatile("bsf %1,%0" : "=r"(res) : "r"(value));
   return res;
 }
+
+#endif

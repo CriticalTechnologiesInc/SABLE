@@ -1,3 +1,6 @@
+#ifndef __TCG_H__
+#define __TCG_H__
+
 /*++
  *
  * TPM structures extracted from the TPM specification 1.2,
@@ -49,7 +52,7 @@
 #define SIZEIS(x)
 #endif
 
-//#include "platform.h"
+#include "platform.h"
 
 //-------------------------------------------------------------------
 // Part 2, section 2.1: Basic data types
@@ -1048,12 +1051,12 @@ typedef struct tdTPM_AUDIT_EVENT_OUT {
 //-------------------------------------------------------------------
 // Part 2, section 16: Return codes
 
-//#include "tpm_error.h"
+#include "tpm_error.h"
 
 //-------------------------------------------------------------------
 // Part 2, section 17: Ordinals
 
-//#include "tpm_ordinal.h"
+#include "tpm_ordinal.h"
 
 //-------------------------------------------------------------------
 // Part 2, section 18: Context structures
@@ -1522,3 +1525,5 @@ typedef UINT32 TPM_SYM_MODE;
 #define TPM_SYM_MODE_ECB (0x00000001)
 #define TPM_SYM_MODE_CBC (0x00000002)
 #define TPM_SYM_MODE_CFB (0x00000003)
+
+#endif

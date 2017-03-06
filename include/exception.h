@@ -1,3 +1,6 @@
+#ifndef __EXCEPTION_H__
+#define __EXCEPTION_H__
+
 typedef enum tdERROR {
   NONE = 0,
   ERROR_BAD_ELF_HEADER,
@@ -191,3 +194,5 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
       e.error = NONE;                                                          \
     }                                                                          \
   }
+
+#endif

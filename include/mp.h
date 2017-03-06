@@ -1,3 +1,6 @@
+#ifndef __MP_H__
+#define __MP_H__
+
 /*
  * \brief header used for MP initialization
  * \date    2006-07-14
@@ -48,3 +51,5 @@ RESULT stop_processors(void);
  * at address.
  */
 RESULT start_processors(unsigned address);
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef __UTIL_H__
+#define __UTIL_H__
+
 /*
  * \brief   utility macros and headers for util.c
  * \date    2006-03-28
@@ -93,3 +96,5 @@ RESULT_(UINT32) check_cpuid(void);
 /* EXCEPT: ERROR_SVM_ENABLE */
 RESULT enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
+
+#endif

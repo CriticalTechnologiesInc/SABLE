@@ -1,3 +1,6 @@
+#ifndef __OPTION_H__
+#define __OPTION_H__
+
 /* TYPE GENERATORS */
 
 /* Convention: when generating an OPTION for "Type", #define a preprocessor
@@ -24,4 +27,6 @@
 #define OPTION(T) struct T##_option
 #else
 #define OPTION(T) OPTION_GEN(T)
+#endif
+
 #endif

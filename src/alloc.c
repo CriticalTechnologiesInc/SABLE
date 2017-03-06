@@ -30,7 +30,6 @@
  */
 
 #ifndef ISABELLE
-#include "platform.h"
 #include "tcg.h"
 #include "exception.h"
 #include "util.h"

@@ -1,3 +1,6 @@
+#ifndef __PLATFORM_H__
+#define __PLATFORM_H__
+
 /*++
 
 There are platform dependent and general defines.
@@ -32,3 +35,5 @@ typedef char bool;
  * 1.1 TSS specification can still compile
  */
 //#include "compat11b.h"
+
+#endif

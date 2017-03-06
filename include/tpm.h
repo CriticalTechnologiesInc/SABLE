@@ -1,3 +1,6 @@
+#ifndef __TPM_H__
+#define __TPM_H__
+
 /*
  * \brief   macros, enums and headers for tpm.c
  * \date    2006-03-28
@@ -67,3 +70,5 @@ RESULT_(TPM_STORED_DATA12)
 TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
          TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
          UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret);
+
+#endif

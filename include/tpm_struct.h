@@ -1,3 +1,6 @@
+#ifndef __TPM_STRUCT_H__
+#define __TPM_STRUCT_H__
+
 /* APIs to marshal/unmarshal TPM data structures to/from a buffer */
 
 typedef struct {
@@ -72,3 +75,5 @@ struct extracted_TPM_STORED_DATA12 {
   UINT32 dataSize;
   BYTE *data;
 } extract_TPM_STORED_DATA12(TPM_STORED_DATA12 storedData);
+
+#endif

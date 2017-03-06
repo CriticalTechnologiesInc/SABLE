@@ -1,3 +1,6 @@
+#ifndef __ELF_H__
+#define __ELF_H__
+
 /*
  * \brief   elf structures
  * \date    2006-03-28
@@ -46,3 +49,5 @@ struct ph {
  */
 RESULT start_module(struct mbi *mbi);
 int extract_module(struct mbi *mbi, unsigned *entry_point);
+
+#endif
