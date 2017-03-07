@@ -278,27 +278,27 @@ int indexOf(char * sub, char * str) {
   return -1;
 }
 
-/* Parse through command line arguments */
-void cmdlineReader (CommandLineArgs *ctx, char * cmdline) {
+int strLen (char * str) {
 
-  int index;
+  int len = 0;
 
-  // nv index argument
-  char *tmp = cmdline;
-  index = (indexOf("--nv-index=", (char *) cmdline));
+  while (str[len] != '\0') {
+    len++;
+  }
+
+  return len;
+}
+
+/* Find command line argument value */
+char * cmdlineArgVal (char * cmdline, char * cmdlineArg) {
+
+  char *val = cmdline;
+  int index = indexOf(cmdlineArg, cmdline);
   assert(index != -1);
-  tmp += (index+11);
-  while ((int) tmp[0] != 0 && (int) tmp[0] != 32) {
-	ctx->nvIndex *= 10;
-	ctx->nvIndex += tmp[0] - '0';
-	tmp++;
-	}
+  val += index;
+  val += strLen(cmdlineArg);
+  return val;
 }
 
-/* Initialize CommandLineArgs structure */
-void initCommandLineArgs(CommandLineArgs *ctx) {
-
-  ctx->nvIndex = 0;
-}
 
 

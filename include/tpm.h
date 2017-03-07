@@ -64,7 +64,7 @@ struct TPM_Unseal_ret {
 struct TPM_Seal_ret {
   TPM_RESULT returnCode;
   TPM_STORED_DATA12 sealedData;
-} TPM_Seal(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+} TPM_Sealx(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
            TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
            UINT32 inDataSize_in, TPM_SESSION **session,
            TPM_SECRET sharedSecret);

@@ -54,12 +54,6 @@ int check_cpuid(void);
 int enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
 
-/* Command Line Argument Data Structure and Relative Functions*/
-
-typedef struct {
-  UINT32 nvIndex;
-} CommandLineArgs;
-
-void initCommandLineArgs(CommandLineArgs *ctx);
-
-void cmdlineReader(CommandLineArgs *ctx, char * cmdline);
+int indexOf(char * sub, char * str);
+int strLen (char * str);
+char * cmdlineArgVal (char * cmdline, char * cmdlineArg);

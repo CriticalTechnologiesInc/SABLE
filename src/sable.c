@@ -91,6 +91,12 @@ static int mbi_calc_hash(struct mbi *mbi) {
     TPM_ERROR(res.returnCode, TPM_Extend);
   }
 
+  //sha1_init(&sctx);
+  //sha1(&sctx, (BYTE *)m->cmdline, /* LENGTH OF STRING */);
+  //sha1_finish(&sctx);
+  //struct TPM_EXTEND_ret res = TPM_EXTEND(19, sctx.hash);
+  //TPM_ERROR(res.returnCode, TPM_Extend);
+
   return 0;
 }
 
@@ -159,9 +165,14 @@ int _main(struct mbi *m, unsigned flags) {
 int sable(struct mbi *m) {
   revert_skinit();
 
-  CommandLineArgs ctx;
-  initCommandLineArgs(&ctx);
-  cmdlineReader(&ctx, (char *) m->cmdline);
+  // Finding NV Index
+  int nvIndex = 0;
+  char * val = cmdlineArgVal((char *) m->cmdline, "--nv-index=");
+  while (val[0] != '\0' && val[0] != ' ') {
+    nvIndex *= 10;
+    nvIndex += (val[0] - '0');
+    val++;
+  }
 
   ERROR(20, !m, "no mbi in sable()");
 
@@ -185,13 +196,13 @@ int sable(struct mbi *m) {
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
-      configure(ctx.nvIndex);
+      configure(nvIndex);
       ERROR(25, tis_deactivate_all(), "tis deactivate failed");
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
     } else {
-      trusted_boot(ctx.nvIndex);
+      trusted_boot(nvIndex);
     }
 
     ERROR(25, tis_deactivate_all(), "tis deactivate failed");
