@@ -27,7 +27,7 @@ void log_desc(const char *file, const char *line, const char *message,
   {                                                                            \
     if (!(X)) {                                                                \
       LOG("\nAssertion failed: '" xstr(X) "'\n\n");                            \
-      exit();                                                        \
+      exit();                                                                  \
     }                                                                          \
   }
 

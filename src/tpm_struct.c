@@ -264,7 +264,8 @@ UINT32 sizeof_TPM_STORED_DATA12(const TPM_STORED_DATA12 *storedData) {
 }
 
 // ret = xor(entityAuthData, sha1(sharedSecret ++ authLastNonceEven))
-TPM_ENCAUTH encAuth_gen(TPM_AUTHDATA entityAuthData, TPM_SECRET sharedSecret, TPM_NONCE authLastNonceEven) {
+TPM_ENCAUTH encAuth_gen(TPM_AUTHDATA entityAuthData, TPM_SECRET sharedSecret,
+                        TPM_NONCE authLastNonceEven) {
   TPM_ENCAUTH encAuth;
   SHA1_Context sctx;
   sha1_init(&sctx);
@@ -297,7 +298,7 @@ TPM_COMPOSITE_HASH get_TPM_COMPOSITE_HASH(TPM_PCR_COMPOSITE comp) {
 }
 
 UINT32 pack_TPM_PCR_INFO_LONG(BYTE *data /* out */, UINT32 dataSize,
-                            const TPM_PCR_INFO_LONG *pcrInfo /* in */) {
+                              const TPM_PCR_INFO_LONG *pcrInfo /* in */) {
   Pack_Context pctx;
   pack_init(&pctx, data, dataSize);
   marshal_TPM_PCR_INFO_LONG(pcrInfo, &pctx, NULL);
@@ -322,11 +323,11 @@ TPM_STORED_DATA12 unpack_TPM_STORED_DATA12(const BYTE *data /* in */,
   return ret;
 }
 
-struct extracted_TPM_STORED_DATA12 extract_TPM_STORED_DATA12(TPM_STORED_DATA12 storedData) {
+struct extracted_TPM_STORED_DATA12
+extract_TPM_STORED_DATA12(TPM_STORED_DATA12 storedData) {
   UINT32 size = sizeof_TPM_STORED_DATA12(&storedData);
-  struct extracted_TPM_STORED_DATA12 ret = {
-    .dataSize = size,
-    .data = alloc(size)};
+  struct extracted_TPM_STORED_DATA12 ret = {.dataSize = size,
+                                            .data = alloc(size)};
   pack_TPM_STORED_DATA12(ret.data, ret.dataSize, &storedData);
   return ret;
 }

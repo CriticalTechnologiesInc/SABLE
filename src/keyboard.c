@@ -495,8 +495,7 @@ char getchar(void) {
 
 int get_string(char *str, unsigned int strSize, bool show) {
   UINT32 i = 0;
-  char c =
-      getchar(); // for some reason, there's always an 'enter' char
+  char c = getchar(); // for some reason, there's always an 'enter' char
   while (i < strSize) {
     c = getchar();
     if (c == 0x0D)
@@ -508,8 +507,7 @@ int get_string(char *str, unsigned int strSize, bool show) {
       if (i > 0) {
         i--;
       }
-    }
-    else if (c != 0) {
+    } else if (c != 0) {
       str[i] = c;
       if (show)
         out_char(c);

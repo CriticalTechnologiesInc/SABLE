@@ -54,6 +54,6 @@ int check_cpuid(void);
 int enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
 
-int indexOf(char * sub, char * str);
-int strLen (char * str);
-char * cmdlineArgVal (char * cmdline, char * cmdlineArg);
+int indexOf(char *sub, char *str);
+int strLen(char *str);
+char *cmdlineArgVal(char *cmdline, char *cmdlineArg);

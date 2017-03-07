@@ -92,7 +92,7 @@ static int mbi_calc_hash(struct mbi *mbi) {
   }
 
   sha1_init(&sctx);
-  sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *) mbi->cmdline));
+  sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
   sha1_finish(&sctx);
   struct TPM_Extend_ret res = TPM_Extend(19, sctx.hash);
   TPM_ERROR(res.returnCode, TPM_Extend);
@@ -167,7 +167,7 @@ int sable(struct mbi *m) {
 
   // Finding NV Index
   int nvIndex = 0;
-  char * val = cmdlineArgVal((char *) m->cmdline, "--nv-index=");
+  char *val = cmdlineArgVal((char *)m->cmdline, "--nv-index=");
   while (val[0] != '\0' && val[0] != ' ') {
     nvIndex *= 10;
     nvIndex += (val[0] - '0');
@@ -211,5 +211,4 @@ int sable(struct mbi *m) {
   ERROR(27, start_module(m), "start module failed");
   return 28;
 }
-
 
