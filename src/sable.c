@@ -91,11 +91,11 @@ static int mbi_calc_hash(struct mbi *mbi) {
     TPM_ERROR(res.returnCode, TPM_Extend);
   }
 
-  //sha1_init(&sctx);
-  //sha1(&sctx, (BYTE *)m->cmdline, /* LENGTH OF STRING */);
-  //sha1_finish(&sctx);
-  //struct TPM_EXTEND_ret res = TPM_EXTEND(19, sctx.hash);
-  //TPM_ERROR(res.returnCode, TPM_Extend);
+  sha1_init(&sctx);
+  sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *) mbi->cmdline));
+  sha1_finish(&sctx);
+  struct TPM_Extend_ret res = TPM_Extend(19, sctx.hash);
+  TPM_ERROR(res.returnCode, TPM_Extend);
 
   return 0;
 }
