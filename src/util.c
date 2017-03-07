@@ -287,4 +287,43 @@ void show_hash(const char *s, TPM_DIGEST hash) {
 }
 
 void fail(void) { exit(-1); }
+
+/* Find substring in string */
+int indexOf(char *sub, char *str) {
+
+  int i = -1;
+
+  while (i++, str[i] != '\0') {
+    for (int index = i, j = 0; str[i] != '\0'; j++, i++) {
+      if (sub[j] == str[i] && sub[j + 1] == '\0')
+        return index;
+      if (sub[j] != str[i])
+        break;
+    }
+  }
+
+  return -1;
+}
+
+int strLen(char *str) {
+
+  int len = 0;
+
+  while (str[len] != '\0') {
+    len++;
+  }
+
+  return len;
+}
+
+/* Find command line argument value */
+char *cmdlineArgVal(char *cmdline, char *cmdlineArg) {
+
+  char *val = cmdline;
+  int index = indexOf(cmdlineArg, cmdline);
+  ASSERT(index != -1);
+  val += index;
+  val += strLen(cmdlineArg);
+  return val;
+}
 #endif

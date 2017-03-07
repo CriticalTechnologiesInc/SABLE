@@ -96,4 +96,9 @@ RESULT_(UINT32) check_cpuid(void);
 RESULT enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
 
+/* helper functions for handling command-line arguments */
+int indexOf(char *sub, char *str);
+int strLen(char *str);
+char *cmdlineArgVal(char *cmdline, char *cmdlineArg);
+
 #endif

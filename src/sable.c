@@ -150,7 +150,7 @@ static RESULT_(TPM_STORED_DATA12)
 }
 
 static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
-                               TPM_STORED_DATA12 sealedData) {
+                               TPM_STORED_DATA12 sealedData, UINT32 index) {
   RESULT ret = {.exception.error = NONE};
 
   RESULT oiap_ret = TPM_OIAP(&sessions[0]);
@@ -161,11 +161,11 @@ static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
   sessions[0]->continueAuthSession = FALSE;
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
-  return TPM_NV_WriteValueAuth(x.data, x.dataSize, 0x04, 0, nv_auth,
+  return TPM_NV_WriteValueAuth(x.data, x.dataSize, index, 0, nv_auth,
                                &sessions[0]);
 }
 
-RESULT configure(void) {
+RESULT configure(UINT32 index) {
   RESULT ret = {.exception.error = NONE};
   char *passphrase = alloc(PASSPHRASE_STR_SIZE);
 
@@ -195,10 +195,10 @@ RESULT configure(void) {
   THROW(nv_auth.exception);
 
   // write the sealed passphrase to disk
-  return write_passphrase(nv_auth.value, sealedData.value);
+  return write_passphrase(nv_auth.value, sealedData.value, index);
 }
 
-static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
+static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
 #ifdef NV_OWNER_REQUIRED
   EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
       AUTHDATA_STR_SIZE) " char max): ");)
@@ -215,7 +215,7 @@ static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
   sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
 
-  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(4, 0, 400, nv_auth, &sessions[0]);
+  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(index, 0, 400, nv_auth, &sessions[0]);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
 #else
   const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
@@ -259,9 +259,9 @@ static RESULT_(CSTRING)
   return ret;
 }
 
-RESULT trusted_boot(void) {
+RESULT trusted_boot(UINT32 index) {
   RESULT ret = {.exception.error = NONE};
-  RESULT_(TPM_STORED_DATA12) sealed_pp = read_passphrase();
+  RESULT_(TPM_STORED_DATA12) sealed_pp = read_passphrase(index);
   THROW(sealed_pp.exception);
 
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
@@ -322,6 +322,12 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
     extend_ret = TPM_Extend(19, sctx.hash);
     THROW(extend_ret.exception);
   }
+
+  sha1_init(&sctx);
+  sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
+  sha1_finish(&sctx);
+  RESULT_(TPM_PCRVALUE) ext_ret = TPM_Extend(19, sctx.hash);
+  THROW(ext_ret.exception);
 
   return ret;
 }
@@ -410,6 +416,15 @@ RESULT post_skinit(struct mbi *m) {
 #endif
   THROW(revert_skinit_ret.exception);
 
+  // Finding NV Index
+  int nvIndex = 0;
+  char *val = cmdlineArgVal((char *)m->cmdline, "--nv-index=");
+  while (val[0] != '\0' && val[0] != ' ') {
+    nvIndex *= 10;
+    nvIndex += (val[0] - '0');
+    val++;
+  }
+
   ERROR(!m, ERROR_NO_MBI, "no mbi in sable()");
 
   if (tis_init()) {
@@ -434,7 +449,7 @@ RESULT post_skinit(struct mbi *m) {
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
-      RESULT configure_ret = configure();
+      RESULT configure_ret = configure(nvIndex);
       THROW(configure_ret.exception);
       RESULT tis_deactiv = tis_deactivate_all();
       THROW(tis_deactiv.exception);
@@ -442,7 +457,7 @@ RESULT post_skinit(struct mbi *m) {
       wait(5000);
       reboot();
     } else {
-      RESULT trusted_boot_ret = trusted_boot();
+      RESULT trusted_boot_ret = trusted_boot(nvIndex);
       THROW(trusted_boot_ret.exception);
       RESULT tis_deactiv = tis_deactivate_all();
       THROW(tis_deactiv.exception);
