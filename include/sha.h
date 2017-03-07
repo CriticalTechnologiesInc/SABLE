@@ -15,6 +15,9 @@
  * COPYING file for details.
  */
 
+#include "tcg.h"
+#include "exception.h"
+
 typedef struct {
   UINT32 index;
   UINT32 blocks;

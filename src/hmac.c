@@ -1,9 +1,5 @@
 #ifndef ISABELLE
-#include "platform.h"
 #include "alloc.h"
-#include "exception.h"
-#include "tcg.h"
-#include "sha.h"
 #include "hmac.h"
 #include "util.h"
 

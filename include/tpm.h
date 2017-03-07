@@ -1,19 +1,10 @@
 #ifndef __TPM_H__
 #define __TPM_H__
 
-/*
- * \brief   macros, enums and headers for tpm.c
- * \date    2006-03-28
- * \author  Bernhard Kauer <kauer@tudos.org>
- */
-/*
- * Copyright (C) 2006,2007,2010  Bernhard Kauer <kauer@tudos.org>
- * Technische Universitaet Dresden, Operating Systems Research Group
- *
- * This file is part of the OSLO package, which is distributed under
- * the  terms  of the  GNU General Public Licence 2.  Please see the
- * COPYING file for details.
- */
+#include "tcg.h"
+#include "option.h"
+#include "exception.h"
+
 OPTION_GEN(TPM_AUTHDATA);
 
 typedef struct tdTPM_OSAP_EXTENSION {

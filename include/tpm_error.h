@@ -1,6 +1,8 @@
 #ifndef __TPM_ERROR_H__
 #define __TPM_ERROR_H__
 
+#include "tcg.h"
+
 /*
  * The TPM error codes extracted from the TPM main specification
  * version 1.2 revision 85.

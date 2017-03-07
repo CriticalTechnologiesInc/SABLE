@@ -19,10 +19,9 @@
 
 // This allows us to use LOCAL to prevent makeheaders from generating certain
 // definitions or declarations in header files
-#ifdef LOCAL
-#undef LOCAL
-#endif
-#define LOCAL
+
+#include "tcg.h"
+#include "exception.h"
 
 #ifndef NDEBUG
 #define ASSERT(X)                                                              \

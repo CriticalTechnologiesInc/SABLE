@@ -15,6 +15,8 @@
  * COPYING file for details.
  */
 
+#include "exception.h"
+
 struct eh {
   unsigned char e_ident[16];
   unsigned short e_type;

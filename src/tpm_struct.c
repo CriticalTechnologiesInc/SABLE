@@ -1,10 +1,6 @@
 #ifndef ISABELLE
 #include "asm.h"
-#include "platform.h"
-#include "exception.h"
 #include "alloc.h"
-#include "tcg.h"
-#include "sha.h"
 #include "hmac.h"
 #include "util.h"
 #include "tpm_struct.h"

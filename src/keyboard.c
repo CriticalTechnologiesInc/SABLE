@@ -1,8 +1,5 @@
 #ifndef ISABELLE
 #include "asm.h"
-#include "platform.h"
-#include "exception.h"
-#include "tcg.h"
 #include "util.h"
 #include "keyboard.h"
 

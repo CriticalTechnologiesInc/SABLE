@@ -3,6 +3,8 @@
 
 /* APIs to marshal/unmarshal TPM data structures to/from a buffer */
 
+#include "tcg.h"
+
 typedef struct {
   BYTE *pack_buffer;
   UINT32 bytes_packed;

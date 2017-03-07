@@ -1,6 +1,8 @@
 #ifndef __HMAC_H__
 #define __HMAC_H__
 
+#include "sha.h"
+
 #define HMAC_BLOCK_SIZE 64
 
 typedef struct {

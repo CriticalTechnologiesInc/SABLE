@@ -13,17 +13,9 @@
  */
 
 #ifndef ISABELLE
-#include "asm.h"
-#include "option.h"
-#include "platform.h"
-#include "exception.h"
 #include "alloc.h"
-#include "tcg.h"
 #include "tis.h"
-#include "sha.h"
 #include "hmac.h"
-#include "tpm_error.h"
-#include "tpm_ordinal.h"
 #include "tpm_struct.h"
 #include "util.h"
 #include "tpm.h"

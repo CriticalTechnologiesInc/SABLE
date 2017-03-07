@@ -15,10 +15,6 @@
  */
 
 #ifndef ISABELLE
-#include "platform.h"
-#include "exception.h"
-#include "tcg.h"
-#include "util.h"
 #include "tpm_error.h"
 
 const char *tpm_error_to_string(TPM_RESULT res) {

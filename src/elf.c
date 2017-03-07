@@ -17,12 +17,9 @@
  */
 
 #ifndef ISABELLE
-#include "exception.h"
 #include "mbi.h"
 #include "elf.h"
-#include "platform.h"
 #include "alloc.h"
-#include "tcg.h"
 #include "util.h"
 
 enum {

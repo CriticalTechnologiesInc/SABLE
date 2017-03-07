@@ -14,9 +14,7 @@
 
 #ifndef ISABELLE
 #include "asm.h"
-#include "platform.h"
 #include "alloc.h"
-#include "exception.h"
 #include "tcg.h"
 #include "util.h"
 #include "dev.h"

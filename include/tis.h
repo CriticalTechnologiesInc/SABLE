@@ -15,6 +15,8 @@
  * COPYING file for details.
  */
 
+#include "exception.h"
+
 #define TIS_BUFFER_SIZE 1024
 struct TIS_BUFFERS {
   unsigned char in[TIS_BUFFER_SIZE];

@@ -15,6 +15,8 @@
  * COPYING file for details.
  */
 
+#include "exception.h"
+
 enum APIC_DEFS {
   MSR_APIC_BASE = 0x1B,
   APIC_BASE_ENABLE = 0x800,

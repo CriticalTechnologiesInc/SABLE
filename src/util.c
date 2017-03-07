@@ -14,10 +14,7 @@
 
 #ifndef ISABELLE
 #include "asm.h"
-#include "platform.h"
 #include "alloc.h"
-#include "exception.h"
-#include "tcg.h"
 #include "util.h"
 
 static const char *const message_label = "SABLE:   ";

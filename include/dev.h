@@ -15,6 +15,8 @@
  * COPYING file for details.
  */
 
+#include "exception.h"
+
 enum pci_constants {
   PCI_ADDR_PORT = 0xcf8,
   PCI_DATA_PORT = 0xcfc,
