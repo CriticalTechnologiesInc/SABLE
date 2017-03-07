@@ -77,6 +77,9 @@ RESULT_(TPM_NONCE) get_nonce(void) {
 }
 #endif
 
+RESULT_(TPM_AUTHDATA) get_authdata(void);
+RESULT_(TPM_NONCE) get_nonce(void);
+
 static TPM_SESSION *sessions[2] = {NULL, NULL};
 
 RESULT_GEN(TPM_PCR_INFO_LONG);
