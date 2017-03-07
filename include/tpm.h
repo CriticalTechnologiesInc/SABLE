@@ -41,7 +41,8 @@ RESULT_GEN(TPM_STORED_DATA12);
 RESULT TPM_Startup(TPM_STARTUP_TYPE startupType_in);
 RESULT TPM_GetRandom(BYTE *randomBytes_out /* out */, UINT32 bytesRequested_in);
 RESULT_(TPM_PCRVALUE) TPM_PCRRead(TPM_PCRINDEX pcrIndex_in);
-RESULT_(TPM_PCRVALUE) TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in);
+RESULT_(TPM_PCRVALUE)
+TPM_Extend(TPM_PCRINDEX pcrNum_in, TPM_DIGEST inDigest_in);
 /* Only populates the authHandle and nonceEven fields. nonceOdd and
  * and continueAuthSession must be populated by the caller. */
 RESULT TPM_OIAP(TPM_SESSION **session);

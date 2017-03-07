@@ -135,9 +135,9 @@ static unsigned pci_find_device(unsigned id) {
  * @return 0 on failiure or the offset into the pci device of the capability
  */
 static RESULT_(BYTE) pci_dev_find_cap(unsigned addr, unsigned char id) {
-  RESULT_(BYTE) ret = { .exception.error = NONE };
+  RESULT_(BYTE) ret = {.exception.error = NONE};
   ERROR(!(pci_read_long(addr + PCI_CONF_HDR_CMD) & 0x100000), ERROR_PCI,
-         "no capability list support");
+        "no capability list support");
   ret.value = pci_read_byte(addr + PCI_CONF_HDR_CAP);
   while (ret.value)
     if (id == pci_read_byte(addr + ret.value))
@@ -273,7 +273,7 @@ static void dev_write_reg(unsigned addr, unsigned char func,
  * ERROR_DEV
  */
 static RESULT_(UINT32) dev_get_addr(void) {
-  RESULT_(UINT32) ret = { .exception.error = NONE };
+  RESULT_(UINT32) ret = {.exception.error = NONE};
   ret.value = pci_find_device(DEV_PCI_DEVICE_ID_OLD);
   if (!ret.value)
     ret.value = pci_find_device(DEV_PCI_DEVICE_ID_K10);
@@ -284,7 +284,8 @@ static RESULT_(UINT32) dev_get_addr(void) {
   THROW(cap_ret.exception);
   ret.value = ret.value + cap_ret.value;
   ERROR(!ret.value, ERROR_DEV, "cap not found");
-  ERROR(0xf != (pci_read_long(ret.value) & 0xf00ff), ERROR_DEV, "invalid DEV_HDR");
+  ERROR(0xf != (pci_read_long(ret.value) & 0xf00ff), ERROR_DEV,
+        "invalid DEV_HDR");
   return ret;
 }
 
@@ -295,7 +296,7 @@ static RESULT_(UINT32) dev_get_addr(void) {
  * Disable all dev protection.
  */
 RESULT disable_dev_protection(void) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT_(UINT32) addr_ret;
   out_info("disable DEV and SLDEV protection");
   addr_ret = dev_get_addr();
@@ -330,12 +331,12 @@ static int enable_dev_bitmap(unsigned addr, unsigned base) {
  * alignment.
  */
 RESULT enable_dev_protection(unsigned *sldev_buffer, unsigned char *buffer) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT_(UINT32) addr_ret;
   out_info("enable DEV protection");
   ERROR((unsigned)buffer & 0xfff, ERROR_DEV, "DEV pointer invalid");
   ERROR((unsigned)sldev_buffer < 1 << 17 || (unsigned)sldev_buffer & 0xfff,
-         ERROR_DEV, "SL_DEV pointer invalid");
+        ERROR_DEV, "SL_DEV pointer invalid");
   addr_ret = dev_get_addr();
   THROW(addr_ret.exception);
 
@@ -366,7 +367,7 @@ extern char smp_init_end;
  * ERROR_SVM_ENABLE
  */
 static RESULT fixup(void) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   unsigned i;
   out_info("patch CPU name tag");
 
@@ -400,7 +401,7 @@ static RESULT fixup(void) {
  * ERROR_NO_SVM
  */
 RESULT revert_skinit(void) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT_(UINT32) cpuid = check_cpuid();
   THROW(cpuid.exception);
 

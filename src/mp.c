@@ -37,12 +37,12 @@ RESULT start_processors(unsigned address) {
  * Send an IPI to all APs.
  */
 RESULT send_ipi(unsigned param) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   unsigned long long value;
 
   value = rdmsr(MSR_APIC_BASE);
   ERROR(!(value & (APIC_BASE_ENABLE | APIC_BASE_BSP)), ERROR_APIC,
-         "not BSP or APIC disabled");
+        "not BSP or APIC disabled");
   ERROR((value >> 32) & 0xf, ERROR_APIC, "APIC out of range");
 
   unsigned long *apic_icr_low =

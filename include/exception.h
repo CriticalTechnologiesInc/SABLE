@@ -156,11 +156,11 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #define THROW_TYPE(type, e)                                                    \
   {                                                                            \
     if (e.error) {                                                             \
-      SOURCE_LOCATION_LIST *loc = alloc(sizeof(SOURCE_LOCATION_LIST));              \
-      *loc = (SOURCE_LOCATION_LIST){.l.file = __FILENAME__,                         \
-                               .l.line = xstr(__LINE__),                       \
-                               .l.function = __func__,                         \
-                               .next = e.loc};                                 \
+      SOURCE_LOCATION_LIST *loc = alloc(sizeof(SOURCE_LOCATION_LIST));         \
+      *loc = (SOURCE_LOCATION_LIST){.l.file = __FILENAME__,                    \
+                                    .l.line = xstr(__LINE__),                  \
+                                    .l.function = __func__,                    \
+                                    .next = e.loc};                            \
       return (type){.exception.error = e.error, .exception.loc = loc};         \
     }                                                                          \
   }

@@ -7,7 +7,7 @@ typedef struct HMAC_OPad { BYTE pad[HMAC_BLOCK_SIZE]; } HMAC_OPad;
 typedef HMAC_OPad HMAC_IPad;
 
 RESULT hmac_init(HMAC_Context *ctx, const BYTE *key, UINT32 keySize) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT sha1_ret;
   HMAC_OPad ipad;
 
@@ -34,14 +34,14 @@ RESULT hmac_init(HMAC_Context *ctx, const BYTE *key, UINT32 keySize) {
 }
 
 RESULT hmac(HMAC_Context *ctx, const void *data, UINT32 dataSize) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT sha1_ret = sha1(&ctx->sctx, data, dataSize);
   THROW(sha1_ret.exception);
   return ret;
 }
 
 RESULT hmac_finish(HMAC_Context *ctx) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   RESULT sha1_ret;
   HMAC_OPad opad;
   sha1_finish(&ctx->sctx);

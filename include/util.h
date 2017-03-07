@@ -30,7 +30,7 @@
       out_info(__FILENAME__                                                    \
                ":" xstr(__LINE__) ":"                                          \
                                   "Assertion failed: '" xstr(X) "'");          \
-      fail();                                                                \
+      fail();                                                                  \
     }                                                                          \
   }
 #else

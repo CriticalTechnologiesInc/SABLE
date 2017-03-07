@@ -69,7 +69,7 @@ static void gen_elf_segment(void *target, void *src, unsigned len,
 }
 
 RESULT start_module(struct mbi *mbi) {
-  RESULT ret = { .exception.error = NONE };
+  RESULT ret = {.exception.error = NONE};
   struct module *m;
   struct mbh *mb;
   struct eh *elf = NULL;

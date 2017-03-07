@@ -205,9 +205,8 @@ static RESULT_(TPM_STORED_DATA12) read_passphrase(void) {
   RESULT_(TPM_AUTHDATA) nv_auth_ret = get_authdata();
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), nv_auth_ret.exception);
 
-  const OPTION(TPM_AUTHDATA) nv_auth = {
-    .value = nv_auth_ret.value,
-    .hasValue = true};
+  const OPTION(TPM_AUTHDATA)
+      nv_auth = {.value = nv_auth_ret.value, .hasValue = true};
 
   RESULT owner_oiap_ret = TPM_OIAP(&sessions[0]);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), owner_oiap_ret.exception);
@@ -407,7 +406,7 @@ RESULT post_skinit(struct mbi *m) {
 
   RESULT revert_skinit_ret = revert_skinit();
 #ifdef TARGET_QEMU
-  CATCH(revert_skinit_ret.exception, ERROR_DEV,);
+  CATCH(revert_skinit_ret.exception, ERROR_DEV, );
 #endif
   THROW(revert_skinit_ret.exception);
 
