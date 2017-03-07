@@ -72,36 +72,6 @@ to the `CMAKE_C_FLAGS` variable in `ccmake`.
 Installation
 ---------------
 
-The easiest way to add a SEC is to copy an existing GRUB2 menuentry
-from your `grub.cfg` into your `/etc/grub.d/40_custom`, then edit the entry to
-boot with SABLE. For instance, the following entry
-```
-menuentry 'Ubuntu' {
-  ...
-  linux /boot/mylinux
-  initrd /boot/myinitrd
-}
-```
-would become
-```
-menuentry 'SABLE-Ubuntu' {
-  ...
-  multiboot /boot/sable
-  module /boot/grub/i386-pc/core.img
-  module /boot/mylinux
-  module /boot/myinitrd
-}
-```
-Note that you will need to copy the `sable` binary to your `/boot` directory. Then
-you may run
-```
-# update-grub2
-```
-to generate an updated `grub.cfg` with the new menuentry.
-
-Configuration
----------------
-
 SABLE uses TPM NVRAM to store sensitive data. Before an SEC can be configured, the
 platform owner must define a space within TPM NVRAM for that SEC. The easiest way to
 do this is to use tpm-tools:
@@ -115,13 +85,40 @@ do this is to use tpm-tools:
 If the TPM owner password is well-known (all zeros), use the `-y` flag instead of `-o`.
 The NVRAM space password should be unique to each SEC, and known only to the platform
 owner and the user(s) of that SEC. The NVRAM index should be at least 4, and the
-minimum recommended size is 384 bytes. Here's an example configuration command:
-```
-# tpm_nvdefine -o myownerpass -a thisSECpass -i 4 -s 400 \
-    --permissions="AUTHWRITE|READ_STCLEAR"
-```
+minimum recommended size is 384 bytes.
 
-Once the space has been configured, reboot your system, and select the new SEC
+Next you will need to create a new entry (or update an existing entry) in your GRUB2
+configuration for your SEC.  The easiest way to add a SEC is to copy an existing
+GRUB2 menuentry from your `grub.cfg` into your `/etc/grub.d/40_custom`, then edit
+the entry to boot with SABLE. For instance, the following entry
+```
+menuentry 'Ubuntu' {
+  ...
+  linux /boot/mylinux
+  initrd /boot/myinitrd
+}
+```
+would become
+```
+menuentry 'SABLE-Ubuntu' {
+  ...
+  multiboot /boot/sable --nv-index=<SEC-nv-index>
+  module /boot/grub/i386-pc/core.img
+  module /boot/mylinux
+  module /boot/myinitrd
+}
+```
+Then you may run
+```
+# update-grub2
+```
+to generate an updated `grub.cfg` with the new menuentry.
+Finally you must copy the `sable` binary to your `/boot` directory.
+
+Configuration
+---------------
+
+After you have installed an SEC, you may reboot your system, and select the new SEC
 from the GRUB2 boot menu. SABLE will ask if you want to configure. Type "y", then
 enter the following credentials:
 
@@ -133,6 +130,8 @@ enter the following credentials:
 - The **SRK password**
 - The **NVRAM password** is that password designated by the platform owner as a requirement
   for writing to this NVRAM space
+
+If SABLE was successful in configuring the SEC, it will report success and then reboot.
 
 Usage
 ---------------
