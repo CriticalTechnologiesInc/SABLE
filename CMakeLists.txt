@@ -46,8 +46,8 @@ set (CMAKE_EXE_LINKER_FLAGS
   )
 
 add_executable (sable
-  ${C_SOURCES}
   ${ASM_SOURCES}
+  ${C_SOURCES}
   )
 
 target_include_directories (sable PUBLIC
