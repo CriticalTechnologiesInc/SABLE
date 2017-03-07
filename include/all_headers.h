@@ -1,0 +1,22 @@
+/* Not used for compiling, only used for verification to pull in
+ * all header files! */
+
+#include "alloc.h"
+#include "asm.h"
+#include "dev.h"
+#include "elf.h"
+#include "exception.h"
+#include "hmac.h"
+#include "keyboard.h"
+#include "mbi.h"
+#include "mp.h"
+#include "option.h"
+#include "platform.h"
+#include "sha.h"
+#include "tcg.h"
+#include "tis.h"
+#include "tpm_error.h"
+#include "tpm.h"
+#include "tpm_ordinal.h"
+#include "tpm_struct.h"
+#include "util.h"

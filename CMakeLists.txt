@@ -64,31 +64,9 @@ if (${GENERATE_ISABELLE})
 
 find_package (PythonInterp 3.4 REQUIRED)
 
-# NOTE: order of header files is very important, since we do not employ
-# automatic dependency analysis
-set (HEADER_FILES
-  ${PROJECT_SOURCE_DIR}/include/asm.h
-  ${PROJECT_SOURCE_DIR}/include/option.h
-  ${PROJECT_SOURCE_DIR}/include/platform.h
-  ${PROJECT_SOURCE_DIR}/include/exception.h
-  ${PROJECT_SOURCE_DIR}/include/alloc.h
-  ${PROJECT_SOURCE_DIR}/include/dev.h
-  ${PROJECT_SOURCE_DIR}/include/mbi.h
-  ${PROJECT_SOURCE_DIR}/include/elf.h
-  ${PROJECT_SOURCE_DIR}/include/mp.h
-  ${PROJECT_SOURCE_DIR}/include/tcg.h
-  ${PROJECT_SOURCE_DIR}/include/keyboard.h
-  ${PROJECT_SOURCE_DIR}/include/sha.h
-  ${PROJECT_SOURCE_DIR}/include/hmac.h
-  ${PROJECT_SOURCE_DIR}/include/tis.h
-  ${PROJECT_SOURCE_DIR}/include/tpm.h
-  ${PROJECT_SOURCE_DIR}/include/tpm_error.h
-  ${PROJECT_SOURCE_DIR}/include/tpm_ordinal.h
-  ${PROJECT_SOURCE_DIR}/include/tpm_struct.h
-  ${PROJECT_SOURCE_DIR}/include/util.h
-  )
-
 file (MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/isabelle/intermediate)
+
+file (GLOB HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.h)
 
 # generate macro.h, which contains all header-defined macros
 add_custom_command (
@@ -117,21 +95,13 @@ add_custom_command (
     DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
   )
 
-# generate all_headers.h, i.e. all source headers concatenated together
-add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
-  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py ${HEADER_FILES}
-    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
-    DEPENDS ${HEADER_FILES}
-  )
-
 # generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
-    DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
+    ${PROJECT_SOURCE_DIR}/include/all_headers.h
+    DEPENDS ${PROJECT_SOURCE_DIR}/include/all_headers.h
   )
 
 # generate sable_isa.h
