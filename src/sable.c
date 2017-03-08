@@ -220,7 +220,7 @@ static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
 #else
   const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
 
-  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(4, 0, 400, nv_auth, NULL);
+  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(index, 0, 400, nv_auth, NULL);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
 #endif
   return (RESULT_(TPM_STORED_DATA12)){
