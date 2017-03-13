@@ -501,8 +501,9 @@ int get_string(char *str, unsigned int strSize, bool show) {
 
     if (c == 0x08) {
       memset(&str[i], 0, sizeof(c));
-      out_char(c);
       if (i > 0) {
+        if (show)
+          out_char(c);
         i--;
       }
     } else if (c != 0) {
