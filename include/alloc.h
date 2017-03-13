@@ -3,6 +3,7 @@
 
 #include "platform.h"
 
-void *alloc(UINT32 size);
+void init_heap(void);
+void *alloc(UINT16 size);
 
 #endif

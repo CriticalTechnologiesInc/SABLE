@@ -35,6 +35,11 @@
 RESULT_GEN(TPM_NONCE);
 RESULT_GEN(TPM_AUTHDATA);
 
+RESULT_(TPM_AUTHDATA) get_authdata(void);
+RESULT_(TPM_NONCE) get_nonce(void);
+
+static TPM_SESSION *sessions[2] = {NULL, NULL};
+
 #ifndef ISABELLE
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
@@ -75,12 +80,6 @@ RESULT_(TPM_NONCE) get_nonce(void) {
   THROW(get_random_res.exception);
   return ret;
 }
-#endif
-
-RESULT_(TPM_AUTHDATA) get_authdata(void);
-RESULT_(TPM_NONCE) get_nonce(void);
-
-static TPM_SESSION *sessions[2] = {NULL, NULL};
 
 RESULT_GEN(TPM_PCR_INFO_LONG);
 
@@ -197,6 +196,7 @@ RESULT configure(UINT32 index) {
   // write the sealed passphrase to disk
   return write_passphrase(nv_auth.value, sealedData.value, index);
 }
+#endif
 
 static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
 #ifdef NV_OWNER_REQUIRED
@@ -373,6 +373,7 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
 
+  init_heap();
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
   ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
 
