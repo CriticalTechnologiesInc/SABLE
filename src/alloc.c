@@ -49,11 +49,10 @@ static struct mem_node *node = NULL;
 static struct mem_node heap[8 * KB / BLOCK_SIZE];
 
 void init_heap(void) {
-  if (!node) {
-    node = (struct mem_node *)heap;
-    *node =
-        (struct mem_node){.size = (sizeof(heap) / BLOCK_SIZE) - 1, .next = 0};
-  }
+  ASSERT(!node);
+  node = heap;
+  *node =
+      (struct mem_node){.size = (sizeof(heap) / BLOCK_SIZE) - 1, .next = 0};
 }
 
 void *alloc(UINT16 size) {
