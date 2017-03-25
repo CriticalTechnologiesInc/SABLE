@@ -37,7 +37,7 @@ void *alloc(UINT32 size) {
     return NULL;
 
   struct mem_node *new_node = node + (blocks + 1);
-  UINT16 prev_size = node->size;
+  UINT32 prev_size = node->size;
   *node = (struct mem_node){.size = blocks, .next = new_node};
   *new_node = (struct mem_node){.size = prev_size - (blocks + 1), .next = NULL};
   void *ret = (void *)(node + 1);
