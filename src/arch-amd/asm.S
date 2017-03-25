@@ -47,7 +47,7 @@ FUNCTION __start
 	xchg    %ebx,%eax
 	pushl	%eax
 	pushl   $exit
-	jmp     _pre_skinit
+	jmp     _pre_launch
 
 FUNCTION smp_init_start
 	.code16
@@ -130,7 +130,7 @@ FUNCTION _skinit
 	movl	-4(%esp), %eax
 
 	/* jmp to main */
-	jmp     _post_skinit
+	jmp     _post_launch
 
 
 /* the gdt to load after skinit */

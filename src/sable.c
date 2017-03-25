@@ -27,6 +27,9 @@
 #include "util.h"
 #include "version.h"
 #endif
+#ifdef __ARCH_AMD__
+#include "amd.h"
+#endif
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
@@ -214,7 +217,8 @@ static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
   sessions[0]->nonceOdd = nonceOdd.value;
   sessions[0]->continueAuthSession = FALSE;
 
-  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(index, 0, 400, nv_auth, &sessions[0]);
+  RESULT_(HEAP_DATA)
+  val = TPM_NV_ReadValue(index, 0, 400, nv_auth, &sessions[0]);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
 #else
   const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
@@ -321,11 +325,11 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
     THROW(extend_ret.exception);
   }
 
-  struct module *a  = (struct module *) (mbi->mods_addr);
+  struct module *a = (struct module *)(mbi->mods_addr);
   sha1_init(&sctx);
   sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
-  for (unsigned i=0; i < mbi->mods_count; i++, a++)
-    sha1(&sctx, (unsigned char*) a->string, strlen((char*) a->string) + 1);
+  for (unsigned i = 0; i < mbi->mods_count; i++, a++)
+    sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
   sha1_finish(&sctx);
   RESULT_(TPM_PCRVALUE) ext_ret = TPM_Extend(19, sctx.hash);
   THROW(ext_ret.exception);
@@ -337,7 +341,7 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
  * ERROR_TPM
  * ERROR_TPM_BAD_OUTPUT_PARAM
  *
- * Prepare the TPM for skinit.
+ * Prepare the TPM for late launch.
  * Returns a TIS_INIT_* value.
  */
 static RESULT prepare_tpm(void) {
@@ -364,10 +368,10 @@ static RESULT prepare_tpm(void) {
 }
 
 /**
- * This function runs before skinit and has to enable SVM in the processor
- * and disable all localities.
+ * This function runs before the late launch and has to enable SVM in the
+ * processor and disable all localities.
  */
-RESULT pre_skinit(struct mbi *m, unsigned flags) {
+RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
 
@@ -382,6 +386,7 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
 
+#ifdef __ARCH_AMD__
   RESULT_(UINT32) cpuid = check_cpuid();
   THROW(cpuid.exception);
   out_description("SVM revision", cpuid.value);
@@ -394,12 +399,13 @@ RESULT pre_skinit(struct mbi *m, unsigned flags) {
   out_info("call skinit");
   wait(1000); // we need to wait to ensure that all APs have halted
   do_skinit();
+#endif
 
   return ret;
 }
 
-void _pre_skinit(struct mbi *m, unsigned flags) {
-  RESULT res = pre_skinit(m, flags);
+void _pre_launch(struct mbi *m, unsigned flags) {
+  RESULT res = pre_launch(m, flags);
   CATCH_ANY(res.exception, {
     dump_exception(res.exception);
     exit(res.exception.error);
@@ -407,16 +413,18 @@ void _pre_skinit(struct mbi *m, unsigned flags) {
 }
 
 /**
- * This code is executed after skinit.
+ * This code is executed after late launch.
  */
-RESULT post_skinit(struct mbi *m) {
+RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
+#ifdef __ARCH_AMD__
   RESULT revert_skinit_ret = revert_skinit();
 #ifdef TARGET_QEMU
   CATCH(revert_skinit_ret.exception, ERROR_DEV, );
 #endif
   THROW(revert_skinit_ret.exception);
+#endif
 
   // Finding NV Index
   int nvIndex = 0;
@@ -472,8 +480,8 @@ RESULT post_skinit(struct mbi *m) {
   return ret;
 }
 
-void _post_skinit(struct mbi *m) {
-  RESULT res = post_skinit(m);
+void _post_launch(struct mbi *m) {
+  RESULT res = post_launch(m);
   CATCH_ANY(res.exception, {
     dump_exception(res.exception);
     exit(res.exception.error);

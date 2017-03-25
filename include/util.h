@@ -44,10 +44,10 @@
 
 #define UNUSED(x) (void)(x)
 
-#define MSR_EFER 0xC0000080
-#define EFER_SVME 1 << 12
-
+#ifndef RESULT_UINT32
+#define RESULT_UINT32
 RESULT_GEN(UINT32);
+#endif
 
 /**
  * Swaps bytes in a short, like ntohl()
@@ -85,15 +85,6 @@ void wait(int ms);
 void dump_exception(EXCEPTION e);
 void fail(void) __attribute__((noreturn));
 void exit(unsigned status) __attribute__((noreturn));
-/**
- * EXCEPT:
- * ERROR_NO_EXT
- * ERROR_NO_SVM
- * ERROR_NO_APIC
- */
-RESULT_(UINT32) check_cpuid(void);
-/* EXCEPT: ERROR_SVM_ENABLE */
-RESULT enable_svm(void);
 void show_hash(const char *s, TPM_DIGEST hash);
 
 /* helper functions for handling command-line arguments */

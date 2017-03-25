@@ -19,6 +19,7 @@
 #include "util.h"
 #include "dev.h"
 #include "mp.h"
+#include "amd.h"
 
 // Generate RESULT types
 RESULT_GEN(BYTE);
