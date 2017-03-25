@@ -37,15 +37,15 @@ For a typical build, use:
 $ cd <path/to/sable>
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_BUILD_TYPE=RELEASE ../
+$ cmake -DCMAKE_BUILD_TYPE=RELEASE -DTARGET_ARCH=<arch> ../
 $ make
 ```
-For a debug build, you can instead do:
+where `<arch>=[AMD|Intel]`. For a debug build, you can instead do:
 ```
 $ cd <path/to/sable>
 $ mkdir build-debug
 $ cd build-debug
-$ cmake -DCMAKE_BUILD_TYPE=DEBUG ../
+$ cmake -DCMAKE_BUILD_TYPE=DEBUG -DTARGET_ARCH=<arch> ../
 $ make
 ```
 Additional build options can be accessed by running `ccmake`, from a build
