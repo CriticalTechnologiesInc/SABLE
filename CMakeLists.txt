@@ -3,7 +3,20 @@ project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
 set (SABLE_VERSION_MINOR 4)
 
-message("CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
+message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
+
+set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
+if (${TARGET_ARCH} STREQUAL "AMD")
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ARCH_AMD__")
+  set (TARGET_ARCH_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include/arch-amd")
+  set (TARGET_ARCH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/arch-amd")
+elseif (${TARGET_ARCH} STREQUAL "Intel")
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ARCH_INTEL__")
+  set (TARGET_ARCH_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include/arch-intel")
+  set (TARGET_ARCH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/arch-intel")
+else (${TARGET_ARCH} STREQUAL "AMD")
+  message (FATAL_ERROR "Invalid target architecture: " ${TARGET_ARCH})
+endif (${TARGET_ARCH} STREQUAL "AMD")
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
@@ -31,18 +44,22 @@ set (CMAKE_C_FLAGS
   -fstrict-aliasing \
   -Wstrict-aliasing=0"
   )
-
 set (CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
 
-file (GLOB C_SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
-
-file (GLOB ASM_SOURCES ${PROJECT_SOURCE_DIR}/src/*.S)
+file (GLOB C_SOURCES
+  ${PROJECT_SOURCE_DIR}/src/*.c
+  ${TARGET_ARCH_SOURCE_DIR}/*.c
+  )
+file (GLOB ASM_SOURCES
+  ${PROJECT_SOURCE_DIR}/src/*.S
+  ${TARGET_ARCH_SOURCE_DIR}/*.S
+  )
 
 set (CMAKE_EXE_LINKER_FLAGS
   "${CMAKE_EXE_LINKER_FLAGS} \
   -gc-sections \
   -Wl,--build-id=none \
-  -T ${PROJECT_SOURCE_DIR}/src/sable.ld"
+  -T ${TARGET_ARCH_SOURCE_DIR}/sable.ld"
   )
 
 add_executable (sable
@@ -52,9 +69,9 @@ add_executable (sable
 
 target_include_directories (sable PUBLIC
   "${PROJECT_SOURCE_DIR}/include/"
+  "${TARGET_ARCH_INCLUDE_DIR}"
   "${PROJECT_BINARY_DIR}/include/"
   )
-set_property (TARGET sable PROPERTY LINK_DEPENDS ${PROJECT_SOURCE_DIR}/src/sable.ld)
 
 option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
 
