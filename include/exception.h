@@ -1,6 +1,10 @@
 #ifndef __EXCEPTION_H__
 #define __EXCEPTION_H__
 
+#ifndef NDEBUG
+#include "alloc.h"
+#endif
+
 typedef enum tdERROR {
   NONE = 0,
   ERROR_BAD_ELF_HEADER,
