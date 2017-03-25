@@ -83,7 +83,10 @@ find_package (PythonInterp 3.4 REQUIRED)
 
 file (MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/isabelle/intermediate)
 
-file (GLOB HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.h)
+file (GLOB HEADER_FILES
+  ${PROJECT_SOURCE_DIR}/include/*.h
+  ${TARGET_ARCH_INCLUDE_DIR}/*.h
+  )
 
 # generate macro.h, which contains all header-defined macros
 add_custom_command (
@@ -107,18 +110,11 @@ add_custom_command (
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
+    -I"${PROJECT_SOURCE_DIR}/include"
+    -I"${TARGET_ARCH_INCLUDE_DIR}"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
     DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
-  )
-
-# generate all_headers.h, i.e. all source headers concatenated together
-add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
-  COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/cat_c.py -n
-    ${HEADER_FILES}
-    > ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
-    DEPENDS ${HEADER_FILES}
   )
 
 # generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
@@ -126,9 +122,10 @@ add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
     -I"${PROJECT_SOURCE_DIR}/include"
+    -I"${TARGET_ARCH_INCLUDE_DIR}"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
-    DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers.h
+    ${PROJECT_SOURCE_DIR}/include/all_headers.h
+    DEPENDS ${PROJECT_SOURCE_DIR}/include/all_headers.h
   )
 
 # generate sable_isa.h
