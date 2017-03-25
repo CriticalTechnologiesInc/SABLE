@@ -31,6 +31,7 @@
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
+#ifndef ISABELLE
 // Result generators
 RESULT_GEN(TPM_NONCE);
 RESULT_GEN(TPM_AUTHDATA);
@@ -40,7 +41,6 @@ RESULT_(TPM_NONCE) get_nonce(void);
 
 static TPM_SESSION *sessions[2] = {NULL, NULL};
 
-#ifndef ISABELLE
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
 
@@ -196,7 +196,6 @@ RESULT configure(UINT32 index) {
   // write the sealed passphrase to disk
   return write_passphrase(nv_auth.value, sealedData.value, index);
 }
-#endif
 
 static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
 #ifdef NV_OWNER_REQUIRED
@@ -289,7 +288,6 @@ RESULT trusted_boot(UINT32 index) {
   return ret;
 }
 
-#ifndef ISABELLE
 /* EXCEPT:
  * ERROR_BAD_MODULE
  * ERROR_NO_MODULE
