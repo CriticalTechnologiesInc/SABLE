@@ -13,14 +13,14 @@
  */
 
 #ifndef ISABELLE
-#include "alloc.h"
 #include "asm.h"
+#include "alloc.h"
 #include "dev.h"
-#include "elf.h"
-#include "hmac.h"
-#include "keyboard.h"
 #include "mbi.h"
+#include "elf.h"
 #include "mp.h"
+#include "keyboard.h"
+#include "hmac.h"
 #include "tis.h"
 #include "tpm.h"
 #include "tpm_struct.h"
