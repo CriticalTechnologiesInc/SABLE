@@ -4,6 +4,6 @@
 #include "platform.h"
 
 void init_heap(void);
-void *alloc(UINT16 size);
+void *alloc(UINT32 size);
 
 #endif
