@@ -1,3 +1,4 @@
+#ifndef ISABELLE
 #include "asm.h"
 #include "amd.h"
 
@@ -35,3 +36,4 @@ RESULT_(UINT32) check_cpuid(void) {
   ret.value = cpuid_eax(0x8000000A) & 0xff;
   return ret;
 }
+#endif
