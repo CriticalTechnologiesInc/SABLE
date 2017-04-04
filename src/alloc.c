@@ -37,32 +37,42 @@
 #endif
 
 #define KB 1024
-static BYTE heap[8 * KB] = {0};
 
 struct mem_node {
-  UINT32 size; /* size of this data, in blocks */
-  struct mem_node *next;
+  UINT16 size; /* size of this data, in blocks */
+  UINT16 next; /* offset into the heap (in blocks) where the next
+                  mem_node is located, is 0 if there is no next node */
 };
-static struct mem_node *prev = NULL;
+static struct mem_node *node = NULL;
 
 #define BLOCK_SIZE sizeof(struct mem_node)
+static struct mem_node heap[8 * KB / BLOCK_SIZE];
 
-void *alloc(UINT32 size) {
-  ASSERT(size > 0);
-  if (!prev) {
-    prev = (struct mem_node *)heap;
-    *prev = (struct mem_node){.size = (sizeof(heap) / BLOCK_SIZE) - 1,
-                              .next = NULL};
+void init_heap(void) {
+  if (!node) {
+    node = (struct mem_node *)heap;
+    *node =
+        (struct mem_node){.size = (sizeof(heap) / BLOCK_SIZE) - 1, .next = 0};
   }
+}
 
-  if (prev->size < size)
+void *alloc(UINT16 size) {
+  ASSERT(size > 0);
+  if (node->size < size)
     return NULL;
 
-  UINT32 blocks = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  struct mem_node *current = (struct mem_node *)(prev + blocks + 1);
-  *current = (struct mem_node){.size = prev->size - (blocks + 1), .next = NULL};
-  *prev = (struct mem_node){.size = size, .next = current};
-  void *ret = (void *)(prev + 1);
-  prev = current;
+  UINT16 blocks = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  UINT16 offset = (node - heap) + blocks + 1;
+  struct mem_node *new_node = (struct mem_node *)(heap + offset);
+  *new_node = (struct mem_node){.size = node->size - (blocks + 1), .next = 0};
+  *node = (struct mem_node){.size = blocks, .next = offset};
+  void *ret = (void *)(node + 1);
+  node = new_node;
   return ret;
+}
+
+int test_func(int y) {
+  int *x = alloc(sizeof(int));
+  *x = y;
+  return *x;
 }
