@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
-set (SABLE_VERSION_MINOR 4)
+set (SABLE_VERSION_MINOR 5)
 
 message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
 
@@ -10,6 +10,14 @@ if (${TARGET_ARCH} STREQUAL "AMD")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ARCH_AMD__")
   set (TARGET_ARCH_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include/arch-amd")
   set (TARGET_ARCH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/arch-amd")
+  set (C_SOURCES ${C_SOURCES}
+    ${TARGET_ARCH_SOURCE_DIR}/amd.c
+    ${TARGET_ARCH_SOURCE_DIR}/dev.c
+    ${TARGET_ARCH_SOURCE_DIR}/mp.c
+    )
+  set (ASM_SOURCES ${ASM_SOURCES}
+    ${TARGET_ARCH_SOURCE_DIR}/asm.S
+    )
 elseif (${TARGET_ARCH} STREQUAL "Intel")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ARCH_INTEL__")
   set (TARGET_ARCH_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include/arch-intel")
@@ -46,13 +54,18 @@ set (CMAKE_C_FLAGS
   )
 set (CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
 
-file (GLOB C_SOURCES
-  ${PROJECT_SOURCE_DIR}/src/*.c
-  ${TARGET_ARCH_SOURCE_DIR}/*.c
-  )
-file (GLOB ASM_SOURCES
-  ${PROJECT_SOURCE_DIR}/src/*.S
-  ${TARGET_ARCH_SOURCE_DIR}/*.S
+set (C_SOURCES ${C_SOURCES}
+  ${PROJECT_SOURCE_DIR}/src/alloc.c
+  ${PROJECT_SOURCE_DIR}/src/elf.c
+  ${PROJECT_SOURCE_DIR}/src/hmac.c
+  ${PROJECT_SOURCE_DIR}/src/keyboard.c
+  ${PROJECT_SOURCE_DIR}/src/sable.c
+  ${PROJECT_SOURCE_DIR}/src/sha.c
+  ${PROJECT_SOURCE_DIR}/src/tis.c
+  ${PROJECT_SOURCE_DIR}/src/tpm.c
+  ${PROJECT_SOURCE_DIR}/src/tpm_error.c
+  ${PROJECT_SOURCE_DIR}/src/tpm_struct.c
+  ${PROJECT_SOURCE_DIR}/src/util.c
   )
 
 set (CMAKE_EXE_LINKER_FLAGS
@@ -79,14 +92,39 @@ option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
 # custom command and target to generate sable_isa.c
 if (${GENERATE_ISABELLE})
 
+set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
+if (${TARGET_ARCH} STREQUAL "AMD")
+  set (HEADER_FILES ${HEADER_FILES}
+    ${TARGET_ARCH_INCLUDE_DIR}/amd.h
+    ${TARGET_ARCH_INCLUDE_DIR}/asm.h
+    ${TARGET_ARCH_INCLUDE_DIR}/dev.h
+    ${TARGET_ARCH_INCLUDE_DIR}/mp.h
+    )
+elseif (${TARGET_ARCH} STREQUAL "Intel")
+endif (${TARGET_ARCH} STREQUAL "AMD")
+
+set (HEADER_FILES ${HEADER_FILES}
+  ${PROJECT_SOURCE_DIR}/include/alloc.h
+  ${PROJECT_SOURCE_DIR}/include/elf.h
+  ${PROJECT_SOURCE_DIR}/include/exception.h
+  ${PROJECT_SOURCE_DIR}/include/hmac.h
+  ${PROJECT_SOURCE_DIR}/include/keyboard.h
+  ${PROJECT_SOURCE_DIR}/include/mbi.h
+  ${PROJECT_SOURCE_DIR}/include/option.h
+  ${PROJECT_SOURCE_DIR}/include/platform.h
+  ${PROJECT_SOURCE_DIR}/include/sha.h
+  ${PROJECT_SOURCE_DIR}/include/tcg.h
+  ${PROJECT_SOURCE_DIR}/include/tis.h
+  ${PROJECT_SOURCE_DIR}/include/tpm_error.h
+  ${PROJECT_SOURCE_DIR}/include/tpm.h
+  ${PROJECT_SOURCE_DIR}/include/tpm_ordinal.h
+  ${PROJECT_SOURCE_DIR}/include/tpm_struct.h
+  ${PROJECT_SOURCE_DIR}/include/util.h
+  )
+
 find_package (PythonInterp 3.4 REQUIRED)
 
 file (MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/isabelle/intermediate)
-
-file (GLOB HEADER_FILES
-  ${PROJECT_SOURCE_DIR}/include/*.h
-  ${TARGET_ARCH_INCLUDE_DIR}/*.h
-  )
 
 # generate macro.h, which contains all header-defined macros
 add_custom_command (
