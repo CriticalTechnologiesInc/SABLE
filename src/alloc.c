@@ -17,7 +17,7 @@ static struct mem_node *node = NULL;
 #define BLOCK_SIZE 8 // must be at least sizeof(struct mem_node)
 #define BITS_ALIGN 3 // must be log_2 of BLOCK_SIZE
 #if (!(1 << BITS_ALIGN == BLOCK_SIZE))
-#error "BITS_ALIGN is not log_2 of BLOCK_SIZE
+#error "BITS_ALIGN is not log_2 of BLOCK_SIZE"
 #endif
 
 static struct mem_node heap[8 * KB / BLOCK_SIZE];
