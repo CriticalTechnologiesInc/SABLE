@@ -18,6 +18,39 @@ else (${TARGET_ARCH} STREQUAL "AMD")
   message (FATAL_ERROR "Invalid target architecture: " ${TARGET_ARCH})
 endif (${TARGET_ARCH} STREQUAL "AMD")
 
+###
+# Generate zeroMem module
+###
+
+set (CMAKE_EXE_LINKER_FLAGS
+  "${CMAKE_EXE_LINKER_FLAGS} \
+  -gc-sections \
+  -Wl,--build-id=none \
+  -T ${TARGET_ARCH_SOURCE_DIR}/zeroMem.ld"
+  )
+
+file (GLOB C_SOURCES
+  ${PROJECT_SOURCE_DIR}/src/util.c
+  ${PROJECT_SOURCE_DIR}/src/elf.c
+  )
+
+file (GLOB ASM_SOURCES
+  ${TARGET_ARCH_SOURCE_DIR}/asm2.S
+  )
+
+add_executable (zeroMem
+  ${ASM_SOURCES}
+  ${C_SOURCES}
+  )
+
+target_include_directories (zeroMem PUBLIC
+  "${PROJECT_SOURCE_DIR}/include/"
+  "${TARGET_ARCH_INCLUDE_DIR}"
+  "${PROJECT_BINARY_DIR}/include/"
+  )
+
+####
+
 configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
   "${PROJECT_BINARY_DIR}/include/version.h"
@@ -50,10 +83,15 @@ file (GLOB C_SOURCES
   ${PROJECT_SOURCE_DIR}/src/*.c
   ${TARGET_ARCH_SOURCE_DIR}/*.c
   )
+
+list(REMOVE_ITEM C_SOURCES "${PROJECT_SOURCE_DIR}/src/zeroMem.c")
+
 file (GLOB ASM_SOURCES
   ${PROJECT_SOURCE_DIR}/src/*.S
   ${TARGET_ARCH_SOURCE_DIR}/*.S
   )
+
+list(REMOVE_ITEM ASM_SOURCES "${TARGET_ARCH_SOURCE_DIR}/asm2.S")
 
 set (CMAKE_EXE_LINKER_FLAGS
   "${CMAKE_EXE_LINKER_FLAGS} \
