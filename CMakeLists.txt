@@ -59,6 +59,7 @@ set (C_SOURCES ${C_SOURCES}
   ${PROJECT_SOURCE_DIR}/src/elf.c
   ${PROJECT_SOURCE_DIR}/src/hmac.c
   ${PROJECT_SOURCE_DIR}/src/keyboard.c
+  ${PROJECT_SOURCE_DIR}/src/mgf1.c
   ${PROJECT_SOURCE_DIR}/src/sable.c
   ${PROJECT_SOURCE_DIR}/src/sha.c
   ${PROJECT_SOURCE_DIR}/src/tis.c
@@ -110,6 +111,7 @@ set (HEADER_FILES ${HEADER_FILES}
   ${PROJECT_SOURCE_DIR}/include/hmac.h
   ${PROJECT_SOURCE_DIR}/include/keyboard.h
   ${PROJECT_SOURCE_DIR}/include/mbi.h
+  ${PROJECT_SOURCE_DIR}/include/mgf1.h
   ${PROJECT_SOURCE_DIR}/include/option.h
   ${PROJECT_SOURCE_DIR}/include/platform.h
   ${PROJECT_SOURCE_DIR}/include/sha.h
