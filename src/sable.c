@@ -26,6 +26,7 @@
 #include "tpm_struct.h"
 #include "util.h"
 #include "version.h"
+#include "mgf1.h"
 #endif
 #ifdef __ARCH_AMD__
 #include "amd.h"
@@ -146,9 +147,21 @@ static RESULT_(TPM_STORED_DATA12)
   RESULT_(TPM_PCR_INFO_LONG) pcr_info = get_pcr_info();
   THROW(pcr_info.exception);
 
+  UINT32 seedLen =
+      sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
+  BYTE *seed = alloc(seedLen);
+  memcpy(seed, &sessions[0]->nonceEven, sizeof(TPM_NONCE));
+  memcpy(seed + sizeof(TPM_NONCE), &sessions[0]->nonceOdd, sizeof(TPM_NONCE));
+  memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE), "XOR", 3);
+  memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3, &sharedSecret,
+         sizeof(TPM_SECRET));
+  const BYTE *mask = mgf1(seed, seedLen, lenPassphrase);
+  BYTE *passEnc = alloc(lenPassphrase);
+  do_xor((const BYTE *)passphrase, mask, passEnc, lenPassphrase);
+
   // Encrypt the passphrase using the SRK
-  return TPM_Seal(TPM_KH_SRK, encAuth, pcr_info.value, (const BYTE *)passphrase,
-                  lenPassphrase, &sessions[0], sharedSecret);
+  return TPM_Sealx(TPM_KH_SRK, encAuth, pcr_info.value, passEnc, lenPassphrase,
+                   &sessions[0], sharedSecret);
 }
 
 static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
@@ -239,12 +252,14 @@ static RESULT_(CSTRING)
                       TPM_STORED_DATA12 sealed_pp) {
   RESULT_(CSTRING) ret = {.exception.error = NONE};
 
-  RESULT srk_oiap_ret = TPM_OIAP(&sessions[0]);
-  THROW(srk_oiap_ret.exception);
   RESULT_(TPM_NONCE) nonceOdd = get_nonce();
-  THROW(nonceOdd.exception);
-  sessions[0]->nonceOdd = nonceOdd.value;
+  RESULT srk_osap_ret =
+      TPM_OSAP(TPM_ET_KEYHANDLE, TPM_KH_SRK, nonceOdd.value, &sessions[0]);
+  THROW(srk_osap_ret.exception);
   sessions[0]->continueAuthSession = FALSE;
+  TPM_SECRET sharedSecret =
+      sharedSecret_gen(srk_auth, sessions[0]->osap->nonceEvenOSAP,
+                       sessions[0]->osap->nonceOddOSAP);
 
   RESULT pp_oiap_ret = TPM_OIAP(&sessions[1]);
   THROW(pp_oiap_ret.exception);
@@ -253,11 +268,25 @@ static RESULT_(CSTRING)
   sessions[1]->nonceOdd = nonceOdd.value;
   sessions[1]->continueAuthSession = FALSE;
 
+  UINT32 seedLen =
+      sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
+  BYTE *seed = alloc(seedLen);
+  memcpy(seed, &sessions[0]->nonceEven, sizeof(TPM_NONCE));
+  memcpy(seed + sizeof(TPM_NONCE), &sessions[0]->nonceOdd, sizeof(TPM_NONCE));
+  memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE), "XOR", 3);
+  memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3, &sharedSecret,
+         sizeof(TPM_SECRET));
+
   RESULT_(HEAP_DATA)
-  unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, srk_auth, &sessions[0],
+  unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, sharedSecret, &sessions[0],
                           pp_auth, &sessions[1]);
   THROW(unseal_ret.exception);
-  ret.value = (CSTRING)unseal_ret.value.data;
+
+  const BYTE *mask = mgf1(seed, seedLen, unseal_ret.value.dataSize);
+  BYTE *passUnc = alloc(unseal_ret.value.dataSize);
+  do_xor(unseal_ret.value.data, mask, passUnc, unseal_ret.value.dataSize);
+
+  ret.value = (CSTRING)passUnc;
 
   return ret;
 }
