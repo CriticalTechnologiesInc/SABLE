@@ -1,21 +1,9 @@
 #ifndef ISABELLE
 #include "alloc.h"
+#include "sha.h"
 #include "asm.h"
-#include "dev.h"
-#include "hmac.h"
-#include "keyboard.h"
-#include "mp.h"
-#include "tis.h"
-#include "tpm.h"
-#include "tpm_struct.h"
-#include "util.h"
-#include "version.h"
-#endif
-#ifdef __ARCH_AMD__
-#include "amd.h"
-#endif
 
-BYTE * mgf1(BYTE *input, UINT32 inputLen, UINT32 outputLen) {
+BYTE *mgf1(BYTE *input, UINT32 inputLen, UINT32 outputLen) {
 
   UINT32 counter = 0;
   UINT32 outputLenRoundedUp;
@@ -41,4 +29,4 @@ BYTE * mgf1(BYTE *input, UINT32 inputLen, UINT32 outputLen) {
 
   return (BYTE *)output;
 }
-
+#endif
