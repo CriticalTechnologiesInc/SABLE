@@ -5,26 +5,12 @@ set (SABLE_VERSION_MINOR 5)
 
 message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
 
-set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
-if (${TARGET_ARCH} STREQUAL "AMD")
-  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ARCH_AMD__")
-  set (TARGET_ARCH_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include/arch-amd")
-  set (TARGET_ARCH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/arch-amd")
-  set (C_SOURCES ${C_SOURCES}
-    ${TARGET_ARCH_SOURCE_DIR}/amd.c
-    ${TARGET_ARCH_SOURCE_DIR}/dev.c
-    ${TARGET_ARCH_SOURCE_DIR}/mp.c
-    )
-  set (ASM_SOURCES ${ASM_SOURCES}
-    ${TARGET_ARCH_SOURCE_DIR}/asm.S
-    )
-elseif (${TARGET_ARCH} STREQUAL "Intel")
-  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__ARCH_INTEL__")
-  set (TARGET_ARCH_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include/arch-intel")
-  set (TARGET_ARCH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/arch-intel")
-else (${TARGET_ARCH} STREQUAL "AMD")
-  message (FATAL_ERROR "Invalid target architecture: " ${TARGET_ARCH})
-endif (${TARGET_ARCH} STREQUAL "AMD")
+set (CMAKE_C_FLAGS
+  "${CMAKE_C_FLAGS} \
+  -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"' \
+  -Wall \
+  -Werror"
+  )
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
@@ -32,29 +18,14 @@ configure_file (
   )
 add_subdirectory(tools)
 
-set (CMAKE_C_FLAGS
-  "${CMAKE_C_FLAGS} \
-  -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"' \
-  -Wall \
-  -Werror \
-  -Wno-main \
-  -fno-builtin \
-  -nostdlib \
-  -fno-stack-protector \
-  -fno-asynchronous-unwind-tables \
-  -fpack-struct \
-  -m32 \
-  -std=gnu99 \
-  -mregparm=3 \
-  -fomit-frame-pointer \
-  -minline-all-stringops \
-  --param max-inline-insns-single=50 \
-  -fstrict-aliasing \
-  -Wstrict-aliasing=0"
-  )
-set (CMAKE_ASM_FLAGS ${CMAKE_C_FLAGS})
+set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
+if (${TARGET_ARCH} STREQUAL "AMD")
 
-set (C_SOURCES ${C_SOURCES}
+add_executable (sable-amd
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/asm.S
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/amd.c
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/dev.c
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/mp.c
   ${PROJECT_SOURCE_DIR}/src/alloc.c
   ${PROJECT_SOURCE_DIR}/src/elf.c
   ${PROJECT_SOURCE_DIR}/src/hmac.c
@@ -69,23 +40,50 @@ set (C_SOURCES ${C_SOURCES}
   ${PROJECT_SOURCE_DIR}/src/util.c
   )
 
-set (CMAKE_EXE_LINKER_FLAGS
-  "${CMAKE_EXE_LINKER_FLAGS} \
-  -gc-sections \
-  -Wl,--build-id=none \
-  -T ${TARGET_ARCH_SOURCE_DIR}/sable.ld"
+set_target_properties (sable-amd
+  PROPERTIES
+  LINK_FLAGS
+    "-gc-sections \
+    -m32 \
+    -nostdlib \
+    -Wl,--build-id=none \
+    -T ${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
+  COMPILE_FLAGS
+    "-D__ARCH_AMD__ \
+    -Wno-main \
+    -fno-builtin \
+    -nostdlib \
+    -fno-stack-protector \
+    -fno-asynchronous-unwind-tables \
+    -fpack-struct \
+    -m32 \
+    -std=gnu99 \
+    -mregparm=3 \
+    -fomit-frame-pointer \
+    -minline-all-stringops \
+    --param max-inline-insns-single=50 \
+    -fstrict-aliasing \
+    -Wstrict-aliasing=0"
   )
 
-add_executable (sable
-  ${ASM_SOURCES}
-  ${C_SOURCES}
+target_include_directories (sable-amd PUBLIC
+  ${PROJECT_SOURCE_DIR}/include/
+  ${PROJECT_BINARY_DIR}/include/
+  ${PROJECT_SOURCE_DIR}/include/arch-amd
   )
 
-target_include_directories (sable PUBLIC
-  "${PROJECT_SOURCE_DIR}/include/"
-  "${TARGET_ARCH_INCLUDE_DIR}"
-  "${PROJECT_BINARY_DIR}/include/"
-  )
+elseif (${TARGET_ARCH} STREQUAL "Intel")
+
+#add_executable (sable-intel)
+
+#set_target_properties (sable-intel
+#  PROPERTIES
+#  COMPILE_FLAGS "-D__ARCH_INTEL__"
+#  )
+
+else (${TARGET_ARCH} STREQUAL "AMD")
+  message (FATAL_ERROR "Invalid target architecture: " ${TARGET_ARCH})
+endif (${TARGET_ARCH} STREQUAL "AMD")
 
 option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
 
@@ -93,18 +91,11 @@ option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
 # custom command and target to generate sable_isa.c
 if (${GENERATE_ISABELLE})
 
-set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
-if (${TARGET_ARCH} STREQUAL "AMD")
-  set (HEADER_FILES ${HEADER_FILES}
-    ${TARGET_ARCH_INCLUDE_DIR}/amd.h
-    ${TARGET_ARCH_INCLUDE_DIR}/asm.h
-    ${TARGET_ARCH_INCLUDE_DIR}/dev.h
-    ${TARGET_ARCH_INCLUDE_DIR}/mp.h
-    )
-elseif (${TARGET_ARCH} STREQUAL "Intel")
-endif (${TARGET_ARCH} STREQUAL "AMD")
-
 set (HEADER_FILES ${HEADER_FILES}
+  ${PROJECT_SOURCE_DIR}/include/arch-amd/amd.h
+  ${PROJECT_SOURCE_DIR}/include/arch-amd/asm.h
+  ${PROJECT_SOURCE_DIR}/include/arch-amd/dev.h
+  ${PROJECT_SOURCE_DIR}/include/arch-amd/mp.h
   ${PROJECT_SOURCE_DIR}/include/alloc.h
   ${PROJECT_SOURCE_DIR}/include/elf.h
   ${PROJECT_SOURCE_DIR}/include/exception.h
@@ -122,6 +113,10 @@ set (HEADER_FILES ${HEADER_FILES}
   ${PROJECT_SOURCE_DIR}/include/tpm_ordinal.h
   ${PROJECT_SOURCE_DIR}/include/tpm_struct.h
   ${PROJECT_SOURCE_DIR}/include/util.h
+  )
+
+set (C_SOURCES
+  ${PROJECT_SOURCE_DIR}/src/alloc.c
   )
 
 find_package (PythonInterp 3.4 REQUIRED)
@@ -151,7 +146,6 @@ add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
     -I"${PROJECT_SOURCE_DIR}/include"
-    -I"${TARGET_ARCH_INCLUDE_DIR}"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
     DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
@@ -162,7 +156,6 @@ add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
     -I"${PROJECT_SOURCE_DIR}/include"
-    -I"${TARGET_ARCH_INCLUDE_DIR}/"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
     ${PROJECT_SOURCE_DIR}/include/all_headers.h
     DEPENDS ${PROJECT_SOURCE_DIR}/include/all_headers.h
