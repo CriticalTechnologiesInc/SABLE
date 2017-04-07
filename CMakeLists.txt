@@ -151,14 +151,14 @@ add_custom_command (
     DEPENDS ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
   )
 
-# generate all_headers_pp.h, i.e. all source headers concatenated together, preprocessed
+# generate isa_headers_pp.h, i.e. all source headers concatenated together, preprocessed
 add_custom_command (
-  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
+  OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
   COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
     -I"${PROJECT_SOURCE_DIR}/include"
-    -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
-    ${PROJECT_SOURCE_DIR}/include/all_headers.h
-    DEPENDS ${PROJECT_SOURCE_DIR}/include/all_headers.h
+    -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
+    ${PROJECT_SOURCE_DIR}/include/isa_headers.h
+    DEPENDS ${PROJECT_SOURCE_DIR}/include/isa_headers.h
   )
 
 # generate sable_isa.h
@@ -166,10 +166,10 @@ add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
   COMMAND ${PROJECT_BINARY_DIR}/tools/makeheaders/makeheaders
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c:${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa.h
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
   DEPENDS
     makeheaders
-    ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_headers_pp.h
+    ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
   )
 
