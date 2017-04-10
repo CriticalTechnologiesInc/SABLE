@@ -16,6 +16,7 @@ configure_file (
   "${PROJECT_SOURCE_DIR}/include/version.h.in"
   "${PROJECT_BINARY_DIR}/include/version.h"
   )
+
 add_subdirectory(tools)
 
 set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
