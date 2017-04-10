@@ -21,6 +21,13 @@ add_subdirectory(tools)
 set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
 if (${TARGET_ARCH} STREQUAL "AMD")
 
+add_executable (cleanup
+  ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
+  ${PROJECT_SOURCE_DIR}/src/cleanup/elf.c
+  ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.c
+  ${PROJECT_SOURCE_DIR}/src/cleanup/util.c
+  )
+
 add_executable (sable-amd
   ${PROJECT_SOURCE_DIR}/src/arch-amd/asm.S
   ${PROJECT_SOURCE_DIR}/src/arch-amd/amd.c
@@ -38,6 +45,32 @@ add_executable (sable-amd
   ${PROJECT_SOURCE_DIR}/src/tpm_error.c
   ${PROJECT_SOURCE_DIR}/src/tpm_struct.c
   ${PROJECT_SOURCE_DIR}/src/util.c
+  )
+
+set_target_properties (cleanup
+  PROPERTIES
+  LINK_FLAGS
+    "-gc-sections \
+    -m32 \
+    -nostdlib \
+    -Wl,--build-id=none \
+    -T ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
+  COMPILE_FLAGS
+    "-D__ARCH_AMD__ \
+    -Wno-main \
+    -fno-builtin \
+    -nostdlib \
+    -fno-stack-protector \
+    -fno-asynchronous-unwind-tables \
+    -fpack-struct \
+    -m32 \
+    -std=gnu99 \
+    -mregparm=3 \
+    -fomit-frame-pointer \
+    -minline-all-stringops \
+    --param max-inline-insns-single=50 \
+    -fstrict-aliasing \
+    -Wstrict-aliasing=0"
   )
 
 set_target_properties (sable-amd
@@ -64,6 +97,10 @@ set_target_properties (sable-amd
     --param max-inline-insns-single=50 \
     -fstrict-aliasing \
     -Wstrict-aliasing=0"
+  )
+
+target_include_directories (cleanup PUBLIC
+  ${PROJECT_SOURCE_DIR}/include/cleanup/
   )
 
 target_include_directories (sable-amd PUBLIC
