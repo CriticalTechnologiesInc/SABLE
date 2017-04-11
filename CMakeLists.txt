@@ -22,11 +22,12 @@ add_subdirectory(tools)
 set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
 if (${TARGET_ARCH} STREQUAL "AMD")
 
-add_executable (cleanup
+add_executable (cleanup-amd
   ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
-  ${PROJECT_SOURCE_DIR}/src/cleanup/elf.c
+  ${PROJECT_SOURCE_DIR}/src/elf.c
+  ${PROJECT_SOURCE_DIR}/src/alloc.c
   ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.c
-  ${PROJECT_SOURCE_DIR}/src/cleanup/util.c
+  ${PROJECT_SOURCE_DIR}/src/util.c
   )
 
 add_executable (sable-amd
@@ -48,7 +49,7 @@ add_executable (sable-amd
   ${PROJECT_SOURCE_DIR}/src/util.c
   )
 
-set_target_properties (cleanup
+set_target_properties (cleanup-amd
   PROPERTIES
   LINK_FLAGS
     "-gc-sections \
@@ -100,8 +101,10 @@ set_target_properties (sable-amd
     -Wstrict-aliasing=0"
   )
 
-target_include_directories (cleanup PUBLIC
-  ${PROJECT_SOURCE_DIR}/include/cleanup/
+target_include_directories (cleanup-amd PUBLIC
+  ${PROJECT_SOURCE_DIR}/include/
+  ${PROJECT_BINARY_DIR}/include/
+  ${PROJECT_SOURCE_DIR}/include/arch-amd
   )
 
 target_include_directories (sable-amd PUBLIC

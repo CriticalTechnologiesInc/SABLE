@@ -46,25 +46,26 @@ dummy_idt_desc:
 	.space 8
 
 
-FUNCTION memcpy
-	/* a size optimized memcpy function */
+/*FUNCTION memcpy
+	/* a size optimized memcpy function
 	pusha
 	xchg %eax, %edi
 	xchg %edx, %esi
 	rep movsb
 	popa
 	ret
+*/
 
-
+/*
 FUNCTION memset
-	/* a size optimized memset function */
+	/* a size optimized memset function
 	pusha
 	xchg %eax, %edx
 	mov  %edx, %edi
 	rep  stosb
 	popa
 	ret
-
+*/
 
 FUNCTION jmp_multiboot
 	xchg %eax, %ebx
