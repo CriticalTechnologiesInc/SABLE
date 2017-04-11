@@ -20,7 +20,8 @@ static struct mem_node *node = NULL;
 #error "BITS_ALIGN is not log_2 of BLOCK_SIZE"
 #endif
 
-static struct mem_node heap[8 * KB / BLOCK_SIZE];
+static struct mem_node heap[8 * KB / BLOCK_SIZE]
+    __attribute__((aligned(sizeof(struct mem_node))));
 
 void init_heap(void) {
   ASSERT(!node);
