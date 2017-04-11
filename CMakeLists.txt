@@ -158,7 +158,7 @@ add_custom_command (
     -I"${PROJECT_SOURCE_DIR}/include"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
     ${PROJECT_SOURCE_DIR}/include/isa_headers.h
-    DEPENDS ${PROJECT_SOURCE_DIR}/include/isa_headers.h
+    DEPENDS ${PROJECT_SOURCE_DIR}/include/isa_headers.h ${HEADER_FILES}
   )
 
 # generate sable_isa.h
