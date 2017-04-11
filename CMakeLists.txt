@@ -144,7 +144,7 @@ add_custom_command (
 # generate all_sources_pp.c, i.e. all source files concatenated together, preprocessed
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
-  COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
+  COMMAND ${CMAKE_C_COMPILER} -E -CC -DNDEBUG -DISABELLE
     -I"${PROJECT_SOURCE_DIR}/include"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources_pp.c
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/all_sources.c
@@ -154,7 +154,7 @@ add_custom_command (
 # generate isa_headers_pp.h, i.e. all source headers concatenated together, preprocessed
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
-  COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
+  COMMAND ${CMAKE_C_COMPILER} -E -CC -DNDEBUG -DISABELLE
     -I"${PROJECT_SOURCE_DIR}/include"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
     ${PROJECT_SOURCE_DIR}/include/isa_headers.h
@@ -193,7 +193,7 @@ add_custom_command (
 # generate sable_isa.c
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/isabelle/sable_isa.c
-  COMMAND ${CMAKE_C_COMPILER} -E -DNDEBUG -DISABELLE
+  COMMAND ${CMAKE_C_COMPILER} -E -CC -DNDEBUG -DISABELLE
     -I${PROJECT_BINARY_DIR}/isabelle/intermediate/
     -o ${PROJECT_BINARY_DIR}/isabelle/sable_isa.c
     ${PROJECT_BINARY_DIR}/isabelle/intermediate/sable_isa_cat.c
