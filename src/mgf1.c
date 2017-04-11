@@ -1,5 +1,6 @@
 #ifndef ISABELLE
 #include "alloc.h"
+#include "heap.h"
 #include "sha.h"
 #include "asm.h"
 
@@ -14,7 +15,7 @@ BYTE *mgf1(BYTE *input, UINT32 inputLen, UINT32 outputLen) {
   }
 
   SHA1_Context sctx;
-  TPM_DIGEST *output = alloc(outputLenRoundedUp);
+  TPM_DIGEST *output = alloc(heap, outputLenRoundedUp);
 
   while ((counter * 20) < outputLen) {
 

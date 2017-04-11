@@ -14,6 +14,7 @@
 
 #ifndef ISABELLE
 #include "alloc.h"
+#include "heap.h"
 #include "tis.h"
 #include "hmac.h"
 #include "tpm_struct.h"
@@ -231,7 +232,7 @@ RESULT TPM_OIAP(TPM_SESSION **session) {
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   TPM_ERROR(res);
-  TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
+  TPM_SESSION *s = *session = alloc(heap, sizeof(TPM_SESSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
   unmarshal_array(&s->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
   s->osap = NULL;
@@ -282,8 +283,8 @@ RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   TPM_ERROR(res);
-  TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
-  s->osap = alloc(sizeof(TPM_OSAP_EXTENSION));
+  TPM_SESSION *s = *session = alloc(heap, sizeof(TPM_SESSION));
+  s->osap = alloc(heap, sizeof(TPM_OSAP_EXTENSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
   unmarshal_array(&s->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
   unmarshal_array(&s->osap->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);

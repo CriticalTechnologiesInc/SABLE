@@ -14,6 +14,7 @@
 
 #ifndef ISABELLE
 #include "asm.h"
+#include "heap.h"
 #include "alloc.h"
 #include "dev.h"
 #include "mbi.h"
@@ -31,6 +32,10 @@
 #ifdef __ARCH_AMD__
 #include "amd.h"
 #endif
+
+#define KB 1024
+BYTE heap_array[8 * KB] __attribute__((aligned(8)));
+BYTE *heap = heap_array;
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
@@ -91,8 +96,8 @@ RESULT_GEN(TPM_PCR_INFO_LONG);
 // the passphrase may be sealed/unsealed
 static RESULT_(TPM_PCR_INFO_LONG) get_pcr_info(void) {
   RESULT_(TPM_PCR_INFO_LONG) ret = {.exception.error = NONE};
-  TPM_PCRVALUE *pcr_values = alloc(2 * sizeof(TPM_PCRVALUE));
-  BYTE *pcr_select_bytes = alloc(3);
+  TPM_PCRVALUE *pcr_values = alloc(heap, 2 * sizeof(TPM_PCRVALUE));
+  BYTE *pcr_select_bytes = alloc(heap, 3);
   pcr_select_bytes[0] = 0x00;
   pcr_select_bytes[1] = 0x00;
   pcr_select_bytes[2] = 0x0a;
@@ -149,14 +154,14 @@ static RESULT_(TPM_STORED_DATA12)
 
   UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
-  BYTE *seed = alloc(seedLen);
+  BYTE *seed = alloc(heap, seedLen);
   memcpy(seed, &sessions[0]->nonceEven, sizeof(TPM_NONCE));
   memcpy(seed + sizeof(TPM_NONCE), &sessions[0]->nonceOdd, sizeof(TPM_NONCE));
   memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE), "XOR", 3);
   memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3, &sharedSecret,
          sizeof(TPM_SECRET));
   const BYTE *mask = mgf1(seed, seedLen, lenPassphrase);
-  BYTE *passEnc = alloc(lenPassphrase);
+  BYTE *passEnc = alloc(heap, lenPassphrase);
   do_xor((const BYTE *)passphrase, mask, passEnc, lenPassphrase);
 
   // Encrypt the passphrase using the SRK
@@ -182,7 +187,7 @@ static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
 
 RESULT configure(UINT32 index) {
   RESULT ret = {.exception.error = NONE};
-  char *passphrase = alloc(PASSPHRASE_STR_SIZE);
+  char *passphrase = alloc(heap, PASSPHRASE_STR_SIZE);
 
   // get the passphrase, passphrase authdata, and SRK authdata
   EXCLUDE(out_string("Please enter the passphrase (" xstr(
@@ -270,7 +275,7 @@ static RESULT_(CSTRING)
 
   UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
-  BYTE *seed = alloc(seedLen);
+  BYTE *seed = alloc(heap, seedLen);
   memcpy(seed, &sessions[0]->nonceEven, sizeof(TPM_NONCE));
   memcpy(seed + sizeof(TPM_NONCE), &sessions[0]->nonceOdd, sizeof(TPM_NONCE));
   memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE), "XOR", 3);
@@ -283,7 +288,7 @@ static RESULT_(CSTRING)
   THROW(unseal_ret.exception);
 
   const BYTE *mask = mgf1(seed, seedLen, unseal_ret.value.dataSize);
-  BYTE *passUnc = alloc(unseal_ret.value.dataSize);
+  BYTE *passUnc = alloc(heap, unseal_ret.value.dataSize);
   do_xor(unseal_ret.value.data, mask, passUnc, unseal_ret.value.dataSize);
 
   ret.value = (CSTRING)passUnc;
@@ -315,7 +320,7 @@ RESULT trusted_boot(UINT32 index) {
   EXCLUDE(
       out_string("\n\nIf this is correct, please type YES in all capitals: ");)
 
-  EXCLUDE(char *yes_string = alloc(4); get_string(yes_string, 4, true);
+  EXCLUDE(char *yes_string = alloc(heap, 4); get_string(yes_string, 4, true);
           if (memcmp("YES", yes_string, 3)) reboot();)
 
   return ret;
@@ -404,7 +409,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
 
-  init_heap();
+  init_heap(heap, sizeof(heap));
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
   ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
 
