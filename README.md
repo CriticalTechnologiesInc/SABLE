@@ -48,6 +48,7 @@ $ cd build-debug
 $ cmake -DCMAKE_BUILD_TYPE=DEBUG -DTARGET_ARCH=<arch> ../
 $ make
 ```
+This will generate two binaries: `sable-<arch>` and `cleanup-<arch>`.
 Additional build options can be accessed by running `ccmake`, from a build
 directory, see the CMake documention for examples. At this time, the only
 supported build types are RELEASE and DEBUG.
@@ -102,7 +103,8 @@ would become
 ```
 menuentry 'SABLE-Ubuntu' {
   ...
-  multiboot /boot/sable --nv-index=<SEC-nv-index>
+  multiboot /boot/sable-<arch> --nv-index=<SEC-nv-index>
+  module /boot/cleanup-<arch>
   module /boot/grub/i386-pc/core.img
   module /boot/mylinux
   module /boot/myinitrd
@@ -113,7 +115,8 @@ Then you may run
 # update-grub2
 ```
 to generate an updated `grub.cfg` with the new menuentry.
-Finally you must copy the `sable` binary to your `/boot` directory.
+Finally you must copy the `sable-<arch>` and `cleanup-<arch>` binaries to your
+`/boot` directory.
 
 Configuration
 ---------------
