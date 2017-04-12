@@ -162,12 +162,6 @@ void wait(int ms) {
   }
 }
 
-void __exit() {
-  out_string("-> OK, reboot now!\n");
-  wait(5000);
-  reboot();
-}
-
 /**
  * Print the exit status and reboot the machine.
  */

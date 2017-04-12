@@ -23,7 +23,11 @@ __main(struct mbi *mbi, unsigned flags)
   memset((void *) 0x100000, 0, 0x10000);
   wait(5000);
 
-  start_module(mbi);
+  RESULT res = start_module(mbi);
+  CATCH_ANY(res.exception, {
+    dump_exception(res.exception);
+    exit(res.exception.error);
+  });
 
-  return 14;
+  return 0;
 }

@@ -30,7 +30,7 @@ FUNCTION __start
 	xchg    %eax,%edx
 	xchg    %ebx,%eax
 	pushl	%eax
-	pushl   $__exit
+	pushl   $exit
 	jmp     __main
 
 
