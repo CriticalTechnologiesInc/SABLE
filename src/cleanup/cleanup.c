@@ -19,10 +19,11 @@
 int
 __main(struct mbi *mbi, unsigned flags)
 {
-  wait(3000);
   out_string("Zeroing out SLB memory\n");
   memset((void *) 0x100000, 0, 0x10000);
-  wait(10000);
+  wait(5000);
+
+  start_module(mbi);
 
   return 14;
 }
