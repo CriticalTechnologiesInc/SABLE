@@ -12,7 +12,6 @@
  * COPYING file for details.
  */
 
-
 .macro	FUNCTION name
 	.section .text.\name
 	.globl \name
@@ -33,7 +32,6 @@ FUNCTION __start
 	pushl   $exit
 	jmp     __main
 
-
 FUNCTION reboot
 	mov	$0x4, %al
 	outb	%al, $0x60
@@ -44,53 +42,6 @@ FUNCTION reboot
        .bss
 dummy_idt_desc:
 	.space 8
-
-
-/*FUNCTION memcpy
-	/* a size optimized memcpy function
-	pusha
-	xchg %eax, %edi
-	xchg %edx, %esi
-	rep movsb
-	popa
-	ret
-*/
-
-/*
-FUNCTION memset
-	/* a size optimized memset function
-	pusha
-	xchg %eax, %edx
-	mov  %edx, %edi
-	rep  stosb
-	popa
-	ret
-*/
-
-FUNCTION jmp_multiboot
-	xchg %eax, %ebx
-	mov $0x2badb002, %eax
-	jmp *%edx
-
-/* the gdt to load after skinit */
-FUNCTION gdt
-	.global pgdt_desc
-	.align(8)
-pgdt_desc:
-	.word end_gdt - gdt - 1
-	.long gdt
-	.word 0
-_gdt_cs:
-	.word 0xffff
-	.word 0x0
-	.word 0x9b00
-	.word 0x00cf
-_gdt_ds:
-	.word 0xffff
-	.word 0x0
-	.word 0x9300
-	.word 0x00cf
-end_gdt:
 
 	/* our stack */
 	.globl  _stack
