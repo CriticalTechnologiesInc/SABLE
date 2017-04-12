@@ -12,27 +12,12 @@
  * COPYING file for details.
  */
 
-#include "asm.h"
-#include "alloc.h"
-#include "dev.h"
 #include "mbi.h"
 #include "elf.h"
-#include "mp.h"
-#include "keyboard.h"
-#include "hmac.h"
-#include "tis.h"
-#include "tpm.h"
-#include "tpm_struct.h"
 #include "util.h"
-#include "version.h"
-#include "mgf1.h"
-#ifdef __ARCH_AMD__
-#include "amd.h"
-#endif
 
 int
-//__main(struct mbi *mbi, unsigned flags)
-__main ()
+__main(struct mbi *mbi, unsigned flags)
 {
   wait(3000);
   out_string("Zeroing out SLB memory\n");
