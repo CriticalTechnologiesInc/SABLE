@@ -24,22 +24,22 @@ void init_heap(void *heap, UINT32 heap_size) {
 }
 
 void *alloc(void *heap, UINT32 size) {
-  struct mem_node *n, *next_node = NULL;
+  struct mem_node *n = heap, *next_node = NULL;
   ASSERT(size > 0);
   UINT32 blocks =
       (size >> BITS_ALIGN) + 1; // FIXME: we might be overallocating here!
 
-  for (n = heap; n && !next_node; n = n->next) {
-    if (n->size < blocks) {
-      next_node = n + (blocks + 1);
-      *next_node =
-          (struct mem_node){.size = n->size - (blocks + 1), .next = n->next};
-    } else if (n->size == blocks) {
-      next_node = n->next;
-    }
-  }
+  for (; n && (blocks > n->size); n = n->next) {}
   if (!n)
     return NULL;
+
+  if (blocks < n->size) {
+    next_node = n + (blocks + 1);
+    *next_node =
+        (struct mem_node){.size = n->size - (blocks + 1), .next = n->next};
+  } else {
+    next_node = n->next;
+  }
 
   *n = (struct mem_node){.size = blocks, .next = next_node};
   return (void *)(n + 1);
