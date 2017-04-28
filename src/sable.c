@@ -363,8 +363,10 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   struct module *a = (struct module *)(mbi->mods_addr);
   sha1_init(&sctx);
   sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
-  for (unsigned i = 0; i < mbi->mods_count; i++, a++)
-    sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
+  for (unsigned i = 0; i < mbi->mods_count; i++, a++){
+    if(strlen((char *)a->string) > 0)
+      sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
+  }
   sha1_finish(&sctx);
   RESULT_(TPM_PCRVALUE) ext_ret = TPM_Extend(19, sctx.hash);
   THROW(ext_ret.exception);
