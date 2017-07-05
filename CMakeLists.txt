@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.0.2)
 project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
 set (SABLE_VERSION_MINOR 5)
+set (SABLE_VERSION_TWEAK 1)
 
 message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
 

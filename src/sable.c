@@ -47,7 +47,8 @@ static TPM_SESSION *sessions[2] = {NULL, NULL};
 #ifndef ISABELLE
 
 const char *const version_string =
-    "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
+    "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR
+    "." SABLE_VERSION_TWEAK "\n";
 
 /* EXCEPT:
  * ERROR_SHA1_DATA_SIZE
