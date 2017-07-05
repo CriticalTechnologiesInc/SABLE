@@ -3,6 +3,10 @@
 #include "sha.h"
 #include "asm.h"
 
+#define XOR_STR "XOR"
+const char *const xor_str = XOR_STR;
+const unsigned int xor_str_size = sizeof(XOR_STR);
+
 BYTE *mgf1(BYTE *input, UINT32 inputLen, UINT32 outputLen) {
 
   UINT32 counter = 0;

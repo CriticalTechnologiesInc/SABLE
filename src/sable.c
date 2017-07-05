@@ -35,7 +35,6 @@
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
-#ifndef ISABELLE
 // Result generators
 RESULT_GEN(TPM_NONCE);
 RESULT_GEN(TPM_AUTHDATA);
@@ -44,6 +43,8 @@ RESULT_(TPM_AUTHDATA) get_authdata(void);
 RESULT_(TPM_NONCE) get_nonce(void);
 
 static TPM_SESSION *sessions[2] = {NULL, NULL};
+
+#ifndef ISABELLE
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR "\n";
@@ -212,6 +213,7 @@ RESULT configure(UINT32 index) {
   // write the sealed passphrase to disk
   return write_passphrase(nv_auth.value, sealedData.value, index);
 }
+#endif
 
 static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
 #ifdef NV_OWNER_REQUIRED
@@ -268,14 +270,16 @@ static RESULT_(CSTRING)
   sessions[1]->nonceOdd = nonceOdd.value;
   sessions[1]->continueAuthSession = FALSE;
 
-  UINT32 seedLen =
+  const UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
   BYTE *seed = alloc(seedLen);
-  memcpy(seed, &sessions[0]->nonceEven, sizeof(TPM_NONCE));
-  memcpy(seed + sizeof(TPM_NONCE), &sessions[0]->nonceOdd, sizeof(TPM_NONCE));
-  memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE), "XOR", 3);
-  memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3, &sharedSecret,
-         sizeof(TPM_SECRET));
+  Pack_Context *pctx = alloc(sizeof(Pack_Context));
+  pack_init(pctx, seed, seedLen);
+  marshal_array(sessions[0]->nonceEven.nonce, sizeof(TPM_NONCE), pctx, NULL);
+  marshal_array(sessions[0]->nonceOdd.nonce, sizeof(TPM_NONCE), pctx, NULL);
+  marshal_array(xor_str, xor_str_size, pctx, NULL);
+  marshal_TPM_SECRET(sharedSecret, pctx, NULL);
+  pack_finish(pctx);
 
   RESULT_(HEAP_DATA)
   unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, sharedSecret, &sessions[0],
@@ -321,6 +325,7 @@ RESULT trusted_boot(UINT32 index) {
   return ret;
 }
 
+#ifndef ISABELLE
 /* EXCEPT:
  * ERROR_BAD_MODULE
  * ERROR_NO_MODULE

@@ -31,6 +31,7 @@ void unmarshal_UINT16(UINT16 *val /* in/out */, Unpack_Context *ctx,
 void marshal_UINT32(UINT32 val, Pack_Context *ctx, SHA1_Context *sctx);
 void unmarshal_UINT32(UINT32 *val /* in/out */, Unpack_Context *ctx,
                       SHA1_Context *sctx);
+void marshal_TPM_SECRET(TPM_SECRET val, Pack_Context *ctx, SHA1_Context *sctx);
 
 void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
                    SHA1_Context *sctx);

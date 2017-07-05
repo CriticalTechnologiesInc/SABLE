@@ -142,6 +142,17 @@ void unmarshal_UINT32(UINT32 *val, Unpack_Context *ctx, SHA1_Context *sctx) {
   }
 }
 
+void marshal_TPM_SECRET(TPM_SECRET val, Pack_Context *ctx, SHA1_Context *sctx) {
+  if (sctx) {
+    sha1(sctx, &val, sizeof(TPM_SECRET));
+  }
+  if (ctx) {
+    check_pack_overflow(ctx, sizeof(TPM_SECRET));
+    memcpy(ctx->pack_buffer + ctx->bytes_packed, &val, sizeof(TPM_SECRET));
+    ctx->bytes_packed += sizeof(TPM_SECRET);
+  }
+}
+
 void marshal_array(const void *data, UINT32 size, Pack_Context *ctx,
                    SHA1_Context *sctx) {
   ASSERT(data);
