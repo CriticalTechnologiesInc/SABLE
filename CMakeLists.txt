@@ -158,6 +158,7 @@ set (HEADER_FILES ${HEADER_FILES}
 
 set (C_SOURCES
   ${PROJECT_SOURCE_DIR}/src/alloc.c
+  ${PROJECT_SOURCE_DIR}/src/sable.c
   )
 
 find_package (PythonInterp 3.4 REQUIRED)
@@ -199,7 +200,7 @@ add_custom_command (
     -I"${PROJECT_SOURCE_DIR}/include"
     -o ${PROJECT_BINARY_DIR}/isabelle/intermediate/isa_headers_pp.h
     ${PROJECT_SOURCE_DIR}/include/isa_headers.h
-    DEPENDS ${PROJECT_SOURCE_DIR}/include/isa_headers.h
+    DEPENDS ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/include/isa_headers.h
   )
 
 # generate sable_isa.h
