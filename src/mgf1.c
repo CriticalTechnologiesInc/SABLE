@@ -5,7 +5,8 @@
 
 #define XOR_STR "XOR"
 const char *const xor_str = XOR_STR;
-const unsigned int xor_str_size = sizeof(XOR_STR);
+const unsigned int xor_str_size =
+    sizeof(XOR_STR) - 1; // don't count null-terminating character
 
 BYTE *mgf1(BYTE *input, UINT32 inputLen, UINT32 outputLen) {
 
