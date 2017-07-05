@@ -3,3 +3,7 @@
 
 #include "util.h"
 #include "alloc.h"
+#include "tpm.h"
+#include "tpm_struct.h"
+#include "mgf1.h"
+#include "hmac.h"
