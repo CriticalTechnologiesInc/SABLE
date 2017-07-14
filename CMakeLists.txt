@@ -5,6 +5,7 @@ set (SABLE_VERSION_MINOR 5)
 set (SABLE_VERSION_TWEAK 1)
 
 message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
+message (STATUS "BHUSHAN : TARGET_ARCH is '${TARGET_ARCH}'")
 
 set (CMAKE_C_FLAGS
   "${CMAKE_C_FLAGS} \
@@ -20,8 +21,10 @@ configure_file (
 
 add_subdirectory(tools)
 
-set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
+#set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
 if (${TARGET_ARCH} STREQUAL "AMD")
+
+  message (FATAL_ERROR "BHUSHAN : WORKING ON INTEL AMD TEMPORARILY NOT SUPPORTED")
 
   add_executable (cleanup-AMD
   ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
@@ -116,12 +119,103 @@ target_include_directories (sable-AMD PUBLIC
 
 elseif (${TARGET_ARCH} STREQUAL "Intel")
 
-#add_executable (sable-intel)
+# Bhushan : code change start
+# ToDo : Remove AMD specific files as required
 
-#set_target_properties (sable-intel
-#  PROPERTIES
-#  COMPILE_FLAGS "-D__ARCH_INTEL__"
-#  )
+  message (STATUS "BHUSHAN : Building for Intel")
+
+  add_executable (cleanup-Intel
+  ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
+  ${PROJECT_SOURCE_DIR}/src/elf.c
+  ${PROJECT_SOURCE_DIR}/src/alloc.c
+  ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.c
+  ${PROJECT_SOURCE_DIR}/src/util.c
+  )
+
+add_executable (sable-Intel
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/asm.S
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/amd.c
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/dev.c
+  ${PROJECT_SOURCE_DIR}/src/arch-amd/mp.c
+  ${PROJECT_SOURCE_DIR}/src/alloc.c
+  ${PROJECT_SOURCE_DIR}/src/elf.c
+  ${PROJECT_SOURCE_DIR}/src/hmac.c
+  ${PROJECT_SOURCE_DIR}/src/keyboard.c
+  ${PROJECT_SOURCE_DIR}/src/mgf1.c
+  ${PROJECT_SOURCE_DIR}/src/sable.c
+  ${PROJECT_SOURCE_DIR}/src/sha.c
+  ${PROJECT_SOURCE_DIR}/src/tis.c
+  ${PROJECT_SOURCE_DIR}/src/tpm.c
+  ${PROJECT_SOURCE_DIR}/src/tpm_error.c
+  ${PROJECT_SOURCE_DIR}/src/tpm_struct.c
+  ${PROJECT_SOURCE_DIR}/src/util.c
+  )
+
+set_target_properties (cleanup-Intel
+  PROPERTIES
+  LINK_FLAGS
+    "-gc-sections \
+    -m32 \
+    -nostdlib \
+    -Wl,--build-id=none \
+    -T ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
+  COMPILE_FLAGS
+    "-D__ARCH_INTEL__ \
+    -Wno-main \
+    -fno-builtin \
+    -nostdlib \
+    -fno-stack-protector \
+    -fno-asynchronous-unwind-tables \
+    -fpack-struct \
+    -m32 \
+    -std=gnu99 \
+    -mregparm=3 \
+    -fomit-frame-pointer \
+    -minline-all-stringops \
+    --param max-inline-insns-single=50 \
+    -fstrict-aliasing \
+    -Wstrict-aliasing=0"
+  )
+
+set_target_properties (sable-Intel
+  PROPERTIES
+  LINK_FLAGS
+    "-gc-sections \
+    -m32 \
+    -nostdlib \
+    -Wl,--build-id=none \
+    -T ${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
+  COMPILE_FLAGS
+    "-D__ARCH_INTEL__ \
+    -Wno-main \
+    -fno-builtin \
+    -nostdlib \
+    -fno-stack-protector \
+    -fno-asynchronous-unwind-tables \
+    -fpack-struct \
+    -m32 \
+    -std=gnu99 \
+    -mregparm=3 \
+    -fomit-frame-pointer \
+    -minline-all-stringops \
+    --param max-inline-insns-single=50 \
+    -fstrict-aliasing \
+    -Wstrict-aliasing=0"
+  )
+
+target_include_directories (cleanup-Intel PUBLIC
+  ${PROJECT_SOURCE_DIR}/include/
+  ${PROJECT_BINARY_DIR}/include/
+  ${PROJECT_SOURCE_DIR}/include/arch-amd
+  )
+
+target_include_directories (sable-Intel PUBLIC
+  ${PROJECT_SOURCE_DIR}/include/
+  ${PROJECT_BINARY_DIR}/include/
+  ${PROJECT_SOURCE_DIR}/include/arch-amd
+  )
+
+# Bhushan : code change end
 
 else (${TARGET_ARCH} STREQUAL "AMD")
   message (FATAL_ERROR "Invalid target architecture: " ${TARGET_ARCH})
@@ -132,6 +226,8 @@ option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
 # Build the input file for Isabelle/HOL
 # custom command and target to generate sable_isa.c
 if (${GENERATE_ISABELLE})
+
+message (FATAL_ERROR "BHUSHAN : WORKING ON INTEL : GENERATE_ISABELLE TEMPORARITY NOT SUPPORTED" : ${GENERATE_ISABELLE})
 
 set (HEADER_FILES ${HEADER_FILES}
   ${PROJECT_SOURCE_DIR}/include/arch-amd/amd.h
