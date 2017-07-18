@@ -133,10 +133,10 @@ elseif (${TARGET_ARCH} STREQUAL "Intel")
   )
 
 add_executable (sable-Intel
-  ${PROJECT_SOURCE_DIR}/src/arch-amd/asm.S
-  ${PROJECT_SOURCE_DIR}/src/arch-amd/amd.c
-  ${PROJECT_SOURCE_DIR}/src/arch-amd/dev.c
-  ${PROJECT_SOURCE_DIR}/src/arch-amd/mp.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/asm.S
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/amd.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/dev.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/mp.c
   ${PROJECT_SOURCE_DIR}/src/alloc.c
   ${PROJECT_SOURCE_DIR}/src/elf.c
   ${PROJECT_SOURCE_DIR}/src/hmac.c
@@ -184,7 +184,7 @@ set_target_properties (sable-Intel
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
-    -T ${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
+    -T ${PROJECT_SOURCE_DIR}/src/arch-intel/sable.ld"
   COMPILE_FLAGS
     "-D__ARCH_INTEL__ \
     -Wno-main \
@@ -206,13 +206,13 @@ set_target_properties (sable-Intel
 target_include_directories (cleanup-Intel PUBLIC
   ${PROJECT_SOURCE_DIR}/include/
   ${PROJECT_BINARY_DIR}/include/
-  ${PROJECT_SOURCE_DIR}/include/arch-amd
+  ${PROJECT_SOURCE_DIR}/include/arch-intel
   )
 
 target_include_directories (sable-Intel PUBLIC
   ${PROJECT_SOURCE_DIR}/include/
   ${PROJECT_BINARY_DIR}/include/
-  ${PROJECT_SOURCE_DIR}/include/arch-amd
+  ${PROJECT_SOURCE_DIR}/include/arch-intel
   )
 
 # Bhushan : code change end

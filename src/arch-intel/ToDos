@@ -1,0 +1,2 @@
+Bhushan : This is file I am maintaining to keep thoughts came to mind, but due to working on some other things kept aside
+1. we need to modify asm.S  sable.ld according to intel specification and memory aligned contraint check boot.S and tboot.ld in tboot code
