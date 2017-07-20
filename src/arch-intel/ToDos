@@ -1,2 +1,9 @@
 Bhushan : This is file I am maintaining to keep thoughts came to mind, but due to working on some other things kept aside
 1. we need to modify asm.S  sable.ld according to intel specification and memory aligned contraint check boot.S and tboot.ld in tboot code
+	tboot:
+	tboot is marking mle start and mle end in tboot.ld which it will use in c code to calculate page table
+	tboot tries to keep mle code in single 4k alinged 4k page
+	mle 4k page contains mle page table , mle code and mle ro data
+
+We need to revisit ld script while creating page table. TXT require MLE to be in specific format to execute.
+also tboot's code section starts at 0x800000 which is 4k alinged.

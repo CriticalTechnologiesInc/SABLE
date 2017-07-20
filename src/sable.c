@@ -411,6 +411,7 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
+  out_string("I am in pre_launch");
 
   init_heap();
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
