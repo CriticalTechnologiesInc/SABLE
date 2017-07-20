@@ -31,6 +31,9 @@
 #ifdef __ARCH_AMD__
 #include "amd.h"
 #endif
+#include "types.h"
+#include "msr.h"
+#include "processor.h"
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
@@ -412,6 +415,16 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
   out_string("I am in pre_launch");
+
+  // Bhushan: check for system bootstrap processor
+  if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
+     out_string("Bhushan: Not a system bootstrap processor");
+  } else {
+     out_string("Bhushan: system bootstrap processor");
+  }
+  out_description("BSP is cpu ", get_apicid());
+
+  // Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
 
   init_heap();
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");

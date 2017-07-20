@@ -20,7 +20,9 @@ typedef char bool;
 #define true 1
 #define false 0
 
-#define NULL 0
+#ifndef NULL
+	#define NULL 0
+#endif
 
 #ifndef ISABELLE
 #define EXCLUDE(X) X

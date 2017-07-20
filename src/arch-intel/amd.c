@@ -1,6 +1,8 @@
 #ifndef ISABELLE
 #include "asm.h"
 #include "amd.h"
+#include "types.h" // Bhushan : not to break build
+#include "msr.h" // Bhushan : not to break build
 
 /* EXCEPT:
  * ERROR_SVM_ENABLE

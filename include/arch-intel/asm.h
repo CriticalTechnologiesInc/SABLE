@@ -15,6 +15,10 @@
  * COPYING file for details.
  */
 
+#include "processor.h"
+#include "types.h"
+#include "msr.h"		// Bhushan : msr will contain most of intel specific funtions. keeping asm.h just not to break build
+
 void reboot(void) __attribute__((noreturn));
 void do_skinit(void) __attribute__((noreturn));
 void jmp_multiboot(void *mbi, unsigned int entry) __attribute__((noreturn));
@@ -31,6 +35,10 @@ static inline unsigned int htonl(unsigned int v) {
   return res;
 }
 
+/*
+
+Bhushan: remove this are its copy is there in msr.h
+
 static inline unsigned long long rdtsc(void) {
   unsigned long long res;
 
@@ -39,23 +47,6 @@ static inline unsigned long long rdtsc(void) {
   return res;
 }
 
-static inline unsigned int cpuid_eax(unsigned value) {
-  unsigned int res;
-  asm volatile("cpuid" : "=a"(res) : "a"(value) : "ebx", "ecx", "edx");
-  return res;
-}
-
-static inline unsigned int cpuid_ecx(unsigned value) {
-  unsigned int res, dummy;
-  asm volatile("cpuid" : "=c"(res), "=a"(dummy) : "a"(value) : "ebx", "edx");
-  return res;
-}
-
-static inline unsigned int cpuid_edx(unsigned value) {
-  unsigned int res, dummy;
-  asm volatile("cpuid" : "=d"(res), "=a"(dummy) : "a"(value) : "ebx", "ecx");
-  return res;
-}
 
 static inline unsigned long long rdmsr(unsigned int addr) {
   unsigned long long res;
@@ -69,6 +60,8 @@ static inline void wrmsr(unsigned int addr, unsigned long long value) {
   // =A does not work in 64 bit mode
   asm volatile("wrmsr" ::"c"(addr), "A"(value));
 }
+
+*/
 
 static inline unsigned char inb(const unsigned short port) {
   unsigned char res;

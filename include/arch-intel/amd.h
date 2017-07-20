@@ -4,7 +4,7 @@
 #include "platform.h"
 #include "exception.h"
 
-#define MSR_EFER 0xC0000080
+//#define MSR_EFER 0xC0000080
 #define EFER_SVME 1 << 12
 
 #ifndef RESULT_UINT32
