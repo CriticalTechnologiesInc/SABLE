@@ -38,6 +38,8 @@
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
+int prepare_sinit_acm(struct mbi *m);
+
 // Result generators
 RESULT_GEN(TPM_NONCE);
 RESULT_GEN(TPM_AUTHDATA);
@@ -414,17 +416,24 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch");
+  out_string("I am in pre_launch\n");
 
   // Bhushan: check for system bootstrap processor
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
-     out_string("Bhushan: Not a system bootstrap processor");
+     out_string("Bhushan: Not a system bootstrap processor\n");
   } else {
-     out_string("Bhushan: system bootstrap processor");
+     out_string("Bhushan: system bootstrap processor\n");
   }
   out_description("BSP is cpu ", get_apicid());
 
   // Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
+
+  // verify SINIT AC module 
+
+  if(!prepare_sinit_acm(m)) {
+	 out_string("Bhushan: Problem with SINIT AC module\n");
+	// break here
+  }
 
   init_heap();
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
