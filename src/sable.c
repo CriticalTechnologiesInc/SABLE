@@ -39,6 +39,7 @@
 #define AUTHDATA_STR_SIZE 64
 
 int prepare_sinit_acm(struct mbi *m);
+void determine_loader_type(uint32_t magic);
 
 // Result generators
 RESULT_GEN(TPM_NONCE);
@@ -416,7 +417,12 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch\n");
+  out_string("I am in pre_launch125\n");
+  out_description("Bhushan: module count", m->mods_count);
+
+
+  determine_loader_type(flags);
+  wait(2000);
 
   // Bhushan: check for system bootstrap processor
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {

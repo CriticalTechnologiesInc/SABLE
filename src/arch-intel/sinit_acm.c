@@ -6,6 +6,7 @@
 #include "acmod.h"
 #include "mbi.h"
 #include "misc.h"
+#include "multiboot.h"
 
 __data acm_hdr_t *g_sinit = 0;
 
@@ -13,6 +14,8 @@ __data acm_hdr_t *g_sinit = 0;
 static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 {
  	uint32_t user_area_off;
+
+	wait(4000);
  
 	/* overflow? */
  	if (plus_overflow_u32(hdr->header_len, hdr->scratch_size)) {
@@ -54,6 +57,8 @@ static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 
 int is_acmod(const void *acmod_base, uint32_t acmod_size, uint8_t *type)
 {
+
+	wait(4000);
 	acm_hdr_t *acm_hdr = (acm_hdr_t *)acmod_base;
 
 	/* first check size */
@@ -116,6 +121,7 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
 {                   
 	uint8_t type;
 
+	wait(4000);
 	if (!is_acmod(acmod_base, acmod_size, &type))
 		return 0;
 
@@ -128,6 +134,8 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
  
 struct module *get_module_mb1(struct mbi *m, unsigned int i)
 {
+	
+	wait(4000);
 	if (m == NULL) {
 		out_string("Error: mbi pointer is zero.\n");
 		return NULL;
@@ -140,12 +148,15 @@ struct module *get_module_mb1(struct mbi *m, unsigned int i)
 }
 
 int prepare_sinit_acm(struct mbi *m) {
-	out_description("Bhushan: prepare_sinit : ", m->mods_count);
+	out_description("Bhushan: prepare_sinit", m->mods_count);
+	out_description("Bhushan: prepare_sinit tboot", ((multiboot_info_t *) m)->mods_count);
 	for ( unsigned int i = (m->mods_count) - 1; i > 0; i-- ) {
 		struct module *mod = get_module_mb1(m, i);
-		out_string("Working on module :\n");
-		out_string((const char *)mod->string);
+		out_string("Working on module :");
+	//	out_string((const char *)mod->string);
 
+		wait(4000);
+		out_string("Working on module :\n");
 		void *base2 = (void *)mod->mod_start;
 		uint32_t size2 = mod->mod_end - (unsigned long)(base2);
 		if (is_sinit_acmod(base2, size2)) {
@@ -156,3 +167,23 @@ int prepare_sinit_acm(struct mbi *m) {
 
 	return 1;
 }
+
+#define MB_MAGIC			0x2badb002
+#define MB2_HEADER_MAGIC		0xe85250d6
+#define MB2_LOADER_MAGIC		0x36d76289
+
+void determine_loader_type(uint32_t magic)
+{
+	switch (magic){
+		case MB_MAGIC:
+			out_info("MB1_ONLY");
+			break;
+		case MB2_LOADER_MAGIC: 
+			out_info("MB2_ONLY : WE DONT SUPPORT");
+			break;
+		default:
+			out_info("PROBLEM : no multi boot launch");
+			break;
+	}
+}
+
