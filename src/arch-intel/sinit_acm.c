@@ -10,6 +10,9 @@
 #include "config_regs.h"
 #include "processor.h"
 #include "msr.h"
+#include "mtrrs.h"
+#include "hash.h"
+#include "heap.h"
 
 __data acm_hdr_t *g_sinit = 0;
 
@@ -365,16 +368,108 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 	return 1;
 }
 
+acm_hdr_t *get_bios_sinit(const void *sinit_region_base)
+{
+	if (sinit_region_base == NULL)
+		return NULL;
+	txt_heap_t *txt_heap = get_txt_heap();
+	bios_data_t *bios_data = get_bios_data_start(txt_heap);
+
+	if ( bios_data->bios_sinit_size == 0 )
+		return NULL;
+
+	/* BIOS has loaded an SINIT module, so verify that it is valid */
+	out_info("BIOS has already loaded an SINIT module");
+
+	/* is it a valid SINIT module? */
+	if (!is_sinit_acmod(sinit_region_base, bios_data->bios_sinit_size) || !does_acmod_match_platform((acm_hdr_t *)sinit_region_base))
+		return NULL;
+
+	return (acm_hdr_t *)sinit_region_base;
+}
+
+acm_hdr_t *copy_sinit(const acm_hdr_t *sinit)
+{   
+	
+	/* check if it is newer than BIOS provided version, then copy it to BIOS reserved region */
+	/* get BIOS-reserved region from TXT.SINIT.BASE config reg */
+
+	void *sinit_region_base = (void*)(unsigned long)read_pub_config_reg(TXTCR_SINIT_BASE);
+	uint32_t sinit_region_size = (uint32_t)read_pub_config_reg(TXTCR_SINIT_SIZE);
+
+	out_description("TXT.SINIT.BASE", (unsigned int) sinit_region_base);
+	out_description("TXT.SINIT.SIZE", (unsigned int) sinit_region_size);
+
+	/*
+	 * check if BIOS already loaded an SINIT module there
+	*/
+
+	acm_hdr_t *bios_sinit = get_bios_sinit(sinit_region_base);
+	if (bios_sinit != NULL) {
+		/* no other SINIT was provided so must use one BIOS provided */
+		if (sinit == NULL) {
+			out_info("no SINIT provided by bootloader; using BIOS SINIT");
+			return bios_sinit;
+		}
+
+		/* is it newer than the one we've been provided? */
+		if (bios_sinit->date >= sinit->date) {
+			out_info("BIOS-provided SINIT is newer, so using it");
+			return bios_sinit;    /* yes */
+		}
+		else
+			out_description("BIOS-provided SINIT is older: date", bios_sinit->date);
+	}
+
+	/* our SINIT is newer than BIOS's (or BIOS did not have one) */
+
+	/* BIOS SINIT not present or not valid and none provided */
+	if (sinit == NULL) {
+		return NULL;
+	}
+
+	/* overflow? */
+	if ( multiply_overflow_u32(sinit->size, 4) ) {
+		out_info("sinit size in bytes overflows\n");
+		return NULL;
+	}
+ 
+	/* make sure our SINIT fits in the reserved region */
+	if ((sinit->size * 4) > sinit_region_size) {
+		out_info("BIOS-reserved SINIT size is too small for loaded SINIT module");
+		return NULL;
+	}
+
+	if (sinit_region_base == NULL) {
+		return NULL;
+	}
+
+	/* copy it there */
+	memcpy(sinit_region_base, sinit, sinit->size * 4);
+
+	out_info("\tcopied SINIT :");
+	out_description("size", sinit->size*4);
+	out_description("to base", (unsigned int)sinit_region_base);
+
+	return (acm_hdr_t *)sinit_region_base;
+}
+
 int prepare_sinit_acm(struct mbi *m) {
+	void *base2;
+
 	out_description("Bhushan: prepare_sinit", m->mods_count);
 	out_description("Bhushan: prepare_sinit tboot", ((multiboot_info_t *) m)->mods_count);
+
+	/*
+	 * Step 1 : find SINIT ACM and match with platform in module list
+	 */
 	for ( unsigned int i = (m->mods_count) - 1; i > 0; i-- ) {
 		struct module *mod = get_module_mb1(m, i);
-	//	out_string((const char *)mod->string);
+		out_string((const char *)mod->string); // this line can case error if mod->string is null
 
 		wait(4000);
 		out_string("Working on module :\n");
-		void *base2 = (void *)mod->mod_start;
+		base2 = (void *)mod->mod_start;
 		uint32_t size2 = mod->mod_end - (unsigned long)(base2);
 		if (is_sinit_acmod(base2, size2)) {
 			if (does_acmod_match_platform((acm_hdr_t *)base2)) { 
@@ -383,6 +478,23 @@ int prepare_sinit_acm(struct mbi *m) {
 			}
 		} 
 	}
+
+	/*
+	 * Step 2 : check BIOS already has newer SINIT ACM
+	 */
+	
+	g_sinit = copy_sinit(base2);
+
+	if (g_sinit == NULL) {
+		out_info("ERROR : NO SINIT ACM FOUND");
+	} else {
+		out_info("SINIT is copied at BIOS provided region");
+	}
+
+
+	/*
+	 * Step 3 : check SINIT is according to the requirements of SENTER
+	 */
 
 	return 1;
 }
