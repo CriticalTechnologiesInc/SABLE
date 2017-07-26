@@ -454,6 +454,127 @@ acm_hdr_t *copy_sinit(const acm_hdr_t *sinit)
 	return (acm_hdr_t *)sinit_region_base;
 }
 
+
+int verify_acmod(const acm_hdr_t *acm_hdr)
+{
+//867     getsec_parameters_t params;
+	uint32_t size;
+
+	/* assumes this already passed is_acmod() test */
+
+	size = acm_hdr->size * 4;        /* hdr size is in dwords, we want bytes */
+
+	/*
+	* AC mod must start on 4k page boundary
+	*/
+
+	if ((unsigned long)acm_hdr & 0xfff) {
+		out_description("AC mod base not 4K aligned", (unsigned int) acm_hdr);
+		return 0;
+	}
+	out_info("AC mod base alignment OK");
+
+	/* AC mod size must:
+	 * - be multiple of 64
+	 * - greater than ???
+	 * - less than max supported size for this processor
+	*/
+
+	if ((size == 0) || ((size % 64) != 0)) {
+		out_description("AC MOD size is not multiple of 64", size);
+		return 0;
+	}
+
+//895     if ( !get_parameters(&params) ) {
+//896         printk(TBOOT_ERR"get_parameters() failed\n");
+//897         return false;
+//898     }
+//899 
+//900     if ( size > params.acm_max_size ) {
+//901         printk(TBOOT_ERR"AC mod size too large: %x (max=%x)\n", size,
+//902                params.acm_max_size);
+//903         return false;
+//904     }
+//904     }
+//905 
+//906     printk(TBOOT_INFO"AC mod size OK\n");
+//907 
+//908     /*
+//909      * perform checks on AC mod structure
+//910      */
+//911 
+//912     /* print it for debugging */
+//913     print_acm_hdr(acm_hdr, "SINIT");
+
+	/* entry point is offset from base addr so make sure it is within module */
+	if (acm_hdr->entry_point >= size ) {
+		out_description("AC mod entry ", acm_hdr->entry_point);
+		out_description(" >= AC mod size", size);
+		return 0;
+	}
+
+	/* overflow? */
+	if (plus_overflow_u32(acm_hdr->seg_sel, 8)) {
+		out_info("seg_sel plus 8 overflows");
+		return 0;
+	}
+
+	if (!acm_hdr->seg_sel           ||       /* invalid selector */
+	    (acm_hdr->seg_sel & 0x07)   ||       /* LDT, PL!=0 */
+	    (acm_hdr->seg_sel + 8 > acm_hdr->gdt_limit) ) {
+		out_description("AC mod selectorbogus", acm_hdr->seg_sel);
+		return 0;
+	}
+
+	/*
+	 * check for compatibility with this MLE
+	 */
+
+	acm_info_table_t *info_table = get_acmod_info_table(acm_hdr);
+	if (info_table == NULL)
+		return 0;
+
+	/* check MLE header versions */
+
+	/* I guess this check is tboot specific and we can remove it once we will have getsec[SENTER] code running */
+	if (info_table->min_mle_hdr_ver > MLE_HDR_VER) {
+		out_description("AC mod requires a newer MLE", info_table->min_mle_hdr_ver);
+		return 0;
+	}
+
+	/* check capabilities */
+	/* we need to match one of rlp_wake_{getsec, monitor} */
+	txt_caps_t caps_mask = { 0 };
+	caps_mask.rlp_wake_getsec = caps_mask.rlp_wake_monitor = 1;
+
+	if (((MLE_HDR_CAPS & caps_mask._raw) & (info_table->capabilities._raw & caps_mask._raw)) == 0) {
+		out_info("SINIT and MLE not support compatible RLP wake mechanisms");
+		return false;
+	}
+	/* we also expect ecx_pgtbl to be set */
+	if (!info_table->capabilities.ecx_pgtbl) {
+		out_info("SINIT does not support launch with MLE pagetable in ECX");
+		/* TODO when SINIT ready
+		 * return false;
+		 */
+	}
+
+	/* check for version of OS to SINIT data */
+	/* we don't support old versions */
+
+	if ( info_table->os_sinit_data_ver < MIN_OS_SINIT_DATA_VER ) {
+		out_description("SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
+		return false;
+	}
+	/* only warn if SINIT supports more recent version than us */
+	else if ( info_table->os_sinit_data_ver > MAX_OS_SINIT_DATA_VER ) {
+		out_description("WORNING: SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
+	}
+
+	return 0;
+}
+
+
 int prepare_sinit_acm(struct mbi *m) {
 	void *base2;
 
@@ -463,6 +584,7 @@ int prepare_sinit_acm(struct mbi *m) {
 	/*
 	 * Step 1 : find SINIT ACM and match with platform in module list
 	 */
+
 	for ( unsigned int i = (m->mods_count) - 1; i > 0; i-- ) {
 		struct module *mod = get_module_mb1(m, i);
 		out_string((const char *)mod->string); // this line can case error if mod->string is null
@@ -496,6 +618,11 @@ int prepare_sinit_acm(struct mbi *m) {
 	 * Step 3 : check SINIT is according to the requirements of SENTER
 	 */
 
+	if (!verify_acmod(g_sinit)) {
+		return 0;	
+	}
+
+	out_info("Verification of SINIT ACM : done");
 	return 1;
 }
 
