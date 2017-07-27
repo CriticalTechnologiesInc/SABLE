@@ -13,6 +13,7 @@
 #include "mtrrs.h"
 #include "hash.h"
 #include "heap.h"
+#include "smx.h"
 
 __data acm_hdr_t *g_sinit = 0;
 
@@ -117,7 +118,7 @@ int is_acmod(const void *acmod_base, uint32_t acmod_size, uint8_t *type)
 	}
 
 	/* there is forward compatibility, so this is just a warning */
-	else if ( info_table->version > 5 ) {
+	else if (info_table->version > 5) {
 		out_description("ACM info_table version mismatch", (uint32_t)info_table->version);
 	}
 	return 1;
@@ -304,8 +305,10 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 	 */
 
 	acm_chipset_id_list_t *chipset_id_list = get_acmod_chipset_list(hdr);
-	if ( chipset_id_list == NULL )
+	if (chipset_id_list == NULL) {
+		out_info("Chipset ID is NULL");
 		return 0;
+	}
 
 	out_description("ACM chipset id entries", chipset_id_list->count);
 	unsigned int i;
@@ -338,6 +341,7 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 
 	acm_info_table_t *info_table = get_acmod_info_table(hdr);
 	if (info_table == NULL) {
+		out_info("info_table is NULL");
 		return 0;
 	}
 
@@ -457,7 +461,7 @@ acm_hdr_t *copy_sinit(const acm_hdr_t *sinit)
 
 int verify_acmod(const acm_hdr_t *acm_hdr)
 {
-//867     getsec_parameters_t params;
+	getsec_parameters_t params;
 	uint32_t size;
 
 	/* assumes this already passed is_acmod() test */
@@ -485,25 +489,24 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 		return 0;
 	}
 
-//895     if ( !get_parameters(&params) ) {
-//896         printk(TBOOT_ERR"get_parameters() failed\n");
-//897         return false;
-//898     }
-//899 
-//900     if ( size > params.acm_max_size ) {
-//901         printk(TBOOT_ERR"AC mod size too large: %x (max=%x)\n", size,
-//902                params.acm_max_size);
-//903         return false;
-//904     }
-//904     }
-//905 
-//906     printk(TBOOT_INFO"AC mod size OK\n");
-//907 
-//908     /*
-//909      * perform checks on AC mod structure
-//910      */
-//911 
-//912     /* print it for debugging */
+	if (!get_parameters(&params)) {
+		out_info("get_parameters() failed");
+		return 0;
+	}
+
+	if (size > params.acm_max_size) {
+		out_description("AC mod size too large:", size);
+		out_description("max size", params.acm_max_size);
+		return 0;
+	}
+
+	out_info("AC mod size OK");
+
+	/*
+	 * perform checks on AC mod structure
+	 */
+
+	/* print it for debugging */
 //913     print_acm_hdr(acm_hdr, "SINIT");
 
 	/* entry point is offset from base addr so make sure it is within module */
@@ -531,8 +534,10 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 	 */
 
 	acm_info_table_t *info_table = get_acmod_info_table(acm_hdr);
-	if (info_table == NULL)
+	if (info_table == NULL) {
+		out_info("info table NULL");
 		return 0;
+	}
 
 	/* check MLE header versions */
 
@@ -549,7 +554,7 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 
 	if (((MLE_HDR_CAPS & caps_mask._raw) & (info_table->capabilities._raw & caps_mask._raw)) == 0) {
 		out_info("SINIT and MLE not support compatible RLP wake mechanisms");
-		return false;
+		return 0;
 	}
 	/* we also expect ecx_pgtbl to be set */
 	if (!info_table->capabilities.ecx_pgtbl) {
@@ -564,14 +569,14 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 
 	if ( info_table->os_sinit_data_ver < MIN_OS_SINIT_DATA_VER ) {
 		out_description("SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
-		return false;
+		return 0;
 	}
 	/* only warn if SINIT supports more recent version than us */
 	else if ( info_table->os_sinit_data_ver > MAX_OS_SINIT_DATA_VER ) {
 		out_description("WORNING: SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
 	}
 
-	return 0;
+	return 1;
 }
 
 

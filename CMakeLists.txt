@@ -138,6 +138,7 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/arch-intel/dev.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/mp.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/sinit_acm.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/txt.c
   ${PROJECT_SOURCE_DIR}/src/alloc.c
   ${PROJECT_SOURCE_DIR}/src/elf.c
   ${PROJECT_SOURCE_DIR}/src/hmac.c
