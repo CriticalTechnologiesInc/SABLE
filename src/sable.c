@@ -149,6 +149,7 @@ static RESULT_(TPM_STORED_DATA12)
   RESULT_(TPM_PCR_INFO_LONG) pcr_info = get_pcr_info();
   THROW(pcr_info.exception);
 
+#ifdef USE_TPM_SEALX
   UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
   BYTE *seed = alloc(seedLen);
@@ -164,6 +165,10 @@ static RESULT_(TPM_STORED_DATA12)
   // Encrypt the passphrase using the SRK
   return TPM_Sealx(TPM_KH_SRK, encAuth, pcr_info.value, passEnc, lenPassphrase,
                    &sessions[0], sharedSecret);
+#else
+  return TPM_Seal(TPM_KH_SRK, encAuth, pcr_info.value, (const BYTE *)passphrase,
+                  lenPassphrase, &sessions[0], sharedSecret);
+#endif
 }
 
 static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
@@ -271,6 +276,7 @@ static RESULT_(CSTRING)
   sessions[1]->nonceOdd = nonceOdd.value;
   sessions[1]->continueAuthSession = FALSE;
 
+#ifdef USE_TPM_SEALX
   const UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
   BYTE *seed = alloc(seedLen);
@@ -292,6 +298,14 @@ static RESULT_(CSTRING)
   do_xor(unseal_ret.value.data, mask, passUnc, unseal_ret.value.dataSize);
 
   ret.value = (CSTRING)passUnc;
+#else
+  RESULT_(HEAP_DATA)
+  unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, sharedSecret, &sessions[0],
+                          pp_auth, &sessions[1]);
+  THROW(unseal_ret.exception);
+
+  ret.value = (CSTRING)unseal_ret.value.data;
+#endif
 
   return ret;
 }
@@ -363,8 +377,8 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   struct module *a = (struct module *)(mbi->mods_addr);
   sha1_init(&sctx);
   sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
-  for (unsigned i = 0; i < mbi->mods_count; i++, a++){
-    if(strlen((char *)a->string) > 0)
+  for (unsigned i = 0; i < mbi->mods_count; i++, a++) {
+    if (strlen((char *)a->string) > 0)
       sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
   }
   sha1_finish(&sctx);

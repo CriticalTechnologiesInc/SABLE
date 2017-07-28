@@ -613,7 +613,12 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
 }
 
 RESULT_(TPM_STORED_DATA12)
-TPM_Sealx(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+#ifdef USE_TPM_SEALX
+TPM_Sealx
+#else
+TPM_Seal
+#endif
+(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
          TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
          UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret) {
   ASSERT(session);
@@ -632,7 +637,11 @@ TPM_Sealx(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
       sizeof(TPM_KEY_HANDLE) + sizeof(TPM_ENCAUTH) + sizeof(UINT32) +
       pcrInfoSize_in + sizeof(UINT32) + inDataSize_in + sizeof(TPM_AUTHHANDLE) +
       sizeof(TPM_NONCE) + sizeof(TSS_BOOL) + sizeof(TPM_AUTHDATA);
+#ifdef USE_TPM_SEALX
   TPM_COMMAND_CODE ordinal_in = TPM_ORD_Sealx;
+#else
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_Seal;
+#endif
   TPM_TAG tag_out;
   UINT32 paramSize_out;
   TPM_AUTHDATA resAuth_out;
