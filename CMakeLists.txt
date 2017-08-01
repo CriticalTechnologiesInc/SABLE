@@ -151,6 +151,7 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/tpm_error.c
   ${PROJECT_SOURCE_DIR}/src/tpm_struct.c
   ${PROJECT_SOURCE_DIR}/src/util.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/platform_checks.c
   )
 
 set_target_properties (cleanup-Intel

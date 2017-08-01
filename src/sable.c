@@ -39,6 +39,7 @@
 #define AUTHDATA_STR_SIZE 64
 
 int prepare_sinit_acm(struct mbi *m);
+int platform_pre_checks();
 void determine_loader_type(uint32_t magic);
 
 // Result generators
@@ -417,7 +418,7 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch 001\n");
+  out_string("I am in pre_launch 002\n");
   out_description("Bhushan: module count", m->mods_count);
 
 
@@ -434,13 +435,25 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
   // Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
 
-  // verify SINIT AC module 
+  // verify SINIT AC module : step 3
+  // check Intel TXT development guide for more details
 
   if(!prepare_sinit_acm(m)) {
-	 out_string("Bhushan: Problem with SINIT AC module\n");
+     out_string("Bhushan: Problem with SINIT AC module");
 	// break here
   } else {
-	out_info("SINIT verificaton : DONE");
+     out_info("SINIT verificaton : DONE");
+  }
+
+  // verify platform : step 1
+
+  // perform tpm_detect()
+
+  if(!platform_pre_checks()) {
+     out_string("Bhushan: Problem with platform configuration detected");
+     // break here
+  } else {
+     out_string("Platform verification : DONE");
   }
 
   init_heap();
