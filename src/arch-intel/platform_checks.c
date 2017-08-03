@@ -4,6 +4,8 @@
 #include "msr.h"
 #include "smx.h"
 
+int tpm_detect(void);
+
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
 
@@ -152,6 +154,13 @@ int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
 		out_info("ERROR: supports_txt");
+		return 0;
+	}
+
+	/* make TPM ready for measured launch */
+
+	if (!tpm_detect()) {
+		out_info("Failed to detect TPM");
 		return 0;
 	}
 	return 1;

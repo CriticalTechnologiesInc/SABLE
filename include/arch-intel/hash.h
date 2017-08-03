@@ -63,63 +63,86 @@ typedef union {
     uint8_t    sha384[SHA384_LENGTH];
 } tb_hash_t;
 
-/*
-static inline const char *hash_alg_to_string(uint16_t hash_alg)
-{
-    if ( hash_alg == TB_HALG_SHA1 || hash_alg == TB_HALG_SHA1_LG )
-        return "TB_HALG_SHA1";
-    else if ( hash_alg == TB_HALG_SHA256 )
-        return "TB_HALG_SHA256";
-    else if ( hash_alg == TB_HALG_SM3 )
-        return "TB_HALG_SM3";
-    else if ( hash_alg == TB_HALG_SHA384 )
-        return "TB_HALG_SHA384";
-    else if ( hash_alg == TB_HALG_SHA512 )
-        return "TB_HALG_SHA512";
-    else {
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "unsupported (%u)", hash_alg);
-        return buf;
-    }
-}
-*/
-
-static inline unsigned int get_hash_size(uint16_t hash_alg)
-{
-    if ( hash_alg == TB_HALG_SHA1 || hash_alg == TB_HALG_SHA1_LG )
-        return SHA1_LENGTH;
-    else if ( hash_alg == TB_HALG_SHA256 )
-        return SHA256_LENGTH;
-    else if ( hash_alg == TB_HALG_SM3 )
-        return SM3_LENGTH;
-    else if ( hash_alg == TB_HALG_SHA384 )
-        return SHA384_LENGTH;
-    else if ( hash_alg == TB_HALG_SHA512 )
-        return SHA512_LENGTH;
-    else
-        return 0;
-}
-
-extern bool are_hashes_equal(const tb_hash_t *hash1, const tb_hash_t *hash2,
-                             uint16_t hash_alg);
-extern bool hash_buffer(const unsigned char* buf, size_t size, tb_hash_t *hash,
-                        uint16_t hash_alg);
-extern bool extend_hash(tb_hash_t *hash1, const tb_hash_t *hash2,
-                        uint16_t hash_alg);
-extern void print_hash(const tb_hash_t *hash, uint16_t hash_alg);
-extern void copy_hash(tb_hash_t *dest_hash, const tb_hash_t *src_hash,
-                      uint16_t hash_alg);
-
-
+//static inline const char *hash_alg_to_string(uint16_t hash_alg)
+//{
+//    if ( hash_alg == TB_HALG_SHA1 || hash_alg == TB_HALG_SHA1_LG )
+//        return "TB_HALG_SHA1";
+//    else if ( hash_alg == TB_HALG_SHA256 )
+//        return "TB_HALG_SHA256";
+//    else if ( hash_alg == TB_HALG_SM3 )
+//        return "TB_HALG_SM3";
+//    else if ( hash_alg == TB_HALG_SHA384 )
+//        return "TB_HALG_SHA384";
+//    else if ( hash_alg == TB_HALG_SHA512 )
+//        return "TB_HALG_SHA512";
+//    else {
+//        static char buf[32];
+//        snprintf(buf, sizeof(buf), "unsupported (%u)", hash_alg);
+//        return buf;
+//    }
+//}
+//
+//static inline unsigned int get_hash_size(uint16_t hash_alg)
+//{
+//    if ( hash_alg == TB_HALG_SHA1 || hash_alg == TB_HALG_SHA1_LG )
+//        return SHA1_LENGTH;
+//    else if ( hash_alg == TB_HALG_SHA256 )
+//        return SHA256_LENGTH;
+//    else if ( hash_alg == TB_HALG_SM3 )
+//        return SM3_LENGTH;
+//    else if ( hash_alg == TB_HALG_SHA384 )
+//        return SHA384_LENGTH;
+//    else if ( hash_alg == TB_HALG_SHA512 )
+//        return SHA512_LENGTH;
+//    else
+//        return 0;
+//}
+//
+//extern bool are_hashes_equal(const tb_hash_t *hash1, const tb_hash_t *hash2,
+//                             uint16_t hash_alg);
+//extern bool hash_buffer(const unsigned char* buf, size_t size, tb_hash_t *hash,
+//                        uint16_t hash_alg);
+//extern bool extend_hash(tb_hash_t *hash1, const tb_hash_t *hash2,
+//                        uint16_t hash_alg);
+//extern void print_hash(const tb_hash_t *hash, uint16_t hash_alg);
+//extern void copy_hash(tb_hash_t *dest_hash, const tb_hash_t *src_hash,
+//                      uint16_t hash_alg);
+//
+//
 #endif    /* __HASH_H__ */
+//
+//
+///*
+// * Local variables:
+// * mode: C
+// * c-set-style: "BSD"
+// * c-basic-offset: 4
+// * tab-width: 4
+// * indent-tabs-mode: nil
+// * End:
+// */
+
 
 
 /*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
+ * state that must be saved across S3 and will be sealed for integrity
+ * before extending PCRs and launching kernel
+ */ 
+#define MAX_VL_HASHES 32
+#define MAX_ALG_NUM 5 
+     
+
+/*
+ *	we can remove following structure just copying to avoid compilation error
  */
+
+typedef struct {
+	uint16_t  alg;
+	tb_hash_t hash;
+} hash_entry_t;
+
+typedef struct {
+	uint32_t  count;
+	hash_entry_t entries[MAX_ALG_NUM];
+} hash_list_t;
+

@@ -438,12 +438,12 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   // verify SINIT AC module : step 3
   // check Intel TXT development guide for more details
 
-  if(!prepare_sinit_acm(m)) {
-     out_string("Bhushan: Problem with SINIT AC module");
+//  if(!prepare_sinit_acm(m)) {
+//     out_string("Bhushan: Problem with SINIT AC module");
 	// break here
-  } else {
-     out_info("SINIT verificaton : DONE");
-  }
+// } else {
+//     out_info("SINIT verificaton : DONE");
+//  }
 
   // verify platform : step 1
 
