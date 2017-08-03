@@ -1932,6 +1932,7 @@ static int tpm12_check(void)
 {
 	uint32_t ret, out_size = 0;
 
+	out_info("Correct till here");
 	ret = tpm12_submit_cmd(0, 0xFFFFFFFF, 0, &out_size);
 
 	return ( ret == TPM_BAD_ORDINAL );

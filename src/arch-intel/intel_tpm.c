@@ -39,6 +39,7 @@
 //#include <printk.h>
 //#include <misc.h>
 //#include <compiler.h>
+#include "platform.h"
 #include "processor.h"
 //#include <io.h>
 //#include <string.h>
@@ -52,6 +53,7 @@
 
 void out_description(const char *prefix, unsigned int value);
 void out_info(const char *msg);
+void memset(void *s, BYTE c, UINT32 len);
 
 
 __attribute__ ((__section__ (".data"))) struct tpm_if *g_tpm = NULL;
@@ -62,18 +64,19 @@ __attribute__ ((__section__ (".data"))) struct tpm_if *g_tpm = NULL;
 //
 //
 //
-///* Global variables for TPM status register */
+/* Global variables for TPM status register */
 //static tpm20_reg_sts_t       g_reg_sts, *g_reg_sts_20 = &g_reg_sts;
-//static tpm12_reg_sts_t       *g_reg_sts_12 = (tpm12_reg_sts_t *)&g_reg_sts;
+static tpm20_reg_sts_t		g_reg_sts;
+static tpm12_reg_sts_t		*g_reg_sts_12 = (tpm12_reg_sts_t *)&g_reg_sts;
 
 uint8_t g_tpm_family = 0;
 
-///* TPM_DATA_FIFO_x */
-//#define TPM_REG_DATA_FIFO        0x24
-//typedef union {
-//        uint8_t _raw[1];                      /* 1-byte reg */
-//} tpm_reg_data_fifo_t;
-//
+/* TPM_DATA_FIFO_x */
+#define TPM_REG_DATA_FIFO        0x24
+typedef union {
+	uint8_t _raw[1];                      /* 1-byte reg */
+} tpm_reg_data_fifo_t;
+
 //typedef union {
 //        uint8_t _raw[1];
 //} tpm_reg_data_crb_t;
@@ -96,6 +99,19 @@ if ( g_tpm_family == 0 ) \
 else \
     read_tpm_reg(locality, TPM_REG_STS, g_reg_sts_20); \
 }*/
+
+
+
+
+#define read_tpm_sts_reg(locality) { \
+if ( g_tpm_family == 0 ) \
+    read_tpm_reg(locality, TPM_REG_STS, g_reg_sts_12); \
+else \
+	out_info("ERROR : TPM20 : not supported"); \
+}
+
+
+
 /*
 #define write_tpm_sts_reg(locality) { \
 if ( g_tpm_family == 0 ) \
@@ -103,16 +119,22 @@ if ( g_tpm_family == 0 ) \
 else \
     write_tpm_reg(locality, TPM_REG_STS, g_reg_sts_20); \
 } */
-//
-//static void tpm_send_cmd_ready_status(uint32_t locality)
-//{
-//    /* write 1 to TPM_STS_x.commandReady to let TPM enter ready state */
-//    memset((void *)&g_reg_sts, 0, sizeof(g_reg_sts));
-//    g_reg_sts.command_ready = 1;
-//    write_tpm_sts_reg(locality);
-//}
-//
-//
+
+#define write_tpm_sts_reg(locality) { \
+if ( g_tpm_family == 0 ) \
+    write_tpm_reg(locality, TPM_REG_STS, g_reg_sts_12); \
+else \
+	out_info("ERROR : TPM20 : not supported"); \
+} 
+
+static void tpm_send_cmd_ready_status(uint32_t locality)
+{
+	/* write 1 to TPM_STS_x.commandReady to let TPM enter ready state */
+	memset((void *)&g_reg_sts, 0, sizeof(g_reg_sts));
+	g_reg_sts.command_ready = 1;
+	write_tpm_sts_reg(locality);
+}
+
 //static bool tpm_send_cmd_ready_status_crb(uint32_t locality)
 //{
 //      tpm_reg_ctrl_request_t reg_ctrl_request;
@@ -204,64 +226,67 @@ else \
 //
 //}
 //
-//static bool tpm_check_cmd_ready_status(uint32_t locality)
-//{
-//    read_tpm_sts_reg(locality);
-//#ifdef TPM_TRACE
-//    printk(TBOOT_INFO".");
-//#endif
-//    return g_reg_sts.command_ready;
-//}
-//
-//static void tpm_print_status_register(void)
-//{
-//    if ( g_tpm_family == 0 )
-//    {
-//        printk(TBOOT_DETA"TPM: status reg content: %02x %02x %02x\n",
-//            (uint32_t)g_reg_sts_12->_raw[0],
-//            (uint32_t)g_reg_sts_12->_raw[1],
-//            (uint32_t)g_reg_sts_12->_raw[2]);
-//    }
-//    else
-//    {
+static bool tpm_check_cmd_ready_status(uint32_t locality)
+{
+	read_tpm_sts_reg(locality);
+#ifdef _DEBUG_BHUSHAN_
+	out_info("tpm_check_cmd_ready_status");
+#endif
+	return g_reg_sts.command_ready;
+}
+
+static void tpm_print_status_register(void)
+{
+	if ( g_tpm_family == 0 )
+	{
+		out_info("TPM: status reg content:");
+		out_description("BIT1", (uint32_t)g_reg_sts_12->_raw[0]);
+		out_description("BIT2", (uint32_t)g_reg_sts_12->_raw[1]);
+		out_description("BIT3", (uint32_t)g_reg_sts_12->_raw[2]);
+	}
+	else
+	{
+		out_info("ERROR: Unexpected");
 //        printk(TBOOT_DETA"TPM: status reg content: %02x %02x %02x %02x\n",
 //            (uint32_t)g_reg_sts_20->_raw[0],
 //            (uint32_t)g_reg_sts_20->_raw[1],
 //            (uint32_t)g_reg_sts_20->_raw[2],
 //            (uint32_t)g_reg_sts_20->_raw[3]);
-//    }
-//}
-//
-//static u16 tpm_get_burst_count(uint32_t locality)
-//{
-//    read_tpm_sts_reg(locality);
-//    return g_reg_sts.burst_count;
-//}
-//
-//static bool tpm_check_expect_status(uint32_t locality)
-//{
-//    read_tpm_sts_reg(locality);
+	}
+}
+
+static u16 tpm_get_burst_count(uint32_t locality)
+{
+	read_tpm_sts_reg(locality);
+	return g_reg_sts.burst_count;
+}
+
+static int tpm_check_expect_status(uint32_t locality)
+{
+	out_info("tpm_check_expect_status");
+	read_tpm_sts_reg(locality);
 //#ifdef TPM_TRACE
 //    printk(TBOOT_INFO"Wait on Expect = 0, Status register %02x\n", g_reg_sts._raw[0]);
 //#endif
-//    return g_reg_sts.sts_valid == 1 && g_reg_sts.expect == 0;
-//}
+	return g_reg_sts.sts_valid == 1 && g_reg_sts.expect == 0;
+}
 //
-//static bool tpm_check_da_status(uint32_t locality)
-//{
-//    read_tpm_sts_reg(locality);
+static int  tpm_check_da_status(uint32_t locality)
+{
+	out_info("tpm_check_da_status");
+	read_tpm_sts_reg(locality);
 //#ifdef TPM_TRACE
 //    printk(TBOOT_INFO"Waiting for DA Flag, Status register %02x\n", g_reg_sts._raw[0]);
 //#endif
-//    return g_reg_sts.sts_valid == 1 && g_reg_sts.data_avail == 1;
-//}
-//
-//static void tpm_execute_cmd(uint32_t locality)
-//{
-//    memset((void *)&g_reg_sts, 0, sizeof(g_reg_sts));
-//    g_reg_sts.tpm_go = 1;
-//    write_tpm_sts_reg(locality);
-//}
+	return g_reg_sts.sts_valid == 1 && g_reg_sts.data_avail == 1;
+}
+
+static void tpm_execute_cmd(uint32_t locality)
+{
+	memset((void *)&g_reg_sts, 0, sizeof(g_reg_sts));
+	g_reg_sts.tpm_go = 1;
+	write_tpm_sts_reg(locality);
+}
 //
 int tpm_validate_locality(uint32_t locality)
 {
@@ -275,14 +300,16 @@ int tpm_validate_locality(uint32_t locality)
 	 * while this locality is not available, so check seize bit too)
 	 * It also defines that reading reg_acc.seize should always return 0
 	 */
-	read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-	if (reg_acc.tpm_reg_valid_sts == 1 && reg_acc.seize == 0)
-		return 1;
+		read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+		if (reg_acc.tpm_reg_valid_sts == 1 && reg_acc.seize == 0) {
+			return 1;
+		}
 		cpu_relax();
 	}
 	if (i <= 0) {
 		out_info("TPM: tpm_validate_locality timeout");
 	}
+
 	return 0;
 }
 //
@@ -309,11 +336,11 @@ int tpm_validate_locality(uint32_t locality)
 //}
 //
 //
-//bool tpm_wait_cmd_ready(uint32_t locality)
-//{
-//    uint32_t            i;
-//    tpm_reg_access_t    reg_acc;
-//
+int  tpm_wait_cmd_ready(uint32_t locality)
+{
+	uint32_t		i;
+	tpm_reg_access_t	reg_acc;
+
 //#if 0 /* some tpms doesn't always return 1 for reg_acc.tpm_reg_valid_sts */
 //      /* and this bit was checked in tpm_validate_locality() already, */
 //      /* so safe to skip the check here */
@@ -327,63 +354,61 @@ int tpm_validate_locality(uint32_t locality)
 //        return false;
 //    }
 //#endif
-//    /* request access to the TPM from locality N */
-//    reg_acc._raw[0] = 0;
-//    reg_acc.request_use = 1;
-//    write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//
-//    i = 0;
-//    do {
-//        read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//        if ( reg_acc.active_locality == 1 )
-//            break;
-//        else
-//            cpu_relax();
-//        i++;
-//    } while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT);
-//
-//    if ( i > TPM_ACTIVE_LOCALITY_TIME_OUT ) {
-//        printk(TBOOT_ERR"TPM: FIFO_INF access reg request use timeout\n");
-//        return false;
-//    }
-//
-//    /* ensure the TPM is ready to accept a command */
-//#ifdef TPM_TRACE
-//    printk(TBOOT_INFO"TPM: wait for cmd ready \n");
-//#endif
-//    i = 0;
-//    do {
-//        tpm_send_cmd_ready_status(locality);
-//        cpu_relax();
-//        /* then see if it has */
-//
-//        if ( tpm_check_cmd_ready_status(locality) )
-//            break;
-//        else
-//            cpu_relax();
-//        i++;
-//    } while ( i <= TPM_CMD_READY_TIME_OUT );
+	/* request access to the TPM from locality N */
+	reg_acc._raw[0] = 0;
+	reg_acc.request_use = 1;
+	write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+
+	i = 0;
+	do {
+		read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+		if (reg_acc.active_locality == 1)
+			break;
+		else
+			cpu_relax();
+		i++;
+	} while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT);
+
+	if ( i > TPM_ACTIVE_LOCALITY_TIME_OUT ) {
+		out_info("TPM: FIFO_INF access reg request use timeout");
+		return 0;
+	}
+
+	/* ensure the TPM is ready to accept a command */
+	out_info("TPM: wait for cmd ready");
+	i = 0;
+	do {
+		tpm_send_cmd_ready_status(locality);
+		cpu_relax();
+		/* then see if it has */
+
+		if (tpm_check_cmd_ready_status(locality))
+			break;
+		else
+			cpu_relax();
+		i++;
+	} while ( i <= TPM_CMD_READY_TIME_OUT );
 //#ifdef TPM_TRACE
 //    printk(TBOOT_INFO"\n");
 //#endif
-//
-//    if ( i > TPM_CMD_READY_TIME_OUT ) {
-//        tpm_print_status_register();
-//        printk(TBOOT_INFO"TPM: tpm timeout for command_ready\n");
-//        goto RelinquishControl;
-//    }
-//
-//    return true;
-//
-//RelinquishControl:
-//    /* deactivate current locality */
-//    reg_acc._raw[0] = 0;
-//    reg_acc.active_locality = 1;
-//    write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//
-//    return false;
-//}
-//
+
+	if ( i > TPM_CMD_READY_TIME_OUT ) {
+		tpm_print_status_register();
+		out_info("TPM: tpm timeout for command_ready");
+		goto RelinquishControl;
+	}
+
+	return 1;
+
+RelinquishControl:
+	/* deactivate current locality */
+	reg_acc._raw[0] = 0;
+	reg_acc.active_locality = 1;
+	write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+
+	return 0;
+}
+
 //static bool tpm_wait_cmd_ready_crb(uint32_t locality)
 //{
 //    uint32_t i;
@@ -422,120 +447,131 @@ int tpm_validate_locality(uint32_t locality)
 //
 int tpm_submit_cmd(u32 locality, u8 *in, u32 in_size,  u8 *out, u32 *out_size)
 {
-//    u32 i, rsp_size, offset;
-//    u16 row_size;
-//    tpm_reg_access_t    reg_acc;
-//    bool ret = true;
-//
-//    if ( locality >= TPM_NR_LOCALITIES ) {
-//        printk(TBOOT_WARN"TPM: Invalid locality for tpm_write_cmd_fifo()\n");
-//        return false;
-//    }
-//    if ( in == NULL || out == NULL || out_size == NULL ) {
-//        printk(TBOOT_WARN"TPM: Invalid parameter for tpm_write_cmd_fifo()\n");
-//        return false;
-//    }
-//    if ( in_size < CMD_HEAD_SIZE || *out_size < RSP_HEAD_SIZE ) {
-//        printk(TBOOT_WARN"TPM: in/out buf size must be larger than 10 bytes\n");
-//        return false;
-//    }
-//
-//    if ( !tpm_validate_locality(locality) ) {
-//        printk(TBOOT_WARN"TPM: Locality %d is not open\n", locality);
-//        return false;
-//    }
-//
-//    if ( !tpm_wait_cmd_ready(locality) )   return false;
-//
+	u32			i, rsp_size, offset;
+	u16			row_size;
+	tpm_reg_access_t	reg_acc;
+	int			ret = 1;
+
+	if (locality >= TPM_NR_LOCALITIES) {
+		out_info("TPM: Invalid locality for tpm_write_cmd_fifo()");
+		return 0;
+	}
+	if (in == NULL || out == NULL || out_size == NULL) {
+		out_info("TPM: Invalid parameter for tpm_write_cmd_fifo()");
+		return 0;
+	}
+	if (in_size < CMD_HEAD_SIZE || *out_size < RSP_HEAD_SIZE) {
+		out_info("TPM: in/out buf size must be larger than 10 bytes\n");
+		return 0;
+	}
+
+	if (!tpm_validate_locality(locality)) {
+		out_description("TPM: Locality %d is not open\n", locality);
+		return 0;
+	}
+
+	if (!tpm_wait_cmd_ready(locality)) {
+		return 0;
+	}
+
 //#ifdef TPM_TRACE
 //    {
 //        printk(TBOOT_DETA"TPM: cmd size = 0x%x\nTPM: cmd content: ", in_size);
 //        print_hex("TPM: \t", in, in_size);
 //    }
 //#endif
-//
-//    /* write the command to the TPM FIFO */
-//    offset = 0;
-//    do {
-//        i = 0;
-//        do {
-//            /* find out how many bytes the TPM can accept in a row */
-//            row_size = tpm_get_burst_count(locality);
-//            if ( row_size > 0 )   break;
-//            else  cpu_relax();
-//            i++;
-//        } while ( i <= TPM_CMD_WRITE_TIME_OUT );
-//        if ( i > TPM_CMD_WRITE_TIME_OUT ) {
-//            printk(TBOOT_ERR"TPM: write cmd timeout\n");
-//            ret = false;
-//            goto RelinquishControl;
-//        }
-//
-//        for ( ; row_size > 0 && offset < in_size; row_size--, offset++ )  write_tpm_reg(locality, TPM_REG_DATA_FIFO,  (tpm_reg_data_fifo_t *)&in[offset]);
-//    } while ( offset < in_size );
-//
-//    i = 0;
-//    do {
-//        if ( tpm_check_expect_status(locality) )  break;
-//        else   cpu_relax();
-//        i++;
-//    } while ( i <= TPM_DATA_AVAIL_TIME_OUT );
-//    if ( i > TPM_DATA_AVAIL_TIME_OUT ) {
-//        printk(TBOOT_ERR"TPM: wait for expect becoming 0 timeout\n");
-//        ret = false;
-//        goto RelinquishControl;
-//    }
-//
-//    /* command has been written to the TPM, it is time to execute it. */
-//    tpm_execute_cmd(locality);
-//
-//    /* check for data available */
-//    i = 0;
-//    do {
-//        if ( tpm_check_da_status(locality) )  break;
-//        else  cpu_relax();
-//        i++;
-//    } while ( i <= TPM_DATA_AVAIL_TIME_OUT );
-//    if ( i > TPM_DATA_AVAIL_TIME_OUT ) {
-//        printk(TBOOT_ERR"TPM: wait for data available timeout\n");
-//        ret = false;
-//        goto RelinquishControl;
-//    }
-//
-//    rsp_size = 0;
-//    offset = 0;
-//    do {
-//        /* find out how many bytes the TPM returned in a row */
-//        i = 0;
-//        do {
-//            row_size = tpm_get_burst_count(locality);
-//            if ( row_size > 0 )  break;
-//            else cpu_relax();
-//            i++;
-//        } while ( i <= TPM_RSP_READ_TIME_OUT );
-//        if ( i > TPM_RSP_READ_TIME_OUT ) {
-//            printk(TBOOT_ERR"TPM: read rsp timeout\n");
-//            ret = false;
-//            goto RelinquishControl;
-//        }
-//
-//        for ( ; row_size > 0 && offset < *out_size; row_size--, offset++ ) {
-//            if ( offset < *out_size )  read_tpm_reg(locality, TPM_REG_DATA_FIFO, (tpm_reg_data_fifo_t *)&out[offset]);
-//            else {
-//                /* discard the responded bytes exceeding out buf size */
-//                tpm_reg_data_fifo_t discard;
-//                read_tpm_reg(locality, TPM_REG_DATA_FIFO,  (tpm_reg_data_fifo_t *)&discard);
-//            }
-//
-//            /* get outgoing data size */
-//            if ( offset == RSP_RST_OFFSET - 1 ) {
-//                reverse_copy(&rsp_size, &out[RSP_SIZE_OFFSET], sizeof(rsp_size));
-//            }
-//        }
-//    } while ( offset < RSP_RST_OFFSET || (offset < rsp_size && offset < *out_size) );
-//
-//    *out_size = (*out_size > rsp_size) ? rsp_size : *out_size;
-//
+
+	/* write the command to the TPM FIFO */
+	offset = 0;
+	do {
+		i = 0;
+		do {
+			/* find out how many bytes the TPM can accept in a row */
+			row_size = tpm_get_burst_count(locality);
+			if (row_size > 0) {
+				break;
+			} else {
+				cpu_relax();
+			}
+			i++;
+		} while ( i <= TPM_CMD_WRITE_TIME_OUT );
+		if ( i > TPM_CMD_WRITE_TIME_OUT ) {
+			out_info("TPM: write cmd timeout");
+			ret = 0;
+			goto RelinquishControl;
+		}
+
+		for ( ; row_size > 0 && offset < in_size; row_size--, offset++ ) {
+			write_tpm_reg(locality, TPM_REG_DATA_FIFO,  (tpm_reg_data_fifo_t *)&in[offset]);
+		}
+	} while (offset < in_size);
+
+	i = 0;
+	do {
+		if (tpm_check_expect_status(locality)) {
+			break;
+		} else {
+			cpu_relax();
+		}
+		i++;
+	} while ( i <= TPM_DATA_AVAIL_TIME_OUT );
+	if (i > TPM_DATA_AVAIL_TIME_OUT) {
+		out_info("TPM: wait for expect becoming 0 timeout");
+		ret = 0;
+		goto RelinquishControl;
+	}
+
+	/* command has been written to the TPM, it is time to execute it. */
+	tpm_execute_cmd(locality);
+
+	/* check for data available */
+	i = 0;
+	do {
+		if (tpm_check_da_status(locality))  break;
+		else  cpu_relax();
+		i++;
+	} while ( i <= TPM_DATA_AVAIL_TIME_OUT );
+	if (i > TPM_DATA_AVAIL_TIME_OUT) {
+		out_info("TPM: wait for data available timeout");
+		ret = 0;
+		goto RelinquishControl;
+	}
+
+	rsp_size = 0;
+	offset = 0;
+	do {
+		/* find out how many bytes the TPM returned in a row */
+		i = 0;
+		do {
+			row_size = tpm_get_burst_count(locality);
+			if ( row_size > 0 )  break;
+			else cpu_relax();
+			i++;
+		} while (i <= TPM_RSP_READ_TIME_OUT);
+		if (i > TPM_RSP_READ_TIME_OUT ) {
+			out_info("TPM: read rsp timeout\n");
+			ret = 0;
+			goto RelinquishControl;
+		}
+
+		for ( ; row_size > 0 && offset < *out_size; row_size--, offset++ ) {
+			if (offset < *out_size) {
+				read_tpm_reg(locality, TPM_REG_DATA_FIFO, (tpm_reg_data_fifo_t *)&out[offset]);
+			} else {
+				/* discard the responded bytes exceeding out buf size */
+				tpm_reg_data_fifo_t discard;
+				read_tpm_reg(locality, TPM_REG_DATA_FIFO,  (tpm_reg_data_fifo_t *)&discard);
+			}
+
+			/* get outgoing data size */
+			if ( offset == RSP_RST_OFFSET - 1 ) {
+				reverse_copy(&rsp_size, &out[RSP_SIZE_OFFSET], sizeof(rsp_size));
+			}
+		}
+	} while ( offset < RSP_RST_OFFSET || (offset < rsp_size && offset < *out_size) );
+
+	*out_size = (*out_size > rsp_size) ? rsp_size : *out_size;
+
 //#ifdef TPM_TRACE
 //    {
 //        printk(TBOOT_INFO"TPM: response size = %d\n", *out_size);
@@ -543,16 +579,16 @@ int tpm_submit_cmd(u32 locality, u8 *in, u32 in_size,  u8 *out, u32 *out_size)
 //        print_hex("TPM: \t", out, *out_size);
 //    }
 //#endif
-//
-//    tpm_send_cmd_ready_status(locality);
-//
-//RelinquishControl:
-//    /* deactivate current locality */
-//    reg_acc._raw[0] = 0;
-//    reg_acc.active_locality = 1;
-//    write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//
-//    return ret;
+
+	tpm_send_cmd_ready_status(locality);
+
+RelinquishControl:
+	/* deactivate current locality */
+	reg_acc._raw[0] = 0;
+	reg_acc.active_locality = 1;
+	write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+
+	return ret;
 }
 
 
@@ -872,7 +908,7 @@ int tpm_detect(void)
 			return 0;
 		}
 		/* determine TPM family from command check */
-		if ( g_tpm->check() )  {
+		if (g_tpm->check())  {
 			g_tpm_family = TPM_IF_12;
 			out_description("TPM: discrete TPM1.2 Family", g_tpm_family);	
 		} else {

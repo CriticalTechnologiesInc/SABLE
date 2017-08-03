@@ -209,44 +209,43 @@ typedef union {
 	};
 } tpm_reg_access_t;
 
-///* TPM_STS_x */
-//
-//typedef union {
-//    u8 _raw[3];                  /* 3-byte reg */
-//    struct __packed {
-//        u8 reserved1       : 1;
-//        u8 response_retry  : 1;  /* WO, 1=re-send response */
-//        u8 self_test_done  : 1;  /* RO, only for version 2 */
-//        u8 expect          : 1;  /* RO, 1=more data for command expected */
-//        u8 data_avail      : 1;  /* RO, 0=no more data for response */
-//        u8 tpm_go          : 1;  /* WO, 1=execute sent command */
-//        u8 command_ready   : 1;  /* RW, 1=TPM ready to receive new cmd */
-//        u8 sts_valid       : 1;  /* RO, 1=data_avail and expect bits are  valid */
-//        u16 burst_count    : 16; /* RO, # read/writes bytes before wait */
-//    };
-//} tpm12_reg_sts_t;
-//
-//typedef union {
-//    u8 _raw[4];                  /* 4-byte reg */
-//    struct __packed {
-//        u8 reserved1       : 1;
-//        u8 response_retry  : 1;  /* WO, 1=re-send response */
-//        u8 self_test_done  : 1;  /* RO, only for version 2 */
-//        u8 expect          : 1;  /* RO, 1=more data for command expected */
-//        u8 data_avail      : 1;  /* RO, 0=no more data for response */
-//        u8 tpm_go          : 1;  /* WO, 1=execute sent command */
-//        u8 command_ready   : 1;  /* RW, 1=TPM ready to receive new cmd */
-//        u8 sts_valid       : 1;  /* RO, 1=data_avail and expect bits are
-//                                    valid */
-//        u16 burst_count    : 16; /* RO, # read/writes bytes before wait */
-//        /* version >= 2 */
-//        u8 command_cancel       : 1;
-//        u8 reset_establishment  : 1;
-//        u8 tpm_family           : 2;
-//        u8 reserved2            : 4;
-//    };
-//} tpm20_reg_sts_t;
-//
+/* TPM_STS_x */
+
+typedef union {
+	u8 _raw[3];                  /* 3-byte reg */
+	struct __attribute__ ((packed)) {
+		u8 reserved1       : 1;
+		u8 response_retry  : 1;  /* WO, 1=re-send response */
+		u8 self_test_done  : 1;  /* RO, only for version 2 */
+		u8 expect          : 1;  /* RO, 1=more data for command expected */
+		u8 data_avail      : 1;  /* RO, 0=no more data for response */
+		u8 tpm_go          : 1;  /* WO, 1=execute sent command */
+		u8 command_ready   : 1;  /* RW, 1=TPM ready to receive new cmd */
+		u8 sts_valid       : 1;  /* RO, 1=data_avail and expect bits are  valid */
+		u16 burst_count    : 16; /* RO, # read/writes bytes before wait */
+	};
+} tpm12_reg_sts_t;
+
+typedef union {
+	u8 _raw[4];                  /* 4-byte reg */
+	struct __attribute__ ((packed)) {
+		u8 reserved1       : 1;
+		u8 response_retry  : 1;  /* WO, 1=re-send response */
+		u8 self_test_done  : 1;  /* RO, only for version 2 */
+		u8 expect          : 1;  /* RO, 1=more data for command expected */
+		u8 data_avail      : 1;  /* RO, 0=no more data for response */
+		u8 tpm_go          : 1;  /* WO, 1=execute sent command */
+		u8 command_ready   : 1;  /* RW, 1=TPM ready to receive new cmd */
+		u8 sts_valid       : 1;  /* RO, 1=data_avail and expect bits are valid */
+		u16 burst_count    : 16; /* RO, # read/writes bytes before wait */
+		/* version >= 2 */
+		u8 command_cancel       : 1;
+		u8 reset_establishment  : 1;
+		u8 tpm_family           : 2;
+		u8 reserved2            : 4;
+	};
+} tpm20_reg_sts_t;
+
 //-----------------------------------------------------------------------------
 // CRB I/F related definitions, see TCG PC Client Platform TPM Profile (PTP) Specification, Level 00 Revision 00.43
 //-----------------------------------------------------------------------------
@@ -402,17 +401,17 @@ typedef union {
 // */
 #define read_tpm_reg(locality, reg, pdata)   _read_tpm_reg(locality, reg, (pdata)->_raw, sizeof(*(pdata)))
 //
-//#define write_tpm_reg(locality, reg, pdata)   _write_tpm_reg(locality, reg, (pdata)->_raw, sizeof(*(pdata)))
+#define write_tpm_reg(locality, reg, pdata)   _write_tpm_reg(locality, reg, (pdata)->_raw, sizeof(*(pdata)))
 //
 static inline void _read_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
 {
 	for ( size_t i = 0; i < size; i++ )   _raw[i] = readb((TPM_LOCALITY_BASE_N(locality) | reg) + i);
 }
-//
-//static inline void _write_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
-//{
-//    for ( size_t i = 0; i < size; i++ )  writeb((TPM_LOCALITY_BASE_N(locality) | reg) + i, _raw[i]);
-//}
+
+static inline void _write_tpm_reg(int locality, u32 reg, u8 *_raw, size_t size)
+{
+	for ( size_t i = 0; i < size; i++ )  writeb((TPM_LOCALITY_BASE_N(locality) | reg) + i, _raw[i]);
+}
 //
 //
 ///*
