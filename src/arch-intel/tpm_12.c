@@ -46,6 +46,7 @@
 //#include <sha1.h>
 //#include <integrity.h>
 //#include "util.h"
+#include "platform.h"
 
 /*
  * Bhushan : Manually adding out_* to avoid conflicts 
@@ -53,6 +54,8 @@
 
 void out_description(const char *prefix, unsigned int value);
 void out_info(const char *msg);
+void *memcpy(void *dest, const void *src, UINT32 len);
+void memset(void *s, BYTE c, UINT32 len);
 
 //
 ///*
@@ -103,7 +106,7 @@ void out_info(const char *msg);
 //#define TPM_ORD_PCR_RESET           0x000000C8
 //#define TPM_ORD_NV_READ_VALUE       0x000000CF
 //#define TPM_ORD_NV_WRITE_VALUE      0x000000CD
-//#define TPM_ORD_GET_CAPABILITY      0x00000065
+#define TPM_ORD_GET_CAPABILITY      0x00000065
 //#define TPM_ORD_SEAL                0x00000017
 //#define TPM_ORD_UNSEAL              0x00000018
 //#define TPM_ORD_OSAP                0x0000000B
@@ -485,7 +488,7 @@ static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_
 //
 //#define TPM_CAP_VERSION_VAL 0x1A
 //
-//typedef uint16_t tpm_structure_tag_t;
+typedef uint16_t tpm_structure_tag_t;
 //
 //typedef struct __packed {
 //   uint8_t  major;
@@ -583,20 +586,31 @@ static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_
 //    uint8_t                     enc_data[];
 //} tpm_stored_data12_t;
 //
-/*
-//#define UNLOAD_INTEGER(buf, offset, var) {\
-    reverse_copy(buf + offset, &(var), sizeof(var));\
-    offset += sizeof(var);\
-}*/
-/*
-//#define UNLOAD_BLOB(buf, offset, blob, size) {\
-    memcpy(buf + offset, blob, size);\
-    offset += size;\
-}
-//
-//#define UNLOAD_BLOB_TYPE(buf, offset, blob) \
-    UNLOAD_BLOB(buf, offset, blob, sizeof(*(blob)))
 
+#define UNLOAD_INTEGER(buf, offset, var) {\
+	reverse_copy(buf + offset, &(var), sizeof(var));\
+	offset += sizeof(var);\
+}
+
+#define UNLOAD_BLOB(buf, offset, blob, size) {\
+	memcpy(buf + offset, blob, size);\
+	offset += size;\
+}
+
+#define UNLOAD_BLOB_TYPE(buf, offset, blob) \
+	UNLOAD_BLOB(buf, offset, blob, sizeof(*(blob)))
+
+#define LOAD_INTEGER(buf, offset, var) {\
+	reverse_copy(&(var), buf + offset, sizeof(var));\
+	offset += sizeof(var);\
+}
+
+#define LOAD_BLOB(buf, offset, blob, size) {\
+	memcpy(blob, buf + offset, size);\
+	offset += size;\
+}
+
+/*
 //#define UNLOAD_PCR_SELECTION(buf, offset, sel) {\
     UNLOAD_INTEGER(buf, offset, (sel)->size_of_select);\
     UNLOAD_BLOB(buf, offset, (sel)->pcr_select, (sel)->size_of_select);\
@@ -635,16 +649,10 @@ static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_
 //   }\
 //}
 //
-//#define LOAD_INTEGER(buf, offset, var) {\
-//    reverse_copy(&(var), buf + offset, sizeof(var));\
-//    offset += sizeof(var);\
-//}
-//
-//#define LOAD_BLOB(buf, offset, blob, size) {\
-//    memcpy(blob, buf + offset, size);\
-//    offset += size;\
-//}
-//
+
+
+
+
 //#define LOAD_BLOB_TYPE(buf, offset, blob) \
 //    LOAD_BLOB(buf, offset, blob, sizeof(*(blob)))
 //
@@ -1349,48 +1357,46 @@ static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_
 //    return true;
 //}
 //
-//typedef uint32_t tpm_capability_area_t;
+typedef uint32_t tpm_capability_area_t;
 //
 //#define TPM_CAP_NV_INDEX    0x00000011
 //
-//static uint32_t tpm12_get_capability(uint32_t locality, tpm_capability_area_t cap_area,
-//                  uint32_t sub_cap_size, const uint8_t *sub_cap,
-//                  uint32_t *resp_size, uint8_t *resp)
-//{
-//    uint32_t ret, offset, out_size;
-//
-//    if ( sub_cap == NULL || resp_size == NULL || resp == NULL ) {
-//        printk(TBOOT_WARN"TPM: tpm12_get_capability() bad parameter\n");
-//        return TPM_BAD_PARAMETER;
-//    }
-//
-//    offset = 0;
-//    UNLOAD_INTEGER(WRAPPER_IN_BUF, offset, cap_area);
-//    UNLOAD_INTEGER(WRAPPER_IN_BUF, offset, sub_cap_size);
-//    UNLOAD_BLOB(WRAPPER_IN_BUF, offset, sub_cap, sub_cap_size);
-//
-//    out_size = sizeof(*resp_size) + *resp_size;
-//
-//    ret = tpm12_submit_cmd(locality, TPM_ORD_GET_CAPABILITY, offset, &out_size);
-//
+static uint32_t tpm12_get_capability(uint32_t locality, tpm_capability_area_t cap_area, uint32_t sub_cap_size, const uint8_t *sub_cap, uint32_t *resp_size, uint8_t *resp)
+{
+	uint32_t ret, offset, out_size;
+
+	if (sub_cap == NULL || resp_size == NULL || resp == NULL) {
+		out_info("TPM: tpm12_get_capability() bad parameter\n");
+		return TPM_BAD_PARAMETER;
+	}
+
+	offset = 0;
+	UNLOAD_INTEGER(WRAPPER_IN_BUF, offset, cap_area);
+	UNLOAD_INTEGER(WRAPPER_IN_BUF, offset, sub_cap_size);
+	UNLOAD_BLOB(WRAPPER_IN_BUF, offset, sub_cap, sub_cap_size);
+
+	out_size = sizeof(*resp_size) + *resp_size;
+
+	ret = tpm12_submit_cmd(locality, TPM_ORD_GET_CAPABILITY, offset, &out_size);
+
 //#ifdef TPM_TRACE
 //    printk(TBOOT_DETA"TPM: get capability, return value = %08X\n", ret);
 //#endif
-//    if ( ret != TPM_SUCCESS ) {
-//        printk(TBOOT_DETA"TPM: get capability, return value = %08X\n", ret);
-//        return ret;
-//    }
-//
-//    offset = 0;
-//    LOAD_INTEGER(WRAPPER_OUT_BUF, offset, *resp_size);
-//    if ( out_size < sizeof(*resp_size) + *resp_size ) {
-//        printk(TBOOT_WARN"TPM: capability response too small\n");
-//        return TPM_FAIL;
-//    }
-//    LOAD_BLOB(WRAPPER_OUT_BUF, offset, resp, *resp_size);
-//
-//    return ret;
-//}
+	if (ret != TPM_SUCCESS) {
+		out_description("TPM: get capability, return value = ", ret);
+		return ret;
+	}
+
+	offset = 0;
+	LOAD_INTEGER(WRAPPER_OUT_BUF, offset, *resp_size);
+	if (out_size < sizeof(*resp_size) + *resp_size) {
+		out_info("TPM: capability response too small");
+		return TPM_FAIL;
+	}
+	LOAD_BLOB(WRAPPER_OUT_BUF, offset, resp, *resp_size);
+
+	return ret;
+}
 //
 //typedef struct __packed {
 //    tpm_pcr_selection_t         pcr_selection;
@@ -1563,232 +1569,235 @@ static inline uint32_t tpm12_submit_cmd(uint32_t locality, uint32_t cmd, uint32_
 //    return true;
 //}
 //
-//typedef struct __packed {
-//    tpm_structure_tag_t tag;
-//    uint8_t disable;
-//    uint8_t ownership;
-//    uint8_t deactivated;
-//    uint8_t read_pubek;
-//    uint8_t disable_owner_clear;
-//    uint8_t allow_maintenance;
-//    uint8_t physical_presence_lifetime_lock;
-//    uint8_t physical_presence_hw_enable;
-//    uint8_t physical_presence_cmd_enable;
-//    uint8_t cekp_used;
-//    uint8_t tpm_post;
-//    uint8_t tpm_post_lock;
-//    uint8_t fips;
-//    uint8_t operator;
-//    uint8_t enable_revoke_ek;
-//    uint8_t nv_locked;
-//    uint8_t read_srk_pub;
-//    uint8_t tpm_established;
-//    uint8_t maintenance_done;
-//    uint8_t disable_full_da_logic_info;
-//} tpm_permanent_flags_t;
-//
-//typedef struct __packed {
-//    tpm_structure_tag_t tag;
-//    uint8_t deactivated;
-//    uint8_t disable_force_clear;
-//    uint8_t physical_presence;
-//    uint8_t phycical_presence_lock;
-//    uint8_t b_global_lock;
-//} tpm_stclear_flags_t;
-//
-//#define TPM_CAP_FLAG            0x00000004
-//#define TPM_CAP_FLAG_PERMANENT  0x00000108
-//#define TPM_CAP_FLAG_VOLATILE   0x00000109
-//
-//static uint32_t tpm12_get_flags(uint32_t locality, uint32_t flag_id,
-//                       uint8_t *flags, uint32_t flag_size)
-//{
-//    uint32_t ret, offset, resp_size;
-//    uint8_t sub_cap[sizeof(flag_id)];
-//    tpm_structure_tag_t tag;
-//
-//    if ( flags == NULL ) {
-//        printk(TBOOT_WARN"TPM: tpm12_get_flags() bad parameter\n");
-//        return TPM_BAD_PARAMETER;
-//    }
-//
-//    offset = 0;
-//    UNLOAD_INTEGER(sub_cap, offset, flag_id);
-//
-//    resp_size = flag_size;
-//    ret = tpm12_get_capability(locality, TPM_CAP_FLAG, sizeof(sub_cap),
-//                             sub_cap, &resp_size, flags);
-//
+typedef struct __attribute__ ((packed)) {
+	tpm_structure_tag_t tag;
+	uint8_t disable;
+	uint8_t ownership;
+	uint8_t deactivated;
+	uint8_t read_pubek;
+	uint8_t disable_owner_clear;
+	uint8_t allow_maintenance;
+	uint8_t physical_presence_lifetime_lock;
+	uint8_t physical_presence_hw_enable;
+	uint8_t physical_presence_cmd_enable;
+	uint8_t cekp_used;
+	uint8_t tpm_post;
+	uint8_t tpm_post_lock;
+	uint8_t fips;
+	uint8_t operator;
+	uint8_t enable_revoke_ek;
+	uint8_t nv_locked;
+	uint8_t read_srk_pub;
+	uint8_t tpm_established;
+	uint8_t maintenance_done;
+	uint8_t disable_full_da_logic_info;
+} tpm_permanent_flags_t;
+
+typedef struct __attribute__ ((packed)) {
+	tpm_structure_tag_t tag;
+	uint8_t deactivated;
+	uint8_t disable_force_clear;
+	uint8_t physical_presence;
+	uint8_t phycical_presence_lock;
+	uint8_t b_global_lock;
+} tpm_stclear_flags_t;
+
+#define TPM_CAP_FLAG            0x00000004
+#define TPM_CAP_FLAG_PERMANENT  0x00000108
+#define TPM_CAP_FLAG_VOLATILE   0x00000109
+
+static uint32_t tpm12_get_flags(uint32_t locality, uint32_t flag_id, uint8_t *flags, uint32_t flag_size)
+{
+	uint32_t ret, offset, resp_size;
+	uint8_t sub_cap[sizeof(flag_id)];
+	tpm_structure_tag_t tag;
+
+	if (flags == NULL) {
+		out_info("TPM: tpm12_get_flags() bad parameter");
+		return TPM_BAD_PARAMETER;
+	}
+
+	offset = 0;
+	UNLOAD_INTEGER(sub_cap, offset, flag_id);
+
+	resp_size = flag_size;
+	ret = tpm12_get_capability(locality, TPM_CAP_FLAG, sizeof(sub_cap), sub_cap, &resp_size, flags);
+
 //#ifdef TPM_TRACE
 //    printk(TBOOT_DETA"TPM: get flags %08X, return value = %08X\n", flag_id, ret);
 //#endif
-//    if ( ret != TPM_SUCCESS )
-//        return ret;
-//
-//    /* 1.2 spec, main part 2, rev 103 add one more byte to permanent flags, to
-//       be backward compatible, not assume all expected bytes can be gotten */
-//    if ( resp_size > flag_size ) {
-//        printk(TBOOT_WARN"TPM: tpm12_get_flags() response size too small\n");
-//        return TPM_FAIL;
-//    }
-//
-//    offset = 0;
-//    LOAD_INTEGER(flags, offset, tag);
-//    offset = 0;
-//    UNLOAD_BLOB_TYPE(flags, offset, &tag);
-//
-//    return ret;
-//}
-//
-//#define TPM_CAP_PROPERTY          0x00000005
-//#define TPM_CAP_PROP_TIS_TIMEOUT  0x00000115
-//
-//static uint32_t tpm12_get_timeout(uint32_t locality,
-//                       uint8_t *prop, uint32_t prop_size)
-//{
-//    uint32_t ret, offset, resp_size, prop_id = TPM_CAP_PROP_TIS_TIMEOUT;
-//    uint8_t sub_cap[sizeof(prop_id)];
-//    uint32_t resp[4];
-//
-//    if ( (prop == NULL) || (prop_size < sizeof(resp)) ) {
-//        printk(TBOOT_WARN"TPM: tpm12_get_timeout() bad parameter\n");
-//        return TPM_BAD_PARAMETER;
-//    }
-//
-//    offset = 0;
-//    UNLOAD_INTEGER(sub_cap, offset, prop_id);
-//
-//    resp_size = prop_size;
-//    ret = tpm12_get_capability(locality, TPM_CAP_PROPERTY, sizeof(sub_cap),
-//                             sub_cap, &resp_size, prop);
-//
+
+	if (ret != TPM_SUCCESS)
+		return ret;
+
+	/* 1.2 spec, main part 2, rev 103 add one more byte to permanent flags, to
+	 * be backward compatible, not assume all expected bytes can be gotten */
+
+	if (resp_size > flag_size) {
+		out_info("TPM: tpm12_get_flags() response size too small\n");
+		return TPM_FAIL;
+	}
+
+	offset = 0;
+	LOAD_INTEGER(flags, offset, tag);
+	offset = 0;
+	UNLOAD_BLOB_TYPE(flags, offset, &tag);
+
+	return ret;
+}
+
+#define TPM_CAP_PROPERTY          0x00000005
+#define TPM_CAP_PROP_TIS_TIMEOUT  0x00000115
+
+static uint32_t tpm12_get_timeout(uint32_t locality, uint8_t *prop, uint32_t prop_size)
+{
+	uint32_t ret, offset, resp_size, prop_id = TPM_CAP_PROP_TIS_TIMEOUT;
+	uint8_t sub_cap[sizeof(prop_id)];
+	uint32_t resp[4];
+
+	if ((prop == NULL) || (prop_size < sizeof(resp))) {
+		out_info("TPM: tpm12_get_timeout() bad parameter");
+		return TPM_BAD_PARAMETER;
+	}
+
+	offset = 0;
+	UNLOAD_INTEGER(sub_cap, offset, prop_id);
+
+	resp_size = prop_size;
+	ret = tpm12_get_capability(locality, TPM_CAP_PROPERTY, sizeof(sub_cap), sub_cap, &resp_size, prop);
+
 //#ifdef TPM_TRACE
 //    printk(TBOOT_DETA"TPM: get prop %08X, return value = %08X\n", prop_id, ret);
 //#endif
-//    if ( ret != TPM_SUCCESS )
-//        return ret;
-//
-//    if ( resp_size != prop_size ) {
-//        printk(TBOOT_WARN"TPM: tpm_get_property() response size incorrect\n");
-//        return TPM_FAIL;
-//    }
-//
-//    offset = 0;
-//    LOAD_INTEGER(prop, offset, resp);
-//    offset = 0;
-//    UNLOAD_BLOB_TYPE(prop, offset, &resp);
-//
-//    return ret;
-//}
-//
-///* ensure TPM is ready to accept commands */
-//static bool tpm12_init(struct tpm_if *ti)
-//{
-//    tpm_permanent_flags_t pflags;
-//    tpm_stclear_flags_t vflags;
-//    uint32_t timeout[4];
-//    uint32_t locality;
-//    uint32_t ret;
-//
-//    if ( ti == NULL )
-//        return false;
-//
-//    locality = ti->cur_loc;
-//    if ( !tpm_validate_locality(locality) ) {
-//        printk(TBOOT_WARN"TPM is not available.\n");
-//        return false;
-//    }
-//
-//    /* make sure tpm is not disabled/deactivated */
-//    memset(&pflags, 0, sizeof(pflags));
-//    ret = tpm12_get_flags(locality, TPM_CAP_FLAG_PERMANENT,
-//                        (uint8_t *)&pflags, sizeof(pflags));
-//    if ( ret != TPM_SUCCESS ) {
-//        printk(TBOOT_WARN"TPM is disabled or deactivated.\n");
-//        ti->error = ret;
-//        return false;
-//    }
-//    if ( pflags.disable ) {
-//        printk(TBOOT_WARN"TPM is disabled.\n");
-//        return false;
-//    }
-//
-//    memset(&vflags, 0, sizeof(vflags));
-//    ret = tpm12_get_flags(locality, TPM_CAP_FLAG_VOLATILE,
-//                        (uint8_t *)&vflags, sizeof(vflags));
-//    if ( ret != TPM_SUCCESS ) {
-//        printk(TBOOT_WARN"TPM is disabled or deactivated.\n");
-//        ti->error = ret;
-//        return false;
-//    }
-//    if ( vflags.deactivated ) {
-//        printk(TBOOT_WARN"TPM is deactivated.\n");
-//        return false;
-//    }
-//
-//    printk(TBOOT_INFO"TPM is ready\n");
-//    printk(TBOOT_DETA"TPM nv_locked: %s\n", (pflags.nv_locked != 0) ? "TRUE" : "FALSE");
-//
-//    /* get tpm timeout values */
-//    ret = tpm12_get_timeout(locality, (uint8_t *)&timeout, sizeof(timeout));
-//    if ( ret != TPM_SUCCESS ) {
-//        printk(TBOOT_WARN"TPM timeout values are not achieved, "
-//               "default values will be used.\n");
-//        ti->error = ret;
-//    } else {
-//        /*
-//         * timeout_x represents the number of milliseconds for the timeout
-//         * and timeout[x] represents the number of microseconds.
-//         */
-//        ti->timeout.timeout_a = timeout[0]/1000;
-//        ti->timeout.timeout_b = timeout[1]/1000;
-//        ti->timeout.timeout_c = timeout[2]/1000;
-//        ti->timeout.timeout_d = timeout[3]/1000;
-//        printk(TBOOT_DETA"TPM timeout values: A: %u, B: %u, C: %u, D: %u\n",
-//               ti->timeout.timeout_a, ti->timeout.timeout_b, ti->timeout.timeout_c,
-//               ti->timeout.timeout_d);
-//        /*
-//         * if any timeout values are less than default values, set to default
-//         * value (due to bug with some TPMs)
-//         */
-//        if ( ti->timeout.timeout_a < TIMEOUT_A ) {
-//            ti->timeout.timeout_a = TIMEOUT_A;
-//            printk(TBOOT_WARN"Wrong timeout A, fallback to %u\n", TIMEOUT_A);
-//        }
-//        if ( ti->timeout.timeout_b < TIMEOUT_B ) {
-//            ti->timeout.timeout_b = TIMEOUT_B;
-//            printk(TBOOT_WARN"Wrong timeout B, fallback to %u\n", TIMEOUT_B);
-//        }
-//        if ( ti->timeout.timeout_c < TIMEOUT_C ) {
-//            ti->timeout.timeout_c = TIMEOUT_C;
-//            printk(TBOOT_WARN"Wrong timeout C, fallback to %u\n", TIMEOUT_C);
-//        }
-//        if ( ti->timeout.timeout_d < TIMEOUT_D ) {
-//            ti->timeout.timeout_d = TIMEOUT_D;
-//            printk(TBOOT_WARN"Wrong timeout D, fallback to %u\n", TIMEOUT_D);
-//        }
-//    }
-//
-//    /* init version */
-//    ti->major = TPM12_VER_MAJOR;
-//    ti->minor = TPM12_VER_MINOR;
-//
-//    /* init supported alg list */
-//    ti->banks = 1;
-//    ti->alg_count = 1;
-//    ti->algs[0] = TB_HALG_SHA1; 
-//    ti->extpol = TB_EXTPOL_FIXED;
-//    ti->cur_alg = TB_HALG_SHA1;
-//
-//    /* init NV index */
-//    ti->tb_policy_index = 0x20000001;
-//    ti->lcp_own_index = 0x40000001;
-//    ti->tb_err_index = 0x20000002;
-//    ti->sgx_svn_index = 0x50000004;
-//    
-//    return true;
-//}
-//
+
+	if (ret != TPM_SUCCESS)
+		return ret;
+
+	if (resp_size != prop_size) {
+		out_info("TPM: tpm_get_property() response size incorrect");
+		return TPM_FAIL;
+	}
+
+	offset = 0;
+	LOAD_INTEGER(prop, offset, resp);
+	offset = 0;
+	UNLOAD_BLOB_TYPE(prop, offset, &resp);
+
+	return ret;
+}
+
+/* ensure TPM is ready to accept commands */
+static int tpm12_init(struct tpm_if *ti)
+{
+	tpm_permanent_flags_t pflags;
+	tpm_stclear_flags_t vflags;
+	uint32_t timeout[4];
+	uint32_t locality;
+	uint32_t ret;
+
+	if (ti == NULL)
+		return 0;
+
+	locality = ti->cur_loc;
+	if (!tpm_validate_locality(locality)) {
+		out_info("TPM is not available.");
+		return 0;
+	}
+
+	/* make sure tpm is not disabled/deactivated */
+	memset(&pflags, 0, sizeof(pflags));
+	ret = tpm12_get_flags(locality, TPM_CAP_FLAG_PERMANENT, (uint8_t *)&pflags, sizeof(pflags));
+	if (ret != TPM_SUCCESS) {
+		out_info("TPM is disabled or deactivated.");
+		ti->error = ret;
+		return false;
+	}
+	if (pflags.disable) {
+		out_info("TPM is disabled.");
+		return 0;
+	}
+
+	memset(&vflags, 0, sizeof(vflags));
+	ret = tpm12_get_flags(locality, TPM_CAP_FLAG_VOLATILE, (uint8_t *)&vflags, sizeof(vflags));
+	if (ret != TPM_SUCCESS) {
+		out_info("TPM is disabled or deactivated.\n");
+		ti->error = ret;
+		return 0;
+	}
+	if ( vflags.deactivated ) {
+		out_info("TPM is deactivated.\n");
+		return 0;
+	}
+
+	out_info("TPM is ready\n");
+	out_description("TPM nv_locked:", (pflags.nv_locked != 0) ? 1 : 0);
+
+	/* get tpm timeout values */
+	ret = tpm12_get_timeout(locality, (uint8_t *)&timeout, sizeof(timeout));
+	if (ret != TPM_SUCCESS) {
+		out_info("TPM timeout values are not achieved default values will be used.\n");
+		ti->error = ret;
+	} else {
+
+		/*
+		 * timeout_x represents the number of milliseconds for the timeout
+		 * and timeout[x] represents the number of microseconds.
+		 */
+
+		ti->timeout.timeout_a = timeout[0]/1000;
+		ti->timeout.timeout_b = timeout[1]/1000;
+		ti->timeout.timeout_c = timeout[2]/1000;
+		ti->timeout.timeout_d = timeout[3]/1000;
+
+		out_info("TPM timeout values:");
+		out_description("A:", ti->timeout.timeout_a);
+		out_description("B:", ti->timeout.timeout_b);
+		out_description("C:", ti->timeout.timeout_c);
+		out_description("D:", ti->timeout.timeout_d);
+
+		/*
+		 * if any timeout values are less than default values, set to default
+		 * value (due to bug with some TPMs)
+		 */
+
+		if (ti->timeout.timeout_a < TIMEOUT_A) {
+			ti->timeout.timeout_a = TIMEOUT_A;
+			out_description("Wrong timeout A, fallback to ", TIMEOUT_A);
+		}
+		if (ti->timeout.timeout_b < TIMEOUT_B) {
+			ti->timeout.timeout_b = TIMEOUT_B;
+			out_description("Wrong timeout B, fallback to", TIMEOUT_B);
+		}
+		if (ti->timeout.timeout_c < TIMEOUT_C) {
+			ti->timeout.timeout_c = TIMEOUT_C;
+			out_description("Wrong timeout C, fallback to", TIMEOUT_C);
+		}
+		if (ti->timeout.timeout_d < TIMEOUT_D) {
+			ti->timeout.timeout_d = TIMEOUT_D;
+			out_description("Wrong timeout D, fallback", TIMEOUT_D);
+		}
+	}
+
+	/* init version */
+	ti->major = TPM12_VER_MAJOR;
+	ti->minor = TPM12_VER_MINOR;
+
+	/* init supported alg list */
+	ti->banks = 1;
+	ti->alg_count = 1;
+	ti->algs[0] = TB_HALG_SHA1; 
+	ti->extpol = TB_EXTPOL_FIXED;
+	ti->cur_alg = TB_HALG_SHA1;
+
+	/* init NV index */
+	ti->tb_policy_index = 0x20000001;
+	ti->lcp_own_index = 0x40000001;
+	ti->tb_err_index = 0x20000002;
+	ti->sgx_svn_index = 0x50000004;
+
+	return 1;
+}
+
 //static uint32_t tpm12_save_state(struct tpm_if *ti, uint32_t locality)
 //{
 //    uint32_t ret, offset, out_size;
@@ -1939,7 +1948,7 @@ static int tpm12_check(void)
 }
 //
 struct tpm_if tpm_12_if = {
-//    .init = tpm12_init,
+	.init = tpm12_init,
 //    .pcr_read = tpm12_pcr_read,
 //    .pcr_extend = tpm12_pcr_extend,
 //    .pcr_reset = tpm12_pcr_reset,

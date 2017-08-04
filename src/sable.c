@@ -418,7 +418,7 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch 002\n");
+  out_string("I am in pre_launch 005\n");
   out_description("Bhushan: module count", m->mods_count);
 
 
@@ -448,7 +448,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   // verify platform : step 1
 
   // perform tpm_detect()
-
+  wait(2000);
   if(!platform_pre_checks()) {
      out_string("Bhushan: Problem with platform configuration detected");
      // break here

@@ -48,12 +48,13 @@
 
 
 /*
- * Bhushan : Adding out_* to avoid compilation errors
+ * Bhushan : Adding out_* to avoid compilation errors : Move this to correct .h file
  */
 
 void out_description(const char *prefix, unsigned int value);
 void out_info(const char *msg);
 void memset(void *s, BYTE c, UINT32 len);
+void wait(int ms);
 
 
 __attribute__ ((__section__ (".data"))) struct tpm_if *g_tpm = NULL;
@@ -907,6 +908,8 @@ int tpm_detect(void)
 			out_info("TPM: FIFO_INF Locality 0 is not open");
 			return 0;
 		}
+		out_info("tpm_detect: Ok till now");
+		wait(2000);
 		/* determine TPM family from command check */
 		if (g_tpm->check())  {
 			g_tpm_family = TPM_IF_12;
@@ -916,6 +919,8 @@ int tpm_detect(void)
 			out_description("ERROR: TPM: discrete TPM2.0 Family", g_tpm_family);
 			return 0;
 		}
+		out_info("TPM1_2 check : Done");
+		wait(2000);
 	}
 
 	if (g_tpm_family == TPM_IF_12)  g_tpm = &tpm_12_if;

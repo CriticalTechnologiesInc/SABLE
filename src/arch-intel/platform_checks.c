@@ -156,12 +156,16 @@ int platform_pre_checks() {
 		out_info("ERROR: supports_txt");
 		return 0;
 	}
-
+	out_info("Suppots_txt : DONE");
+	wait(2000);
 	/* make TPM ready for measured launch */
 
 	if (!tpm_detect()) {
 		out_info("Failed to detect TPM");
 		return 0;
+	} else {
+		out_info("TPM is detected and initialized");
 	}
+	wait(2000);
 	return 1;
 }

@@ -530,7 +530,7 @@ extern struct tpm_if tpm_12_if;
 //extern struct tpm_if *g_tpm;
 //extern uint8_t g_tpm_family;
 //
-//extern bool tpm_validate_locality(uint32_t locality);
+extern int tpm_validate_locality(uint32_t locality);
 //extern bool tpm_validate_locality_crb(uint32_t locality);
 //extern bool release_locality(uint32_t locality);
 //extern bool prepare_tpm(void);
