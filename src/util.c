@@ -34,6 +34,19 @@ void out_hex(unsigned value, unsigned bitlen) {
   }
 }
 
+void out_hex64(unsigned long long value) {
+  int i;
+  for (i = 60; i >= 0; i -= 4) {
+    unsigned a = (value >> i) & 0xf;
+    if (a >= 10)
+      a += 7;
+    a += 0x30;
+
+    out_char(a);
+  }
+}
+
+
 /**
  * Output a single hex value.
  */
@@ -236,6 +249,18 @@ void out_description(const char *prefix, unsigned int value) {
   out_string(prefix);
   out_string(": 0x");
   out_hex(value, 0);
+  out_char('\n');
+}
+
+/*
+ * Output a string followed by a 64 bit hex value
+ */
+
+void out_description64(const char *prefix, unsigned long long value) {
+  out_string(message_label);
+  out_string(prefix);
+  out_string(": 0x");
+  out_hex64(value);
   out_char('\n');
 }
 

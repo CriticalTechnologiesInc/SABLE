@@ -418,14 +418,17 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch 005\n");
+  out_string("I am in pre_launch 006\n");
   out_description("Bhushan: module count", m->mods_count);
 
 
   determine_loader_type(flags);
   wait(2000);
 
-  // Bhushan: check for system bootstrap processor
+  /*
+   * Bhushan: check for system bootstrap processor
+   */
+
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
      out_string("Bhushan: Not a system bootstrap processor\n");
   } else {
@@ -433,28 +436,38 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   }
   out_description("BSP is cpu ", get_apicid());
 
-  // Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
+  /*
+   * Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
+   */
 
-  // verify SINIT AC module : step 3
-  // check Intel TXT development guide for more details
+  /*
+   * verify SINIT AC module : step 3
+   */
 
-//  if(!prepare_sinit_acm(m)) {
-//     out_string("Bhushan: Problem with SINIT AC module");
-	// break here
-// } else {
-//     out_info("SINIT verificaton : DONE");
-//  }
+  if(!prepare_sinit_acm(m)) {
+     out_string("Bhushan: Problem with SINIT AC module");
+     // ERROR occurred : Stop here
+  } else {
+     out_info("SINIT verificaton : DONE");
+  }
 
-  // verify platform : step 1
+  /*
+   * verify platform : step 1
+   */
 
-  // perform tpm_detect()
   wait(2000);
   if(!platform_pre_checks()) {
-     out_string("Bhushan: Problem with platform configuration detected");
-     // break here
+     out_info("Bhushan: Problem with platform configuration detected");
+     // ERROR occurred : Stop here
   } else {
-     out_string("Platform verification : DONE");
+     out_info("Platform verification : DONE");
   }
+  out_description64("Testing 64", 0x1F1F1F1F1F1F1F1F);
+
+  /*
+   * skipping step to create policy for launch : set_policy()
+   */
+
 
   init_heap();
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");

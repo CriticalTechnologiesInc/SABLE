@@ -5,6 +5,7 @@
 #include "smx.h"
 
 int tpm_detect(void);
+extern void txt_display_errors(void);
 
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
@@ -150,6 +151,24 @@ int supports_txt(void)
 	return 0;
 }
 
+void verify_IA32_se_svn_status()
+{
+
+	out_info("SGX:verify_IA32_se_svn_status is called");
+
+	//check if SGX is enabled by cpuid with ax=7, cx=0 
+	if ((cpuid_ebx1(7,0) & 0x00000004) == 0){
+		out_description("SGX is not enabled, cpuid.ebx", cpuid_ebx1(7,0));
+		return;
+	}
+	out_info("SGX is enabled : We dont support that right now");
+
+	/*
+	 * we need to compaire se_svn with ACM Header se_svn
+	 */ 
+
+}
+
 int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
@@ -167,5 +186,13 @@ int platform_pre_checks() {
 		out_info("TPM is detected and initialized");
 	}
 	wait(2000);
+
+	/* verify SE enablement status */
+	verify_IA32_se_svn_status();
+
+	/* check previous erros */
+	txt_display_errors();
+	wait(2000);
+	
 	return 1;
 }
