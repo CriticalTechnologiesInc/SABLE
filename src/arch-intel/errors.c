@@ -72,8 +72,8 @@ void txt_display_errors(void)
 	 */
 
 	err = (txt_errorcode_t)read_pub_config_reg(TXTCR_ERRORCODE);
-	if (txt_has_error() == 0) {
-		out_info("ERROR : Break here");
+	if (txt_has_error() != 0) {
+		out_info("ERROR : Need attention");
 	}
 	out_description64("TXT.ERRORCODE ", err._raw);
 
