@@ -2,6 +2,8 @@
 #include "smx.h"
 #include "processor.h"
 #include "util.h"
+#include "config_regs.h"
+#include "msr.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -786,14 +788,14 @@ int get_parameters(getsec_parameters_t *params)
 //        printk(TBOOT_INFO"all APs in wait-for-sipi\n");
 //}
 //
-//bool txt_is_launched(void)
-//{
-//    txt_sts_t sts;
-//
-//    sts._raw = read_pub_config_reg(TXTCR_STS);
-//
-//    return sts.senter_done_sts;
-//}
+int txt_is_launched(void)
+{
+	txt_sts_t sts;
+
+	sts._raw = read_pub_config_reg(TXTCR_STS);
+
+	return sts.senter_done_sts;
+}
 //
 //tb_error_t txt_launch_environment(loader_ctx *lctx)
 //{
@@ -949,101 +951,103 @@ int get_parameters(getsec_parameters_t *params)
 //    return TB_ERR_FATAL;
 //}
 //
-//bool txt_prepare_cpu(void)
-//{
-//    unsigned long eflags, cr0;
-//    uint64_t mcg_cap, mcg_stat;
-//
-//    /* must be running at CPL 0 => this is implicit in even getting this far */
-//    /* since our bootstrap code loads a GDT, etc. */
-//
-//    cr0 = read_cr0();
-//
-//    /* must be in protected mode */
-//    if ( !(cr0 & CR0_PE) ) {
-//        printk(TBOOT_ERR"ERR: not in protected mode\n");
-//        return false;
-//    }
-//
-//    /* cache must be enabled (CR0.CD = CR0.NW = 0) */
-//    if ( cr0 & CR0_CD ) {
-//        printk(TBOOT_INFO"CR0.CD set\n");
-//        cr0 &= ~CR0_CD;
-//    }
-//    if ( cr0 & CR0_NW ) {
-//        printk(TBOOT_INFO"CR0.NW set\n");
-//        cr0 &= ~CR0_NW;
-//    }
-//
-//    /* native FPU error reporting must be enabled for proper */
-//    /* interaction behavior */
-//    if ( !(cr0 & CR0_NE) ) {
-//        printk(TBOOT_INFO"CR0.NE not set\n");
-//        cr0 |= CR0_NE;
-//    }
-//
-//    write_cr0(cr0);
-//
-//    /* cannot be in virtual-8086 mode (EFLAGS.VM=1) */
-//    eflags = read_eflags();
-//    if ( eflags & X86_EFLAGS_VM ) {
-//        printk(TBOOT_INFO"EFLAGS.VM set\n");
-//        write_eflags(eflags | ~X86_EFLAGS_VM);
-//    }
-//
-//    printk(TBOOT_INFO"CR0 and EFLAGS OK\n");
-//
-//    /*
-//     * verify that we're not already in a protected environment
-//     */
-//    if ( txt_is_launched() ) {
-//        printk(TBOOT_ERR"already in protected environment\n");
-//        return false;
-//    }
-//
-//    /*
-//     * verify all machine check status registers are clear (unless
-//     * support preserving them)
-//     */
-//
-//    /* no machine check in progress (IA32_MCG_STATUS.MCIP=1) */
-//    mcg_stat = rdmsr(MSR_MCG_STATUS);
-//    if ( mcg_stat & 0x04 ) {
-//        printk(TBOOT_ERR"machine check in progress\n");
-//        return false;
-//    }
-//
-//    getsec_parameters_t params;
-//    if ( !get_parameters(&params) ) {
-//        printk(TBOOT_ERR"get_parameters() failed\n");
-//        return false;
-//    }
-//
-//    /* check if all machine check regs are clear */
-//    mcg_cap = rdmsr(MSR_MCG_CAP);
-//    for ( unsigned int i = 0; i < (mcg_cap & 0xff); i++ ) {
-//        mcg_stat = rdmsr(MSR_MC0_STATUS + 4*i);
-//        if ( mcg_stat & (1ULL << 63) ) {
-//            printk(TBOOT_ERR"MCG[%u] = %Lx ERROR\n", i, mcg_stat);
-//            if ( !params.preserve_mce )
-//                return false;
-//        }
-//    }
-//
-//    if ( params.preserve_mce )
-//        printk(TBOOT_INFO"supports preserving machine check errors\n");
-//    else
-//        printk(TBOOT_INFO"no machine check errors\n");
-//
-//    if ( params.proc_based_scrtm )
-//        printk(TBOOT_INFO"CPU support processor-based S-CRTM\n");
-//
-//    /* all is well with the processor state */
-//    printk(TBOOT_INFO"CPU is ready for SENTER\n");
-//
-//    return true;
-//}
-//
+int txt_prepare_cpu(void)
+{
+	unsigned long eflags, cr0;
+	uint64_t mcg_cap, mcg_stat;
+
+	/* must be running at CPL 0 => this is implicit in even getting this far */
+	/* since our bootstrap code loads a GDT, etc. */
+
+	cr0 = read_cr0();
+
+	/* must be in protected mode */
+	if (!(cr0 & CR0_PE)) {
+		out_info("ERR: not in protected mode\n");
+		return 0;
+	}
+
+	/* cache must be enabled (CR0.CD = CR0.NW = 0) */
+	if (cr0 & CR0_CD) {
+		out_info("CR0.CD set\n");
+		cr0 &= ~CR0_CD;
+	}
+	if ( cr0 & CR0_NW ) {
+		out_info("CR0.NW set\n");
+		cr0 &= ~CR0_NW;
+	}
+
+	/* native FPU error reporting must be enabled for proper */
+	/* interaction behavior */
+	if (!(cr0 & CR0_NE)) {
+		out_info("CR0.NE not set\n");
+		cr0 |= CR0_NE;
+	}
+
+	write_cr0(cr0);
+
+	/* cannot be in virtual-8086 mode (EFLAGS.VM=1) */
+	eflags = read_eflags();
+	if (eflags & X86_EFLAGS_VM) {
+		out_info("EFLAGS.VM set");
+		write_eflags(eflags | ~X86_EFLAGS_VM);
+	}
+
+	out_info("CR0 and EFLAGS OK");
+
+	/*
+	 * verify that we're not already in a protected environment
+	 */
+
+	if (txt_is_launched()) {
+		out_info("already in protected environment");
+		return 0;
+	}
+
+	/*
+	 * verify all machine check status registers are clear (unless
+	 * support preserving them)
+	 */
+
+	/* no machine check in progress (IA32_MCG_STATUS.MCIP=1) */
+	mcg_stat = rdmsr(MSR_MCG_STATUS);
+	if (mcg_stat & 0x04) {
+		out_info("machine check in progress");
+		return 0;
+	}
+
+	getsec_parameters_t params;
+	if (!get_parameters(&params)) {
+		out_info("get_parameters() failed\n");
+		return 0;
+	}
+
+	/* check if all machine check regs are clear */
+	mcg_cap = rdmsr(MSR_MCG_CAP);
+	for (unsigned int i = 0; i < (mcg_cap & 0xff); i++) {
+		mcg_stat = rdmsr(MSR_MC0_STATUS + 4*i);
+		if (mcg_stat & (1ULL << 63)) {
+			out_description("MCG[index] =", i);
+			out_description("ERROR =", mcg_stat);
+		if (!params.preserve_mce)
+			return 0;
+		}
+	}
+
+	if (params.preserve_mce)
+		out_info("supports preserving machine check errors");
+	else
+		out_info("no machine check errors");
+
+	if (params.proc_based_scrtm)
+		out_info("CPU support processor-based S-CRTM");
+
+	/* all is well with the processor state */
+	out_info("CPU is ready for SENTER");
+
+	return 1;
+}
+
 //void txt_post_launch(void)
 //{
 //    txt_heap_t *txt_heap;
