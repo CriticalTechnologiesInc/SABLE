@@ -155,6 +155,8 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/arch-intel/intel_tpm.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/tpm_12.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/errors.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/acpi.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/heap.c
   )
 
 set_target_properties (cleanup-Intel

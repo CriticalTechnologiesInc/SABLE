@@ -3,6 +3,11 @@
 #include "types.h"
 #include "msr.h"
 #include "smx.h"
+#include "config_regs.h"
+#include "hash.h"
+#include "uuid.h"
+#include "heap.h"
+#include "acpi.h"
 
 int tpm_detect(void);
 extern void txt_display_errors(void);
@@ -169,13 +174,47 @@ void verify_IA32_se_svn_status()
 
 }
 
+int txt_verify_platform(void)
+{
+	txt_heap_t *txt_heap;
+
+	/* check TXT supported */
+	if (!supports_txt()) {
+		out_info("txt_verify_platform : support_txt error");
+		return 0;
+	}
+
+	wait(2000);
+	if (!vtd_bios_enabled() ) {
+		out_info("txt_verify_platform : vtd_bios_enabled error");
+		return 0;
+	}
+ 
+	/* check is TXT_RESET.STS is set, since if it is SENTER will fail */
+	txt_ests_t ests = (txt_ests_t)read_pub_config_reg(TXTCR_ESTS);
+	if (ests.txt_reset_sts) {
+		out_description64("TXT_RESET.STS is set and SENTER is disabled", ests._raw);
+		return 0;
+	}
+
+	/* verify BIOS to OS data */
+	txt_heap = get_txt_heap();
+	if (!verify_bios_data(txt_heap)) {
+		out_description64("BIOS data verification failed", ests._raw);
+		return 0; 
+	}
+
+	return 1;
+} 
+
 int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
 		out_info("ERROR: supports_txt");
 		return 0;
+	} else {
+		out_info("Suppots_txt : DONE");
 	}
-	out_info("Suppots_txt : DONE");
 	wait(2000);
 	/* make TPM ready for measured launch */
 
@@ -189,10 +228,18 @@ int platform_pre_checks() {
 
 	/* verify SE enablement status */
 	verify_IA32_se_svn_status();
+	wait(2000);
 
 	/* check previous erros */
 	txt_display_errors();
 	wait(2000);
+
+	/* need to verify that platform can perform measured launch */
+	if (txt_verify_platform()) {
+		out_info("Platform is ready for measured launch");
+	} else {
+		out_info("Platform is NOT ready for measured launch");
+	}
 	
 	return 1;
 }
