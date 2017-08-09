@@ -12,6 +12,7 @@
 int tpm_detect(void);
 extern void txt_display_errors(void);
 extern int txt_prepare_cpu(void);
+extern int prepare_tpm_intel(void);
 
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
@@ -247,6 +248,13 @@ int platform_pre_checks() {
 	if (!txt_prepare_cpu()) {
 		out_info("ERROR : CPU is not ready for launch");
 		return 0;
+	}
+	
+	if (!prepare_tpm_intel()) {
+		out_info("TPM is not ready for measured launch");
+		return 0;
+	} else {
+		out_info("TPM is ready for measured launch");
 	}
 	
 	return 1;

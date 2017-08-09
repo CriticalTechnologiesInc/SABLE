@@ -723,38 +723,42 @@ RelinquishControl:
 //}
 //
 //
-//bool release_locality(uint32_t locality)
-//{
-//    uint32_t i;
-//#ifdef TPM_TRACE
-//    printk(TBOOT_DETA"TPM: releasing locality %u\n", locality);
-//#endif
-//
-//    if ( !tpm_validate_locality(locality) )   return true;
-//
-//    tpm_reg_access_t reg_acc;
-//    read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//    if ( reg_acc.active_locality == 0 )    return true;
-//
-//    /* make inactive by writing a 1 */
-//    reg_acc._raw[0] = 0;
-//    reg_acc.active_locality = 1;
-//    write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//
-//    i = 0;
-//    do {
-//        read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
-//        if ( reg_acc.active_locality == 0 )
-//            return true;
-//        else
-//            cpu_relax();
-//        i++;
-//    } while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT );
-//
-//    printk(TBOOT_INFO"TPM: access reg release locality timeout\n");
-//    return false;
-//}
-//
+int release_locality(uint32_t locality)
+{
+	uint32_t i;
+
+	out_description("TPM: releasing locality :", locality);
+	out_description("Bhushan: for measured launch we should be in locality :", locality);
+
+	if (!tpm_validate_locality(locality)) {
+		return 1;
+	}
+
+	tpm_reg_access_t reg_acc;
+	read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+	if (reg_acc.active_locality == 0) {
+		return 1;
+	}
+
+	/* make inactive by writing a 1 */
+	reg_acc._raw[0] = 0;
+	reg_acc.active_locality = 1;
+	write_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+
+	i = 0;
+	do {
+		read_tpm_reg(locality, TPM_REG_ACCESS, &reg_acc);
+		if (reg_acc.active_locality == 0)
+			return 1;
+		else
+			cpu_relax();
+		i++;
+	} while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT );
+
+	out_info("TPM: access reg release locality timeout");
+	return 0;
+}
+
 //bool tpm_relinquish_locality_crb(uint32_t locality)
 //{
 //    uint32_t i;
@@ -805,18 +809,22 @@ int is_tpm_crb(void)
 }
 //
 //
-//bool prepare_tpm(void)
-//{
-//    /*
-//     * must ensure TPM_ACCESS_0.activeLocality bit is clear
-//     * (: locality is not active)
-//     */
-//   if (is_tpm_crb()) 
-////   	return release_locality_crb(0);
-//       return true;
-//   else 
-//   	return release_locality(0);
-//}
+int prepare_tpm_intel(void)
+{
+	/*
+	 * must ensure TPM_ACCESS_0.activeLocality bit is clear
+	 * (: locality is not active)
+	 */
+
+	if (is_tpm_crb()) {
+//   	return release_locality_crb(0);
+		out_info("BHUSHAN : DEBUG: Are we suppose to be here?");
+		return true;
+	} else { 
+		out_info("BHUSHAN: we are going to prepare TPM");
+		return release_locality(0);
+	}
+}
 //
 //bool tpm_request_locality_crb(uint32_t locality){
 //
