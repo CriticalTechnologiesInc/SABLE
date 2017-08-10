@@ -41,6 +41,7 @@
 int prepare_sinit_acm(struct mbi *m);
 int platform_pre_checks();
 void determine_loader_type(uint32_t magic);
+int txt_launch_environment();
 
 // Result generators
 RESULT_GEN(TPM_NONCE);
@@ -418,7 +419,7 @@ static RESULT prepare_tpm(void) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch 011\n");
+  out_string("I am in pre_launch 012\n");
   out_description("Bhushan: module count", m->mods_count);
 
 
@@ -443,17 +444,17 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   /*
    * verify SINIT AC module : step 3
    */
-//
-//  if(!prepare_sinit_acm(m)) {
-//     out_string("Bhushan: Problem with SINIT AC module");
+
+    if(!prepare_sinit_acm(m)) {
+          out_string("Bhushan: Problem with SINIT AC module");
 //     // ERROR occurred : Stop here
-//  } else {
-//     out_info("SINIT verificaton : DONE");
-//  }
-//
-//  /*
-//   * verify platform : step 1
-//   */
+    } else {
+          out_info("SINIT verificaton : DONE");
+    }
+
+  /*
+   * verify platform : step 1 and 2
+   */
 
   wait(2000);
   if(!platform_pre_checks()) {
@@ -468,6 +469,13 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
    * skipping step to create policy for launch : set_policy()
    */
 
+  /*
+   * prepare and launch MLE step 4 and 5
+   */
+
+  if(!txt_launch_environment()) {
+	out_info("ERROR: Measured launch failed");
+  }
 
   init_heap();
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");

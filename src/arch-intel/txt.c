@@ -4,6 +4,10 @@
 #include "util.h"
 #include "config_regs.h"
 #include "msr.h"
+#include "uuid.h"
+#include "config.h"
+#include "mle.h"
+#include "acmod.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -17,6 +21,8 @@
 #define DEF_ACM_MEM_TYPES               ACM_MEM_TYPE_UC
 #define DEF_SENTER_CTRLS                0x00
  
+extern acm_hdr_t *g_sinit;
+
 int get_parameters(getsec_parameters_t *params)
 {
 	unsigned long cr4;
@@ -796,9 +802,9 @@ int txt_is_launched(void)
 
 	return sts.senter_done_sts;
 }
-//
-//tb_error_t txt_launch_environment(loader_ctx *lctx)
-//{
+
+int txt_launch_environment()
+{
 //    void *mle_ptab_base;
 //    os_mle_data_t *os_mle_data;
 //    txt_heap_t *txt_heap;
@@ -862,15 +868,17 @@ int txt_is_launched(void)
 //   printk(TBOOT_INFO"CRB reg_loc_state.loc_assigned is 0x%x \n", reg_loc_state.loc_assigned);
 //   }*/
 //   
-//   printk(TBOOT_INFO"executing GETSEC[SENTER]...\n");
-//    /* (optionally) pause before executing GETSEC[SENTER] */
-//    if ( g_vga_delay > 0 )
-//        delay(g_vga_delay * 1000);
-//    __getsec_senter((uint32_t)g_sinit, (g_sinit->size)*4);
-//    printk(TBOOT_INFO"ERROR--we should not get here!\n");
-//    return TB_ERR_FATAL;
-//}
-//
+	out_info("executing GETSEC[SENTER]...\n");
+
+	out_description("SINIT BASE BASE :", (unsigned int) g_sinit);
+	out_description("SINIT SIZE :", (unsigned int) (g_sinit->size)*4);
+
+	wait(4000);
+	__getsec_senter((uint32_t)g_sinit, (g_sinit->size)*4);
+	out_info("ERROR--we should not get here!\n");
+	return 0;
+}
+
 //bool txt_s3_launch_environment(void)
 //{
 //    /* initial launch's TXT heap data is still in place and assumed valid */
