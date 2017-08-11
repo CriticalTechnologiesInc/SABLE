@@ -102,10 +102,6 @@ FUNCTION jmp_multiboot
 	jmp *%edx
 
 
-FUNCTION do_skinit
-	mov    $g_sl_begin, %eax
-	skinit
-
 FUNCTION _skinit
     /* Setup ESP to top of 64K */
     leal SLB_STACK_TOP, %esp
