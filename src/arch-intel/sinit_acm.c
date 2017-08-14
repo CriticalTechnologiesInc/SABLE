@@ -17,6 +17,24 @@
 
 __data acm_hdr_t *g_sinit = 0;
 
+#define CMDLINE_SIZE    512
+ __text char g_cmdline[CMDLINE_SIZE] = { 0 };
+
+
+
+void print_txt_caps(txt_caps_t caps)
+{ 
+	out_description("capabilities: ", caps._raw);
+	out_description("rlp_wake_getsec: ", caps.rlp_wake_getsec);
+	out_description("rlp_wake_monitor: ", caps.rlp_wake_monitor);
+	out_description("ecx_pgtbl: ", caps.ecx_pgtbl);
+	out_description("stm: ", caps.stm);
+	out_description("pcr_map_no_legacy: ", caps.pcr_map_no_legacy);
+	out_description("pcr_map_da: ", caps.pcr_map_da);
+	out_description("platform_type: ", caps.platform_type);
+	out_description("max_phy_addr: ", caps.max_phy_addr);
+	out_description("tcg_event_log_format: ", caps.tcg_event_log_format);
+}
 
 static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 {

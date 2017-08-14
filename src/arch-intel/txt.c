@@ -174,13 +174,27 @@ int get_parameters(getsec_parameters_t *params)
 //#define AP_WFS_TIMEOUT     0x10000000
 //
 //__data struct acpi_rsdp g_rsdp;
-//extern char _start[];             /* start of module */
-//extern char _end[];               /* end of module */
-//extern char _mle_start[];         /* start of text section */
-//extern char _mle_end[];           /* end of text section */
-//extern char _post_launch_entry[]; /* entry point post SENTER, in boot.S */
+extern char __start[];		/* start of module */
+extern char _end[];		/* end of module */
+extern char _mle_start[];	/* start of text section */
+extern char _mle_end[];		/* end of text section */
+extern char _post_launch_entry[]; /* entry point post SENTER, in boot.S */
 //extern char _txt_wakeup[];        /* RLP join address for GETSEC[WAKEUP] */
-//
+
+
+
+/*
+ * Bhushan : I think g_cmdline is not needed for sable but 
+ * keeping it as a placeholder. we can remove it later
+ * copy of original command line
+ * part of tboot measurement (hence in .text section)
+ */
+
+#define CMDLINE_SIZE	512
+extern char g_cmdline[CMDLINE_SIZE];
+
+
+
 //extern long s3_flag;
 //
 //extern struct mutex ap_lock;
@@ -197,52 +211,80 @@ int get_parameters(getsec_parameters_t *params)
 // * this is the structure whose addr we'll put in TXT heap
 // * it needs to be within the MLE pages, so force it to the .text section
 // */
-//static __text const mle_hdr_t g_mle_hdr = {
-//    uuid              :  MLE_HDR_UUID,
-//    length            :  sizeof(mle_hdr_t),
-//    version           :  MLE_HDR_VER,
-//    entry_point       :  (uint32_t)&_post_launch_entry - TBOOT_START,
-//    first_valid_page  :  0,
-//    mle_start_off     :  (uint32_t)&_mle_start - TBOOT_BASE_ADDR,
-//    mle_end_off       :  (uint32_t)&_mle_end - TBOOT_BASE_ADDR,
-//    capabilities      :  { MLE_HDR_CAPS },
-//    cmdline_start_off :  (uint32_t)g_cmdline - TBOOT_BASE_ADDR,
-//    cmdline_end_off   :  (uint32_t)g_cmdline + CMDLINE_SIZE - 1 -
-//                                                       TBOOT_BASE_ADDR,
-//};
-//
+
+/* 
+ * Bhushan : 
+ * we need to replace &_skinit with &_post_launch_entry once its implementation ready
+ */
+
+static __text const mle_hdr_t g_mle_hdr = {
+	uuid			:	MLE_HDR_UUID,
+	length			:	sizeof(mle_hdr_t),
+	version			:	MLE_HDR_VER,
+	entry_point		:	(uint32_t)&_post_launch_entry - TBOOT_START,
+	first_valid_page	:	0,
+	mle_start_off		:	(uint32_t)&_mle_start - TBOOT_BASE_ADDR,
+	mle_end_off		:	(uint32_t)&_mle_end - TBOOT_BASE_ADDR,
+	capabilities		:	{ MLE_HDR_CAPS },
+	cmdline_start_off	:	(uint32_t)g_cmdline - TBOOT_BASE_ADDR,
+	cmdline_end_off		:	(uint32_t)g_cmdline + CMDLINE_SIZE - 1 - TBOOT_BASE_ADDR,
+};
+
+
 ///*
 // * counts of APs going into wait-for-sipi
 // */
 ///* count of APs in WAIT-FOR-SIPI */
 //atomic_t ap_wfs_count;
-//
-//static void print_file_info(void)
-//{
-//    printk(TBOOT_DETA"file addresses:\n");
-//    printk(TBOOT_DETA"\t &_start=%p\n", &_start);
-//    printk(TBOOT_DETA"\t &_end=%p\n", &_end);
-//    printk(TBOOT_DETA"\t &_mle_start=%p\n", &_mle_start);
-//    printk(TBOOT_DETA"\t &_mle_end=%p\n", &_mle_end);
-//    printk(TBOOT_DETA"\t &_post_launch_entry=%p\n", &_post_launch_entry);
-//    printk(TBOOT_DETA"\t &_txt_wakeup=%p\n", &_txt_wakeup);
-//    printk(TBOOT_DETA"\t &g_mle_hdr=%p\n", &g_mle_hdr);
-//}
-//
-//static void print_mle_hdr(const mle_hdr_t *mle_hdr)
-//{
-//    printk(TBOOT_DETA"MLE header:\n");
-//    printk(TBOOT_DETA"\t uuid="); print_uuid(&mle_hdr->uuid); 
-//    printk(TBOOT_DETA"\n");
-//    printk(TBOOT_DETA"\t length=%x\n", mle_hdr->length);
-//    printk(TBOOT_DETA"\t version=%08x\n", mle_hdr->version);
-//    printk(TBOOT_DETA"\t entry_point=%08x\n", mle_hdr->entry_point);
-//    printk(TBOOT_DETA"\t first_valid_page=%08x\n", mle_hdr->first_valid_page);
-//    printk(TBOOT_DETA"\t mle_start_off=%x\n", mle_hdr->mle_start_off);
-//    printk(TBOOT_DETA"\t mle_end_off=%x\n", mle_hdr->mle_end_off);
-//    print_txt_caps("\t ", mle_hdr->capabilities);
-//}
-//
+
+ static inline void print_uuid(const uuid_t *uuid)
+ {
+	out_info("UUID");
+	out_description("uuid->data1", uuid->data1);
+	out_description("uuid->data2", (uint32_t)uuid->data2);
+	out_description("uuid->data3", (uint32_t)uuid->data3);
+	out_description("uuid->data4", (uint32_t)uuid->data4);
+	out_description("uuid->data5[0]", uuid->data5[0]);
+	out_description("uuid->data5[1]", (uint32_t)uuid->data5[1]);
+	out_description("uuid->data5[2]", (uint32_t)uuid->data5[2]);
+	out_description("uuid->data5[3]", (uint32_t)uuid->data5[3]);
+	out_description("uuid->data5[4]", (uint32_t)uuid->data5[4]);
+	out_description("uuid->data5[5]", (uint32_t)uuid->data5[5]);
+ }
+
+static void print_file_info(void)
+{
+	out_info("file addresses:");
+	out_description("&_start=", (unsigned int)&__start);
+	out_description("&_end=", (unsigned int)&_end);
+	out_description("&_mle_start=", (unsigned int)&_mle_start);
+	out_description("&_mle_end=", (unsigned int)&_mle_end);
+	out_description("&_post_launch_entry=", (unsigned int)&_post_launch_entry);
+
+	/* 
+	 * Bhushan
+	 * _skinit is just place holder to avoid build failure
+	 * replace it with &_post_launch_entry when required
+	 */
+//	out_description("&_txt_wakeup=", &_txt_wakeup);
+	out_description("&g_mle_hdr=", (unsigned int)&g_mle_hdr);
+	wait(4000);
+}
+
+static void print_mle_hdr(const mle_hdr_t *mle_hdr)
+{
+	out_info("MLE header:");
+	out_info("uuid=");
+	print_uuid(&mle_hdr->uuid); 
+	out_description("length :", mle_hdr->length);
+	out_description("version :", mle_hdr->version);
+	out_description("entry_point :", mle_hdr->entry_point);
+	out_description("first_valid_page :", mle_hdr->first_valid_page);
+	out_description("mle_start_off :", mle_hdr->mle_start_off);
+	out_description("mle_end_off :", mle_hdr->mle_end_off);
+	print_txt_caps(mle_hdr->capabilities);
+}
+
 ///*
 // * build_mle_pagetable()
 // */
@@ -255,7 +297,7 @@ int get_parameters(getsec_parameters_t *params)
 ///* 1 ptable = 3 pages and just 1 loop loop for ptable MLE page table */
 ///* can only contain 4k pages */
 //
-//static __mlept uint8_t g_mle_pt[3 * PAGE_SIZE];  
+// static __mlept uint8_t g_mle_pt[3 * PAGE_SIZE];  
 ///* pgdir ptr + pgdir + ptab = 3 */
 //
 //static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
@@ -805,27 +847,14 @@ int txt_is_launched(void)
 
 int txt_launch_environment()
 {
-//    void *mle_ptab_base;
+//	void	*mle_ptab_base;
 //    os_mle_data_t *os_mle_data;
 //    txt_heap_t *txt_heap;
-//
-//    /*
-//     * find correct SINIT AC module in modules list
-//     */
-//    // find_platform_sinit_module(lctx, (void **)&g_sinit, NULL);
-//    /* if it is newer than BIOS-provided version, then copy it to */
-//    /* BIOS reserved region */
-//    // g_sinit = copy_sinit(g_sinit);
-//    // if ( g_sinit == NULL )
-//    //    return TB_ERR_SINIT_NOT_PRESENT;
-//    /* do some checks on it */
-//    // if ( !verify_acmod(g_sinit) )
-//     //   return TB_ERR_ACMOD_VERIFY_FAILED;
-//
-//    /* print some debug info */
-//    print_file_info();
-//    print_mle_hdr(&g_mle_hdr);
-//
+
+	/* print some debug info */
+	print_file_info();
+	print_mle_hdr(&g_mle_hdr);
+
 //    /* create MLE page table */
 //    mle_ptab_base = build_mle_pagetable(
 //                             g_mle_hdr.mle_start_off + TBOOT_BASE_ADDR,

@@ -171,7 +171,7 @@ typedef struct __packed {
     acm_processor_id_t   processor_ids[];
 } acm_processor_id_list_t;
 
-//extern void print_txt_caps(const char *prefix, txt_caps_t caps);
+extern void print_txt_caps(txt_caps_t caps);
 //extern bool is_racm_acmod(const void *acmod_base, uint32_t acmod_size, bool quiet);
 //extern acm_hdr_t *copy_racm(const acm_hdr_t *racm);
 //extern bool verify_racm(const acm_hdr_t *acm_hdr);

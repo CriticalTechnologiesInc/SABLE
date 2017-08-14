@@ -49,6 +49,11 @@ FUNCTION __start
 	pushl   $exit
 	jmp     _pre_launch
 
+/* Bhushan _post_launch_entry is just place holder. we have to provide implementation when required */
+
+FUNCTION _post_launch_entry
+	jmp __start
+
 FUNCTION smp_init_start
 	.code16
 
