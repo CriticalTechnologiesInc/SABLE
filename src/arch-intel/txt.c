@@ -8,6 +8,7 @@
 #include "config.h"
 #include "mle.h"
 #include "acmod.h"
+#include "page.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -285,71 +286,76 @@ static void print_mle_hdr(const mle_hdr_t *mle_hdr)
 	print_txt_caps(mle_hdr->capabilities);
 }
 
-///*
-// * build_mle_pagetable()
-// */
-//
-///* page dir/table entry is phys addr + P + R/W + PWT */
-//#define MAKE_PDTE(addr)  (((uint64_t)(unsigned long)(addr) & PAGE_MASK) | 0x01)
-//
-///* we assume/know that our image is <2MB and thus fits w/in a single */
-///* PT (512*4KB = 2MB) and thus fixed to 1 pg dir ptr and 1 pgdir and */
-///* 1 ptable = 3 pages and just 1 loop loop for ptable MLE page table */
-///* can only contain 4k pages */
-//
-// static __mlept uint8_t g_mle_pt[3 * PAGE_SIZE];  
-///* pgdir ptr + pgdir + ptab = 3 */
-//
-//static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
-//{
-//    void *ptab_base;
-//    uint32_t ptab_size, mle_off;
-//    void *pg_dir_ptr_tab, *pg_dir, *pg_tab;
-//    uint64_t *pte;
-//
-//    printk(TBOOT_DETA"MLE start=0x%x, end=0x%x, size=0x%x\n", 
-//           mle_start, mle_start+mle_size, mle_size);
-//    if ( mle_size > 512*PAGE_SIZE ) {
-//        printk(TBOOT_ERR"MLE size too big for single page table\n");
-//        return NULL;
-//    }
-//
-//
-//    /* should start on page boundary */
-//    if ( mle_start & ~PAGE_MASK ) {
-//        printk(TBOOT_ERR"MLE start is not page-aligned\n");
-//        return NULL;
-//    }
-//
-//    /* place ptab_base below MLE */
-//    ptab_size = sizeof(g_mle_pt);
-//    ptab_base = &g_mle_pt;
-//    memset(ptab_base, 0, ptab_size);
-//    printk(TBOOT_DETA"ptab_size=%x, ptab_base=%p\n", ptab_size, ptab_base);
-//
-//    pg_dir_ptr_tab = ptab_base;
-//    pg_dir         = pg_dir_ptr_tab + PAGE_SIZE;
-//    pg_tab         = pg_dir + PAGE_SIZE;
-//
-//    /* only use first entry in page dir ptr table */
-//    *(uint64_t *)pg_dir_ptr_tab = MAKE_PDTE(pg_dir);
-//
-//    /* only use first entry in page dir */
-//    *(uint64_t *)pg_dir = MAKE_PDTE(pg_tab);
-//
-//    pte = pg_tab;
-//    mle_off = 0;
-//    do {
-//        *pte = MAKE_PDTE(mle_start + mle_off);
-//
-//        pte++;
-//        mle_off += PAGE_SIZE;
-//    } while ( mle_off < mle_size );
-//
-//    return ptab_base;
-//}
-//
-//
+/*
+ * build_mle_pagetable()
+ */
+
+/* page dir/table entry is phys addr + P + R/W + PWT */
+#define MAKE_PDTE(addr)  (((uint64_t)(unsigned long)(addr) & PAGE_MASK) | 0x01)
+
+/* we assume/know that our image is <2MB and thus fits w/in a single */
+/* PT (512*4KB = 2MB) and thus fixed to 1 pg dir ptr and 1 pgdir and */
+/* 1 ptable = 3 pages and just 1 loop loop for ptable MLE page table */
+/* can only contain 4k pages */
+
+static __mlept uint8_t g_mle_pt[3 * PAGE_SIZE];  
+/* pgdir ptr + pgdir + ptab = 3 */
+
+static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
+{
+	void *ptab_base;
+	uint32_t ptab_size, mle_off;
+	void *pg_dir_ptr_tab, *pg_dir, *pg_tab;
+	uint64_t *pte;
+
+	out_info("MLE information : Creating pages for MLE");
+	out_description("Start", mle_start);
+	out_description("End", mle_start + mle_size);
+	out_description("Size", mle_size);
+
+	if (mle_size > 512 * PAGE_SIZE ) {
+		out_info("MLE size too big for single page table");
+		return NULL;
+	}
+
+	/* should start on page boundary */
+	if (mle_start & ~PAGE_MASK) {
+		out_info("MLE start is not page-aligned");
+		return NULL;
+	}
+
+	/* place ptab_base below MLE */
+	ptab_size = sizeof(g_mle_pt);
+	ptab_base = &g_mle_pt;
+	memset(ptab_base, 0, ptab_size);
+
+	out_info("Page table information");
+	out_description("ptab_size=", ptab_size);
+	out_description("ptab_base=", (unsigned int)ptab_base);
+
+	pg_dir_ptr_tab	= ptab_base;
+	pg_dir		= pg_dir_ptr_tab + PAGE_SIZE;
+	pg_tab		= pg_dir + PAGE_SIZE;
+
+
+	/* only use first entry in page dir ptr table */
+	*(uint64_t *)pg_dir_ptr_tab = MAKE_PDTE(pg_dir);
+
+	/* only use first entry in page dir */
+	*(uint64_t *)pg_dir = MAKE_PDTE(pg_tab);
+
+	pte = pg_tab;
+	mle_off = 0;
+	do {
+		*pte = MAKE_PDTE(mle_start + mle_off);
+		pte++;
+		mle_off += PAGE_SIZE;
+	} while (mle_off < mle_size);
+
+	return ptab_base;
+}
+
+
 //static __data event_log_container_t *g_elog = NULL;
 //static __data heap_event_log_ptr_elt2_t *g_elog_2 = NULL;
 //static __data heap_event_log_ptr_elt2_1_t *g_elog_2_1 = NULL;
@@ -847,22 +853,24 @@ int txt_is_launched(void)
 
 int txt_launch_environment()
 {
-//	void	*mle_ptab_base;
+	void	*mle_ptab_base;
 //    os_mle_data_t *os_mle_data;
 //    txt_heap_t *txt_heap;
 
 	/* print some debug info */
 	print_file_info();
+	wait(3000);
 	print_mle_hdr(&g_mle_hdr);
+	wait(3000);
+	/* create MLE page table */
+	mle_ptab_base = build_mle_pagetable(g_mle_hdr.mle_start_off + TBOOT_BASE_ADDR, g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off);
+	if (mle_ptab_base == NULL) {
+		out_info("Failed to create pages");
+		return 0;
+	}
 
-//    /* create MLE page table */
-//    mle_ptab_base = build_mle_pagetable(
-//                             g_mle_hdr.mle_start_off + TBOOT_BASE_ADDR,
-//                             g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off);
-//    if ( mle_ptab_base == NULL )
-//        return TB_ERR_FATAL;
-//
-//    /* initialize TXT heap */
+
+	/* initialize TXT heap */
 //    txt_heap = init_txt_heap(mle_ptab_base, g_sinit, lctx);
 //    if ( txt_heap == NULL )
 //        return TB_ERR_TXT_NOT_SUPPORTED;
@@ -874,7 +882,7 @@ int txt_launch_environment()
 //    /* set MTRRs properly for AC module (SINIT) */
 //    if ( !set_mtrrs_for_acmod(g_sinit) )
 //        return TB_ERR_FATAL;
-//
+
 //   /* deactivate current locality */
 //   if (g_tpm_family == TPM_IF_20_CRB ) {
 //       printk(TBOOT_INFO"Relinquish CRB localility 0 before executing GETSEC[SENTER]...\n");
@@ -883,20 +891,7 @@ int txt_launch_environment()
 //		apply_policy(TB_ERR_TPM_NOT_READY) ;
 //	}
 //   }
-//
-//   /*{
-//   tpm_reg_loc_ctrl_t    reg_loc_ctrl;
-//   tpm_reg_loc_state_t  reg_loc_state;
-//   
-//   reg_loc_ctrl._raw[0] = 0;
-//   reg_loc_ctrl.relinquish = 1;
-//   write_tpm_reg(0, TPM_REG_LOC_CTRL, &reg_loc_ctrl);
-//   printk(TBOOT_INFO"Relinquish CRB localility 0 before executing GETSEC[SENTER]...\n");
-//   read_tpm_reg(0, TPM_REG_LOC_STATE, &reg_loc_state);
-//   printk(TBOOT_INFO"CRB reg_loc_state.active_locality is 0x%x \n", reg_loc_state.active_locality);
-//   printk(TBOOT_INFO"CRB reg_loc_state.loc_assigned is 0x%x \n", reg_loc_state.loc_assigned);
-//   }*/
-//   
+
 	out_info("executing GETSEC[SENTER]...\n");
 
 	out_description("SINIT BASE BASE :", (unsigned int) g_sinit);
