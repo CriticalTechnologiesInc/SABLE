@@ -29,7 +29,7 @@ SECTIONS
 	. = 0x800000;	/* 4k aligned */
 
 	.text : {
-		*(.text.__mbheader)
+		*(.tboot_multiboot_header)
 	. = ALIGN(4096);
 		*(.mlept)
 

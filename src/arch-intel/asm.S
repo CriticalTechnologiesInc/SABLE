@@ -35,7 +35,7 @@
 	\name:
 .endm
 
-FUNCTION __mbheader
+.section ".tboot_multiboot_header","w"
 	.align  4, 0x90
 	.long   MBI_MAGIC1              /* magic */
 	.long   0x00000003              /* feature flags */
