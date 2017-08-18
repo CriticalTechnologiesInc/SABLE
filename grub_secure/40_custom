@@ -1,0 +1,51 @@
+#!/bin/sh
+exec tail -n +3 $0
+# This file provides an easy way to add custom menu entries.  Simply type the
+# menu entries you want to add after this comment.  Be careful not to change
+# the 'exec tail' line above.
+
+#SABLE
+
+menuentry "SABLE configure GRUB2 (**secondary**)" {
+	multiboot (hd1,msdos1)/sable.bin --nv-index=4
+	module (hd1,msdos1)/sable.cfg
+	module (hd1,msdos1)/grub/i386-pc/core.img
+	module (hd1,msdos1)/guard.txt
+}
+
+menuentry "SABLE configure GRUB2 (primary)" {
+	multiboot (hd0,msdos1)/sable.bin --nv-index=4
+	module (hd0,msdos1)/sable.cfg
+	module (hd0,msdos1)/grub/i386-pc/core.img
+	module (hd0,msdos1)/guard.txt
+}
+
+menuentry "SABLE configure Linux (primary)" {
+	multiboot (hd0,msdos1)/sable.bin --nv-index=4
+	module (hd0,msdos1)/sable.cfg
+	module (hd0,msdos1)/grub/i386-pc/core.img
+	module (hd0,msdos1)/guard.txt
+	module (hd0,msdos1)/vmlinuz-4.4.0-21-generic
+	module (hd0,msdos1)/initrd.img-4.4.0-21-generic
+	module (hd0,msdos1)/System.map-4.4.0-21-generic
+	module (hd0,msdos1)/config-4.4.0-21-generic
+	module (hd0,msdos1)/abi-4.4.0-21-generic
+}
+
+menuentry "SABLE measure GRUB2 (primary)" {
+	multiboot (hd0,msdos1)/sable.bin --nv-index=4
+	module (hd0,msdos1)/sable.cfg
+	module (hd0,msdos1)/grub/i386-pc/core.img
+	module (hd0,msdos1)/guard.txt
+}
+
+menuentry "SABLE measure Linux (primary)" {
+	multiboot (hd0,msdos1)/sable.bin --nv-index=4
+	module (hd0,msdos1)/grub/i386-pc/core.img
+	module (hd0,msdos1)/guard.txt
+	module (hd0,msdos1)/vmlinuz-4.4.0-21-generic
+	module (hd0,msdos1)/initrd.img-4.4.0-21-generic
+	module (hd0,msdos1)/System.map-4.4.0-21-generic
+	module (hd0,msdos1)/config-4.4.0-21-generic
+	module (hd0,msdos1)/abi-4.4.0-21-generic
+}

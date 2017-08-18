@@ -1,0 +1,49 @@
+grub-core/osdep/libgrubkern_a-sleep.o: grub-core/osdep/sleep.c \
+ /usr/include/stdc-predef.h grub-core/osdep/unix/sleep.c \
+ /usr/include/time.h /usr/include/features.h \
+ /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+ /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+ /usr/lib/gcc/x86_64-linux-gnu/5/include/stddef.h \
+ /usr/include/x86_64-linux-gnu/bits/time.h \
+ /usr/include/x86_64-linux-gnu/bits/types.h \
+ /usr/include/x86_64-linux-gnu/bits/typesizes.h /usr/include/xlocale.h \
+ include/grub/time.h include/grub/types.h config.h config-util.h \
+ include/grub/symbol.h
+
+/usr/include/stdc-predef.h:
+
+grub-core/osdep/unix/sleep.c:
+
+/usr/include/time.h:
+
+/usr/include/features.h:
+
+/usr/include/x86_64-linux-gnu/sys/cdefs.h:
+
+/usr/include/x86_64-linux-gnu/bits/wordsize.h:
+
+/usr/include/x86_64-linux-gnu/gnu/stubs.h:
+
+/usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/5/include/stddef.h:
+
+/usr/include/x86_64-linux-gnu/bits/time.h:
+
+/usr/include/x86_64-linux-gnu/bits/types.h:
+
+/usr/include/x86_64-linux-gnu/bits/typesizes.h:
+
+/usr/include/xlocale.h:
+
+include/grub/time.h:
+
+include/grub/types.h:
+
+config.h:
+
+config-util.h:
+
+include/grub/symbol.h:
