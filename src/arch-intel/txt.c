@@ -610,7 +610,7 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 {
 	txt_heap_t *txt_heap;
-	//uint64_t *size;
+	uint64_t *size;
 
 	txt_heap = get_txt_heap();
 
@@ -628,14 +628,22 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	out_info("bios_data init is done");
 	wait(3000);
 
-//	os_mle_data_t *os_mle_data = get_os_mle_data_start(txt_heap);
-//    size = (uint64_t *)((uint32_t)os_mle_data - sizeof(uint64_t));
-//    *size = sizeof(*os_mle_data) + sizeof(uint64_t);
-//    memset(os_mle_data, 0, sizeof(*os_mle_data));
-//    os_mle_data->version = 3;
-//    os_mle_data->lctx_addr = lctx->addr;
-//    os_mle_data->saved_misc_enable_msr = rdmsr(MSR_IA32_MISC_ENABLE);
-//
+	os_mle_data_t *os_mle_data = get_os_mle_data_start(txt_heap);
+	size = (uint64_t *)((uint32_t)os_mle_data - sizeof(uint64_t));
+	*size = sizeof(*os_mle_data) + sizeof(uint64_t);
+	memset(os_mle_data, 0, sizeof(*os_mle_data));
+	os_mle_data->version = 3;
+
+	/*
+	 * Bhushan: os_mle_data is vendor specific.
+	 * we can store/initialize whatever value we want.
+	 * Make sure to calculate value accordinly.
+	 */
+
+	// os_mle_data->lctx_addr = lctx->addr;
+	os_mle_data->lctx_addr = NULL;
+	os_mle_data->saved_misc_enable_msr = rdmsr(MSR_IA32_MISC_ENABLE);
+
 //    /*
 //     * OS/loader to SINIT data
 //     */
