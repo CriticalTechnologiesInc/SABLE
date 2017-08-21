@@ -6,6 +6,7 @@
 #include "config_regs.h"
 #include "hash.h"
 #include "uuid.h"
+#include "mtrrs.h"
 #include "heap.h"
 #include "acpi.h"
 

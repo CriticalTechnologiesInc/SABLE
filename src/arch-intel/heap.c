@@ -49,6 +49,7 @@
 #include "util.h"
 #include "config_regs.h"
 #include "uuid.h"
+#include "mtrrs.h"
 #include "heap.h"
 //#endif
 //
@@ -618,8 +619,9 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 		return 0;
 	}
 	/* we assume backwards compatibility but print a warning */
-	if (bios_data->version > 4)
+	if (bios_data->version > 4) {
 		out_description("Just Warning: unsupported BIOS data version:", bios_data->version);
+	}
 
 	/* all TXT-capable CPUs support at least 1 core */
 	if (bios_data->num_logical_procs < 1 ) {
@@ -898,15 +900,20 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 //    return true;
 //}
 //
-//bool verify_txt_heap(const txt_heap_t *txt_heap, bool bios_data_only)
-//{
-//    /* verify BIOS to OS data */
-//    if ( !verify_bios_data(txt_heap) )
-//        return false;
-//
-//    if ( bios_data_only )
-//        return true;
-//
+int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only)
+{
+	/* verify BIOS to OS data */
+	if (!verify_bios_data(txt_heap)) {
+		return 0;
+	}
+
+	if (bios_data_only) {
+		return 1;
+	}
+
+	out_info("ERROR : We are here !! : implementation is under progress");
+	wait(3000);
+
 //    /* check that total size is within the heap */
 //    uint64_t size1 = get_bios_data_size(txt_heap);
 //    uint64_t size2 = get_os_mle_data_size(txt_heap);
@@ -947,8 +954,8 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 //    if ( !verify_sinit_mle_data(txt_heap) )
 //        return false;
 //
-//    return true;
-//}
+	return 1;
+}
 //
 //#endif
 //

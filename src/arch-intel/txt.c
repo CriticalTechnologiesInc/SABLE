@@ -9,6 +9,9 @@
 #include "mle.h"
 #include "acmod.h"
 #include "page.h"
+#include "mtrrs.h"
+#include "hash.h"
+#include "heap.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -599,26 +602,33 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 //__data uint32_t g_using_da = 0;
 //__data acm_hdr_t *g_sinit = 0;
 //
-///*
-// * sets up TXT heap
-// */
-//static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit, loader_ctx *lctx)
-//{
-//    txt_heap_t *txt_heap;
-//    uint64_t *size;
-//
-//    txt_heap = get_txt_heap();
-//
-//    /*
-//     * BIOS data already setup by BIOS
-//     */
-//    if ( !verify_txt_heap(txt_heap, true) )
-//        return NULL;
-//
-//    /*
-//     * OS/loader to MLE data
-//     */
-//    os_mle_data_t *os_mle_data = get_os_mle_data_start(txt_heap);
+
+/*
+ * sets up TXT heap
+ */
+
+static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
+{
+	txt_heap_t *txt_heap;
+	//uint64_t *size;
+
+	txt_heap = get_txt_heap();
+
+	/*
+	 * BIOS data already setup by BIOS
+	*/
+	if (!verify_txt_heap(txt_heap, 1)) {
+		return NULL;
+	}
+
+	/*
+	 * OS/loader to MLE data
+	*/
+
+	out_info("bios_data init is done");
+	wait(3000);
+
+//	os_mle_data_t *os_mle_data = get_os_mle_data_start(txt_heap);
 //    size = (uint64_t *)((uint32_t)os_mle_data - sizeof(uint64_t));
 //    *size = sizeof(*os_mle_data) + sizeof(uint64_t);
 //    memset(os_mle_data, 0, sizeof(*os_mle_data));
@@ -757,8 +767,8 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 //     * SINIT to MLE data will be setup by SINIT
 //     */
 //
-//    return txt_heap;
-//}
+	return txt_heap;
+}
 //
 //static void txt_wakeup_cpus(void)
 //{
@@ -855,7 +865,7 @@ int txt_launch_environment()
 {
 	void	*mle_ptab_base;
 //    os_mle_data_t *os_mle_data;
-//    txt_heap_t *txt_heap;
+	txt_heap_t *txt_heap;
 
 	/* print some debug info */
 	print_file_info();
@@ -866,15 +876,19 @@ int txt_launch_environment()
 	mle_ptab_base = build_mle_pagetable(g_mle_hdr.mle_start_off + TBOOT_BASE_ADDR, g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off);
 	if (mle_ptab_base == NULL) {
 		out_info("Failed to create pages");
+		wait(3000);
 		return 0;
 	}
 
 
 	/* initialize TXT heap */
-//    txt_heap = init_txt_heap(mle_ptab_base, g_sinit, lctx);
-//    if ( txt_heap == NULL )
-//        return TB_ERR_TXT_NOT_SUPPORTED;
-//
+	txt_heap = init_txt_heap(mle_ptab_base, g_sinit);
+	if (txt_heap == NULL) {
+		out_info("Failed to initialize heap");
+		wait(3000);
+		return 0;
+	}
+
 //    /* save MTRRs before we alter them for SINIT launch */
 //    os_mle_data = get_os_mle_data_start(txt_heap);
 //    save_mtrrs(&(os_mle_data->saved_mtrr_state));

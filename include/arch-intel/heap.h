@@ -265,20 +265,26 @@ typedef struct  __attribute__ ((packed)) {
 // * OS/loader to MLE structure
 // *   - private to tboot (so can be any format we need)
 // */
-//#define MAX_LCP_PO_DATA_SIZE     64*1024  /* 64k */
-#define MAX_EVENT_LOG_SIZE       5*4*1024   /* 4k*5 */
-//
-//typedef struct __packed {
-//    uint32_t          version;           /* currently 3 */
-//    mtrr_state_t      saved_mtrr_state;  /* saved prior to changes for SINIT */
-//    void 			 *lctx_addr;         /* needs to be restored to ebx */
-//    uint32_t          saved_misc_enable_msr;  /* saved prior to SENTER */
-//                                         /* PO policy data */
-//    uint8_t           lcp_po_data[MAX_LCP_PO_DATA_SIZE];
-//                                         /* buffer for tpm event log */
-//    uint8_t           event_log_buffer[MAX_EVENT_LOG_SIZE];
-//} os_mle_data_t;
-//
+#define MAX_LCP_PO_DATA_SIZE	64*1024		/* 64k */
+#define MAX_EVENT_LOG_SIZE	5*4*1024	/* 4k*5 */
+
+/*
+ * Bhushan: os_mle_data_t is vendor specific data structure.
+ * Hence we can store/initialize it with whatever values we want.
+ * Make sure to calculate size accordinly.
+ */
+
+typedef struct __attribute__ ((packed)) {
+	uint32_t	version;           	/* currently 3 */
+	mtrr_state_t	saved_mtrr_state;  	/* saved prior to changes for SINIT */
+	void		*lctx_addr;        	/* needs to be restored to ebx */
+	uint32_t	saved_misc_enable_msr;  /* saved prior to SENTER */
+						/* PO policy data */
+	uint8_t		lcp_po_data[MAX_LCP_PO_DATA_SIZE];
+						/* buffer for tpm event log */
+	uint8_t		event_log_buffer[MAX_EVENT_LOG_SIZE];
+} os_mle_data_t;
+
 #define MIN_OS_SINIT_DATA_VER    4
 #define MAX_OS_SINIT_DATA_VER    7
 //#define OS_SINIT_FLAGS_EXTPOL_MASK  0x00000001
@@ -395,11 +401,10 @@ static inline bios_data_t *get_bios_data_start(const txt_heap_t *heap)
 //    return *(uint64_t *)(heap + get_bios_data_size(heap));
 //}
 //
-//static inline os_mle_data_t *get_os_mle_data_start(const txt_heap_t *heap)
-//{
-//    return (os_mle_data_t *)(heap + get_bios_data_size(heap) +
-//                              sizeof(uint64_t));
-//}
+static inline os_mle_data_t *get_os_mle_data_start(const txt_heap_t *heap)
+{
+	return (os_mle_data_t *)(heap + get_bios_data_size(heap) + sizeof(uint64_t));
+}
 //
 //static inline uint64_t get_os_sinit_data_size(const txt_heap_t *heap)
 //{
@@ -430,7 +435,7 @@ static inline bios_data_t *get_bios_data_start(const txt_heap_t *heap)
 //}
 //
 //extern uint64_t calc_os_sinit_data_size(uint32_t version);
-//extern bool verify_txt_heap(const txt_heap_t *txt_heap, bool bios_data_only);
+extern int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only);
 extern int verify_bios_data(const txt_heap_t *txt_heap);
 //extern void print_os_sinit_data(const os_sinit_data_t *os_sinit_data);
 //
