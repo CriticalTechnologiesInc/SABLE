@@ -287,29 +287,31 @@ typedef struct __attribute__ ((packed)) {
 
 #define MIN_OS_SINIT_DATA_VER    4
 #define MAX_OS_SINIT_DATA_VER    7
-//#define OS_SINIT_FLAGS_EXTPOL_MASK  0x00000001
-///*
-// * OS/loader to SINIT structure
-// */
-//typedef struct __packed {
-//    uint32_t    version;           /* currently 4-7 */
-//    uint32_t    flags;  /* For TPM2: BIT0:= PCR Extend Policy Control */
-//    uint64_t    mle_ptab;
-//    uint64_t    mle_size;
-//    uint64_t    mle_hdr_base;
-//    uint64_t    vtd_pmr_lo_base;
-//    uint64_t    vtd_pmr_lo_size;
-//    uint64_t    vtd_pmr_hi_base;
-//    uint64_t    vtd_pmr_hi_size;
-//    uint64_t    lcp_po_base;
-//    uint64_t    lcp_po_size;
-//    txt_caps_t  capabilities;
-//    /* versions >= 5 */
-//    uint64_t    efi_rsdt_ptr;
-//    /* versions >= 6 */
-//    heap_ext_data_element_t  ext_data_elts[];
-//} os_sinit_data_t;
-//
+#define OS_SINIT_FLAGS_EXTPOL_MASK  0x00000001
+
+/*
+ * OS/loader to SINIT structure
+ */
+
+typedef struct __attribute__ ((packed)) {
+	uint32_t	version;	/* currently 4-7 */
+	uint32_t	flags;		/* For TPM2: BIT0:= PCR Extend Policy Control */
+	uint64_t	mle_ptab;
+	uint64_t	mle_size;
+	uint64_t	mle_hdr_base;
+	uint64_t	vtd_pmr_lo_base;
+	uint64_t	vtd_pmr_lo_size;
+	uint64_t	vtd_pmr_hi_base;
+	uint64_t	vtd_pmr_hi_size;
+	uint64_t	lcp_po_base;
+	uint64_t	lcp_po_size;
+	txt_caps_t	capabilities;
+	/* versions >= 5 */
+	uint64_t	efi_rsdt_ptr;
+	/* versions >= 6 */
+	heap_ext_data_element_t  ext_data_elts[];
+} os_sinit_data_t;
+
 ///*
 // * SINIT to MLE structure
 // */
@@ -395,12 +397,12 @@ static inline bios_data_t *get_bios_data_start(const txt_heap_t *heap)
 {
 	return (bios_data_t *)((char*)heap + sizeof(uint64_t));
 }
-//
-//static inline uint64_t get_os_mle_data_size(const txt_heap_t *heap)
-//{
-//    return *(uint64_t *)(heap + get_bios_data_size(heap));
-//}
-//
+
+static inline uint64_t get_os_mle_data_size(const txt_heap_t *heap)
+{
+	return *(uint64_t *)(heap + get_bios_data_size(heap));
+}
+
 static inline os_mle_data_t *get_os_mle_data_start(const txt_heap_t *heap)
 {
 	return (os_mle_data_t *)(heap + get_bios_data_size(heap) + sizeof(uint64_t));
@@ -411,14 +413,12 @@ static inline os_mle_data_t *get_os_mle_data_start(const txt_heap_t *heap)
 //    return *(uint64_t *)(heap + get_bios_data_size(heap) +
 //                         get_os_mle_data_size(heap));
 //}
-//
-//static inline os_sinit_data_t *get_os_sinit_data_start(const txt_heap_t *heap)
-//{
-//    return (os_sinit_data_t *)(heap + get_bios_data_size(heap) +
-//                               get_os_mle_data_size(heap) +
-//                               sizeof(uint64_t));
-//}
-//
+
+static inline os_sinit_data_t *get_os_sinit_data_start(const txt_heap_t *heap)
+{
+	return (os_sinit_data_t *)(heap + get_bios_data_size(heap) + get_os_mle_data_size(heap) + sizeof(uint64_t));
+}
+
 //static inline uint64_t get_sinit_mle_data_size(const txt_heap_t *heap)
 //{
 //    return *(uint64_t *)(heap + get_bios_data_size(heap) +
@@ -433,12 +433,12 @@ static inline os_mle_data_t *get_os_mle_data_start(const txt_heap_t *heap)
 //                                get_os_sinit_data_size(heap) +
 //                                sizeof(uint64_t));
 //}
-//
-//extern uint64_t calc_os_sinit_data_size(uint32_t version);
+
+extern uint64_t calc_os_sinit_data_size(uint32_t version);
 extern int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only);
 extern int verify_bios_data(const txt_heap_t *txt_heap);
-//extern void print_os_sinit_data(const os_sinit_data_t *os_sinit_data);
-//
+extern void print_os_sinit_data(const os_sinit_data_t *os_sinit_data);
+
 //#endif      /* __TXT_HEAP_H__ */
 //
 //

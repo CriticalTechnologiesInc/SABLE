@@ -50,7 +50,9 @@
 #include "config_regs.h"
 #include "uuid.h"
 #include "mtrrs.h"
+#include "mle.h"
 #include "heap.h"
+#include "acmod.h"
 //#endif
 //
 ///*
@@ -58,17 +60,16 @@
 // */
 //
 ///* HEAP_BIOS_SPEC_VER_ELEMENT */
-//static void print_bios_spec_ver_elt(const heap_ext_data_element_t *elt)
-//{
-//    const heap_bios_spec_ver_elt_t *bios_spec_ver_elt =
-//        (const heap_bios_spec_ver_elt_t *)elt->data;
-//
-//    printk(TBOOT_INFO"\t\t BIOS_SPEC_VER:\n");
-//    printk(TBOOT_INFO"\t\t     major: 0x%x\n", bios_spec_ver_elt->spec_ver_major);
-//    printk(TBOOT_INFO"\t\t     minor: 0x%x\n", bios_spec_ver_elt->spec_ver_minor);
-//    printk(TBOOT_INFO"\t\t     rev: 0x%x\n", bios_spec_ver_elt->spec_ver_rev);
-//}
-//
+static void print_bios_spec_ver_elt(const heap_ext_data_element_t *elt)
+{
+	const heap_bios_spec_ver_elt_t *bios_spec_ver_elt = (const heap_bios_spec_ver_elt_t *)elt->data;
+
+	out_info("\t\tBIOS_SPEC_VER");
+	out_description("\t\tmajor", bios_spec_ver_elt->spec_ver_major);
+	out_description("\t\tminor", bios_spec_ver_elt->spec_ver_minor);
+	out_description("\t\trev", bios_spec_ver_elt->spec_ver_rev);
+}
+
 static int verify_bios_spec_ver_elt(const heap_ext_data_element_t *elt)
 {
 	const heap_bios_spec_ver_elt_t *bios_spec_ver_elt = (const heap_bios_spec_ver_elt_t *)elt->data;
@@ -81,18 +82,19 @@ static int verify_bios_spec_ver_elt(const heap_ext_data_element_t *elt)
 	/* any values are allowed */
 	return 1;
 }
-//
-///* HEAP_ACM_ELEMENT */
-//static void print_acm_elt(const heap_ext_data_element_t *elt)
-//{
-//    const heap_acm_elt_t *acm_elt = (const heap_acm_elt_t *)elt->data;
-//
-//    printk(TBOOT_DETA"\t\t ACM:\n");
-//    printk(TBOOT_DETA"\t\t     num_acms: %u\n", acm_elt->num_acms);
-//    for ( unsigned int i = 0; i < acm_elt->num_acms; i++ )
-//        printk(TBOOT_DETA"\t\t     acm_addrs[%u]: 0x%jx\n", i, acm_elt->acm_addrs[i]);
-//}
-//
+
+/* HEAP_ACM_ELEMENT */
+static void print_acm_elt(const heap_ext_data_element_t *elt)
+{
+	const heap_acm_elt_t *acm_elt = (const heap_acm_elt_t *)elt->data;
+
+	out_info("ACM:");
+	out_description("\t\tnum_acms", acm_elt->num_acms);
+	for (unsigned int i = 0; i < acm_elt->num_acms; i++) {
+		out_description("\t\t     acm_addrs", acm_elt->acm_addrs[i]);
+	}
+}
+
 static int verify_acm_elt(const heap_ext_data_element_t *elt)
 {
 	const heap_acm_elt_t *acm_elt = (const heap_acm_elt_t *)elt->data;
@@ -124,17 +126,17 @@ static int verify_acm_elt(const heap_ext_data_element_t *elt)
 	return 1;
 }
 
-///* HEAP_CUSTOM_ELEMENT */
-//static void print_custom_elt(const heap_ext_data_element_t *elt)
-//{
-//    const heap_custom_elt_t *custom_elt = (const heap_custom_elt_t *)elt->data;
-//
-//    printk(TBOOT_DETA"\t\t CUSTOM:\n");
-//    printk(TBOOT_DETA"\t\t     size: %u\n", elt->size);
-//    printk(TBOOT_DETA"\t\t     uuid: "); print_uuid(&custom_elt->uuid);            
-//    printk(TBOOT_DETA"\n");
-//}
-//
+/* HEAP_CUSTOM_ELEMENT */
+static void print_custom_elt(const heap_ext_data_element_t *elt)
+{
+	const heap_custom_elt_t *custom_elt = (const heap_custom_elt_t *)elt->data;
+
+	out_info("CUSTOM:");
+	out_description("\t\t    size", elt->size);
+	out_info("uuid");
+	print_uuid(&custom_elt->uuid);            
+}
+
 static int  verify_custom_elt(const heap_ext_data_element_t *elt)
 {
 	const heap_custom_elt_t *custom_elt = (const heap_custom_elt_t *)elt->data;
@@ -153,40 +155,46 @@ static int  verify_custom_elt(const heap_ext_data_element_t *elt)
 //{
 //    print_hash((const tb_hash_t *)hash, TB_HALG_SHA1);
 //}
-//
-//void print_event(const tpm12_pcr_event_t *evt)
-//{
-//    printk(TBOOT_DETA"\t\t\t Event:\n");
-//    printk(TBOOT_DETA"\t\t\t     PCRIndex: %u\n", evt->pcr_index);
-//    printk(TBOOT_DETA"\t\t\t         Type: 0x%x\n", evt->type);
-//    printk(TBOOT_DETA"\t\t\t       Digest: ");
-//    print_heap_hash(evt->digest);
-//    printk(TBOOT_DETA"\t\t\t         Data: %u bytes", evt->data_size);
-//    print_hex("\t\t\t         ", evt->data, evt->data_size);
-//}
-//
-//static void print_evt_log(const event_log_container_t *elog)
-//{
-//    printk(TBOOT_DETA"\t\t\t Event Log Container:\n");
-//    printk(TBOOT_DETA"\t\t\t     Signature: %s\n", elog->signature);
-//    printk(TBOOT_DETA"\t\t\t  ContainerVer: %u.%u\n",
-//           elog->container_ver_major, elog->container_ver_minor);
-//    printk(TBOOT_DETA"\t\t\t   PCREventVer: %u.%u\n",
-//           elog->pcr_event_ver_major, elog->pcr_event_ver_minor);
-//    printk(TBOOT_DETA"\t\t\t          Size: %u\n", elog->size);
-//    printk(TBOOT_DETA"\t\t\t  EventsOffset: [%u,%u]\n",
-//           elog->pcr_events_offset, elog->next_event_offset);
-//
-//    const tpm12_pcr_event_t *curr, *next;
-//    curr = (tpm12_pcr_event_t *)((void*)elog + elog->pcr_events_offset);
-//    next = (tpm12_pcr_event_t *)((void*)elog + elog->next_event_offset);
-//
-//    while ( curr < next ) {
-//        print_event(curr);
-//        curr = (void *)curr + sizeof(*curr) + curr->data_size;
-//    }
-//}
-//
+
+void print_event(const tpm12_pcr_event_t *evt)
+{
+	out_info("\t\t\t Event:");
+	out_description("\t\t\t     PCRIndex", evt->pcr_index);
+	out_description("\t\t\t     Type", evt->type);
+	out_info("\t\t\t     Digest: ");
+//	print_heap_hash(evt->digest);
+	out_description("\t\t\t     Data: bytes", evt->data_size);
+//	print_hex("\t\t\t         ", evt->data, evt->data_size);
+}
+
+static void print_evt_log(const event_log_container_t *elog)
+{
+	out_info("Event Log Container");
+	wait(3000);
+	/* Bhushan: This can cause screen to go black as signature might not contain null char at end */
+	out_info("\t\t\t     Signature:");
+	out_string((char *)elog->signature);
+	out_info("\t\t\t   ContainerVer");
+	out_description("\t\t\t   major", elog->container_ver_major);
+	out_description("\t\t\t   minor", elog->container_ver_minor);
+	out_info("\t\t\t   PCREventVer");
+	out_description("\t\t\t   major", elog->pcr_event_ver_major);
+	out_description("\t\t\t   minor", elog->pcr_event_ver_minor);
+	out_description("\t\t\t          Size", elog->size);
+	out_info("\t\t\t  EventsOffset:");
+	out_description("pcr_events_offset", elog->pcr_events_offset);
+	out_description("next_event_offset", elog->next_event_offset);
+
+	const tpm12_pcr_event_t *curr, *next;
+	curr = (tpm12_pcr_event_t *)((void*)elog + elog->pcr_events_offset);
+	next = (tpm12_pcr_event_t *)((void*)elog + elog->next_event_offset);
+
+	while (curr < next) {
+		print_event(curr);
+		curr = (void *)curr + sizeof(*curr) + curr->data_size;
+	}
+}
+
 static int verify_evt_log(const event_log_container_t *elog)
 {
 	if ( elog == NULL ) {
@@ -221,20 +229,19 @@ static int verify_evt_log(const event_log_container_t *elog)
 	return 1;
 }
 
-//static void print_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
-//{
-//    const heap_event_log_ptr_elt_t *elog_elt =
-//              (const heap_event_log_ptr_elt_t *)elt->data;
-//
-//    printk(TBOOT_DETA"\t\t EVENT_LOG_POINTER:\n");
-//    printk(TBOOT_DETA"\t\t       size: %u\n", elt->size);
-//    printk(TBOOT_DETA"\t\t  elog_addr: 0x%jx\n", elog_elt->event_log_phys_addr);
-//
-//    if ( elog_elt->event_log_phys_addr )
-//        print_evt_log((event_log_container_t *)(unsigned long)
-//                      elog_elt->event_log_phys_addr);
-//}
-//
+static void print_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
+{
+	const heap_event_log_ptr_elt_t *elog_elt = (const heap_event_log_ptr_elt_t *)elt->data;
+
+	out_info("EVENT_LOG_POINTER");
+	out_description("size ", elt->size);
+	out_description64("elog_addr ", elog_elt->event_log_phys_addr);
+
+	if (elog_elt->event_log_phys_addr) {
+		print_evt_log((event_log_container_t *)(unsigned long) elog_elt->event_log_phys_addr);
+	}
+}
+
 static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 {
 	const heap_event_log_ptr_elt_t *elog_elt = (const heap_event_log_ptr_elt_t *)elt->data;
@@ -386,8 +393,10 @@ static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 //    return (evt_data_ptr + event_size - (uint8_t *)evt);
 //}
 //
-//static void print_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
-//{
+static void print_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
+{
+	out_info("ERROR : printing not supported : heap_ext_data_element_t");
+	wait(3000);
 //    const heap_event_log_ptr_elt2_t *elog_elt =
 //              (const heap_event_log_ptr_elt2_t *)elt->data;
 //    const heap_event_log_descr_t *log_descr;
@@ -443,11 +452,13 @@ static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 //            curr += 3*sizeof(uint32_t) + hash_size + data_size;
 //        }
 //    }
-//}
-//
-//
-//static void print_evt_log_ptr_elt_2_1(const heap_ext_data_element_t *elt)
-//{
+}
+
+
+static void print_evt_log_ptr_elt_2_1(const heap_ext_data_element_t *elt)
+{
+	out_info("ERROR: Printing not supported : heap_ext_data_element_t");
+	wait(3000);
 //    const heap_event_log_ptr_elt2_1_t *elog_elt = (const heap_event_log_ptr_elt2_1_t *)elt->data;
 //   
 //    printk(TBOOT_DETA"\t TCG EVENT_LOG_PTR:\n");
@@ -472,9 +483,9 @@ static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 //    while ( curr < next ) {
 //	curr += print_event_2_1(curr);
 //    }
-//}
-//
-//
+}
+
+
 static int verify_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 {
 	if ( !elt )
@@ -482,41 +493,42 @@ static int verify_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 
 	return 1;
 }
-//
-//static void print_ext_data_elts(const heap_ext_data_element_t elts[])
-//{
-//    const heap_ext_data_element_t *elt = elts;
-//
-//    printk(TBOOT_DETA"\t ext_data_elts[]:\n");
-//    while ( elt->type != HEAP_EXTDATA_TYPE_END ) {
-//        switch ( elt->type ) {
-//            case HEAP_EXTDATA_TYPE_BIOS_SPEC_VER:
-//                print_bios_spec_ver_elt(elt);
-//                break;
-//            case HEAP_EXTDATA_TYPE_ACM:
-//                print_acm_elt(elt);
-//                break;
-//            case HEAP_EXTDATA_TYPE_CUSTOM:
-//                print_custom_elt(elt);
-//                break;
-//            case HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR:
-//                print_evt_log_ptr_elt(elt);
-//                break;
-//            case HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2:
-//                print_evt_log_ptr_elt_2(elt);
-//                break;
-//            case HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2_1:
-//                print_evt_log_ptr_elt_2_1(elt);
-//                break;
-//            default:
-//                printk(TBOOT_WARN"\t\t unknown element:  type: %u, size: %u\n",
-//                       elt->type, elt->size);
-//                break;
-//        }
-//        elt = (void *)elt + elt->size;
-//    }
-//}
-//
+
+static void print_ext_data_elts(const heap_ext_data_element_t elts[])
+{
+	const heap_ext_data_element_t *elt = elts;
+
+	out_info("ext_data_elts[]");
+	while (elt->type != HEAP_EXTDATA_TYPE_END) {
+		switch (elt->type) {
+			case HEAP_EXTDATA_TYPE_BIOS_SPEC_VER:
+				print_bios_spec_ver_elt(elt);
+				break;
+			case HEAP_EXTDATA_TYPE_ACM:
+				print_acm_elt(elt);
+				break;
+			case HEAP_EXTDATA_TYPE_CUSTOM:
+				print_custom_elt(elt);
+				break;
+			case HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR:
+				print_evt_log_ptr_elt(elt);
+				break;
+			case HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2:
+				print_evt_log_ptr_elt_2(elt);
+				break;
+			case HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2_1:
+				print_evt_log_ptr_elt_2_1(elt);
+				break;
+			default:
+				out_info("unknown element");
+				out_description("type:", elt->type);
+				out_description("size:", elt->size);
+				break;
+		}
+		elt = (void *)elt + elt->size;
+	}
+}
+
 static bool verify_ext_data_elts(const heap_ext_data_element_t elts[], size_t elts_size)
 {
 	const heap_ext_data_element_t *elt = elts;
@@ -698,20 +710,21 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 //
 //    return true;
 //}
-//
-///*
-// * Make sure version is in [MIN_OS_SINIT_DATA_VER, MAX_OS_SINIT_DATA_VER]
-// * before calling calc_os_sinit_data_size
-// */
-//uint64_t calc_os_sinit_data_size(uint32_t version)
-//{
-//    uint64_t size[] = {
-//        offsetof(os_sinit_data_t, efi_rsdt_ptr) + sizeof(uint64_t),
-//        sizeof(os_sinit_data_t) + sizeof(uint64_t),
-//        sizeof(os_sinit_data_t) + sizeof(uint64_t) +
-//            2 * sizeof(heap_ext_data_element_t) +
-//            sizeof(heap_event_log_ptr_elt_t)
-//    };
+
+/*
+ * Make sure version is in [MIN_OS_SINIT_DATA_VER, MAX_OS_SINIT_DATA_VER]
+ * before calling calc_os_sinit_data_size
+ */
+
+uint64_t calc_os_sinit_data_size(uint32_t version)
+{
+	uint64_t size[] = {
+		offsetof(os_sinit_data_t, efi_rsdt_ptr) + sizeof(uint64_t),
+		sizeof(os_sinit_data_t) + sizeof(uint64_t),
+		sizeof(os_sinit_data_t) + sizeof(uint64_t) +
+		2 * sizeof(heap_ext_data_element_t) +
+		sizeof(heap_event_log_ptr_elt_t)
+	};
 //	txt_caps_t sinit_caps;
 //	
 //    if ( g_tpm->major == TPM20_VER_MAJOR ) {
@@ -737,36 +750,38 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 //				4 + count*sizeof(heap_event_log_descr_t);
 //		}
 //    }
-//
-//    if ( version >= 6 )
-//        return size[2];
-//    else
-//        return size[version - MIN_OS_SINIT_DATA_VER];
-//}
-//
-//void print_os_sinit_data(const os_sinit_data_t *os_sinit_data)
-//{
-//    printk(TBOOT_DETA"os_sinit_data (@%p, %Lx):\n", os_sinit_data,
-//           *((uint64_t *)os_sinit_data - 1));
-//    printk(TBOOT_DETA"\t version: %u\n", os_sinit_data->version);
-//    printk(TBOOT_DETA"\t flags: %u\n", os_sinit_data->flags);
-//    printk(TBOOT_DETA"\t mle_ptab: 0x%Lx\n", os_sinit_data->mle_ptab);
-//    printk(TBOOT_DETA"\t mle_size: 0x%Lx (%Lu)\n", os_sinit_data->mle_size,
-//           os_sinit_data->mle_size);
-//    printk(TBOOT_DETA"\t mle_hdr_base: 0x%Lx\n", os_sinit_data->mle_hdr_base);
-//    printk(TBOOT_DETA"\t vtd_pmr_lo_base: 0x%Lx\n", os_sinit_data->vtd_pmr_lo_base);
-//    printk(TBOOT_DETA"\t vtd_pmr_lo_size: 0x%Lx\n", os_sinit_data->vtd_pmr_lo_size);
-//    printk(TBOOT_DETA"\t vtd_pmr_hi_base: 0x%Lx\n", os_sinit_data->vtd_pmr_hi_base);
-//    printk(TBOOT_DETA"\t vtd_pmr_hi_size: 0x%Lx\n", os_sinit_data->vtd_pmr_hi_size);
-//    printk(TBOOT_DETA"\t lcp_po_base: 0x%Lx\n", os_sinit_data->lcp_po_base);
-//    printk(TBOOT_DETA"\t lcp_po_size: 0x%Lx (%Lu)\n", os_sinit_data->lcp_po_size, os_sinit_data->lcp_po_size);
-//    print_txt_caps("\t ", os_sinit_data->capabilities);
-//    if ( os_sinit_data->version >= 5 )
-//        printk(TBOOT_DETA"\t efi_rsdt_ptr: 0x%Lx\n", os_sinit_data->efi_rsdt_ptr);
-//    if ( os_sinit_data->version >= 6 )
-//        print_ext_data_elts(os_sinit_data->ext_data_elts);
-//}
-//
+
+	if (version >= 6)
+		return size[2];
+	else
+		return size[version - MIN_OS_SINIT_DATA_VER];
+}
+
+void print_os_sinit_data(const os_sinit_data_t *os_sinit_data)
+{
+	out_info("os_sinit_data");
+	out_description("os_sinit_data", (unsigned int)os_sinit_data);
+	out_description64("os_sinit_data - 1", *((uint64_t *)os_sinit_data - 1));
+	out_description("version", os_sinit_data->version);
+	out_description("flags", os_sinit_data->flags);
+	out_description64("mle_ptab", os_sinit_data->mle_ptab);
+	out_description64("mle_size", os_sinit_data->mle_size);
+	out_description64("mle_hdr_base", os_sinit_data->mle_hdr_base);
+	out_description64("vtd_pmr_lo_base", os_sinit_data->vtd_pmr_lo_base);
+	out_description64("vtd_pmr_lo_size", os_sinit_data->vtd_pmr_lo_size);
+	out_description64("vtd_pmr_hi_base", os_sinit_data->vtd_pmr_hi_base);
+	out_description64("vtd_pmr_hi_size", os_sinit_data->vtd_pmr_hi_size);
+	out_description64("lcp_po_base", os_sinit_data->lcp_po_base);
+	out_description64("lcp_po_size", os_sinit_data->lcp_po_size);
+	print_txt_caps(os_sinit_data->capabilities);
+	if (os_sinit_data->version >= 5) {
+		out_description64("efi_rsdt_ptr", os_sinit_data->efi_rsdt_ptr);
+	}
+	if (os_sinit_data->version >= 6) {
+		print_ext_data_elts(os_sinit_data->ext_data_elts);
+	}
+}
+
 //static bool verify_os_sinit_data(const txt_heap_t *txt_heap)
 //{
 //    uint64_t size, heap_size;

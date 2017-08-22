@@ -179,11 +179,28 @@ extern void print_txt_caps(txt_caps_t caps);
 //extern bool does_acmod_match_platform(const acm_hdr_t* hdr);
 //extern acm_hdr_t *copy_sinit(const acm_hdr_t *sinit);
 //extern bool verify_acmod(const acm_hdr_t *acm_hdr);
-//extern uint32_t get_supported_os_sinit_data_ver(const acm_hdr_t* hdr);
-//extern txt_caps_t get_sinit_capabilities(const acm_hdr_t* hdr);
+extern uint32_t get_supported_os_sinit_data_ver(const acm_hdr_t* hdr);
+extern txt_caps_t get_sinit_capabilities(const acm_hdr_t* hdr);
 //extern tpm_info_list_t *get_tpm_info_list(const acm_hdr_t* hdr);
 //extern void verify_IA32_se_svn_status(const acm_hdr_t *acm_hdr);
 #endif /* __TXT_ACMOD_H__ */
+
+
+static inline void print_uuid(const uuid_t *uuid)
+ {
+ 	out_info("UUID");
+ 	out_description("uuid->data1", uuid->data1);
+ 	out_description("uuid->data2", (uint32_t)uuid->data2);
+ 	out_description("uuid->data3", (uint32_t)uuid->data3);
+ 	out_description("uuid->data4", (uint32_t)uuid->data4);
+ 	out_description("uuid->data5[0]", uuid->data5[0]);
+ 	out_description("uuid->data5[1]", (uint32_t)uuid->data5[1]);
+ 	out_description("uuid->data5[2]", (uint32_t)uuid->data5[2]);
+ 	out_description("uuid->data5[3]", (uint32_t)uuid->data5[3]);
+ 	out_description("uuid->data5[4]", (uint32_t)uuid->data5[4]);
+ 	out_description("uuid->data5[5]", (uint32_t)uuid->data5[5]);
+ }
+
 
 /*
  * Local variables:

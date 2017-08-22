@@ -24,16 +24,16 @@ __data acm_hdr_t *g_sinit = 0;
 
 void print_txt_caps(txt_caps_t caps)
 { 
-	out_description("capabilities: ", caps._raw);
-	out_description("rlp_wake_getsec: ", caps.rlp_wake_getsec);
-	out_description("rlp_wake_monitor: ", caps.rlp_wake_monitor);
-	out_description("ecx_pgtbl: ", caps.ecx_pgtbl);
-	out_description("stm: ", caps.stm);
-	out_description("pcr_map_no_legacy: ", caps.pcr_map_no_legacy);
-	out_description("pcr_map_da: ", caps.pcr_map_da);
-	out_description("platform_type: ", caps.platform_type);
-	out_description("max_phy_addr: ", caps.max_phy_addr);
-	out_description("tcg_event_log_format: ", caps.tcg_event_log_format);
+	out_description("\tcapabilities: ", caps._raw);
+	out_description("\trlp_wake_getsec: ", caps.rlp_wake_getsec);
+	out_description("\trlp_wake_monitor: ", caps.rlp_wake_monitor);
+	out_description("\tecx_pgtbl: ", caps.ecx_pgtbl);
+	out_description("\tstm: ", caps.stm);
+	out_description("\tpcr_map_no_legacy: ", caps.pcr_map_no_legacy);
+	out_description("\tpcr_map_da: ", caps.pcr_map_da);
+	out_description("\tplatform_type: ", caps.platform_type);
+	out_description("\tmax_phy_addr: ", caps.max_phy_addr);
+	out_description("\ttcg_event_log_format: ", caps.tcg_event_log_format);
 }
 
 static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
@@ -668,3 +668,25 @@ void determine_loader_type(uint32_t magic)
 	}
 }
 
+uint32_t get_supported_os_sinit_data_ver(const acm_hdr_t* hdr)
+{   
+	/* assumes that it passed is_sinit_acmod() */
+
+	acm_info_table_t *info_table = get_acmod_info_table(hdr);
+	if (info_table == NULL) {
+		return 0;
+	}
+        
+	return info_table->os_sinit_data_ver;
+}   
+
+txt_caps_t get_sinit_capabilities(const acm_hdr_t* hdr)
+{
+	/* assumes that it passed is_sinit_acmod() */
+
+	acm_info_table_t *info_table = get_acmod_info_table(hdr);
+	if ( info_table == NULL || info_table->version < 3 )
+		return (txt_caps_t){ 0 };
+
+	return info_table->capabilities;
+}

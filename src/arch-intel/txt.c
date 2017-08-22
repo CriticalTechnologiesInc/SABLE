@@ -240,7 +240,7 @@ static __text const mle_hdr_t g_mle_hdr = {
 // */
 ///* count of APs in WAIT-FOR-SIPI */
 //atomic_t ap_wfs_count;
-
+/*
  static inline void print_uuid(const uuid_t *uuid)
  {
 	out_info("UUID");
@@ -255,6 +255,7 @@ static __text const mle_hdr_t g_mle_hdr = {
 	out_description("uuid->data5[4]", (uint32_t)uuid->data5[4]);
 	out_description("uuid->data5[5]", (uint32_t)uuid->data5[5]);
  }
+*/
 
 static void print_file_info(void)
 {
@@ -619,6 +620,8 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	*/
 	if (!verify_txt_heap(txt_heap, 1)) {
 		return NULL;
+		out_info("EORROR : bios_data init has some problem");
+		wait(3000);
 	}
 
 	/*
@@ -626,7 +629,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	*/
 
 	out_info("bios_data init is done");
-	wait(3000);
+	wait(4000);
 
 	os_mle_data_t *os_mle_data = get_os_mle_data_start(txt_heap);
 	size = (uint64_t *)((uint32_t)os_mle_data - sizeof(uint64_t));
@@ -644,37 +647,38 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	os_mle_data->lctx_addr = NULL;
 	os_mle_data->saved_misc_enable_msr = rdmsr(MSR_IA32_MISC_ENABLE);
 
-//    /*
-//     * OS/loader to SINIT data
-//     */
-//    /* check sinit supported os_sinit_data version */
-//    uint32_t version = get_supported_os_sinit_data_ver(sinit);
-//    if ( version < MIN_OS_SINIT_DATA_VER ) {
-//        printk(TBOOT_ERR"unsupported OS to SINIT data version(%u) in sinit\n",
-//               version);
-//        return NULL;
-//    }
-//    if ( version > MAX_OS_SINIT_DATA_VER )
-//        version = MAX_OS_SINIT_DATA_VER;
-//
-//    os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
-//    size = (uint64_t *)((uint32_t)os_sinit_data - sizeof(uint64_t));
-//    *size = calc_os_sinit_data_size(version);
-//    memset(os_sinit_data, 0, *size);
-//    os_sinit_data->version = version;
-//
-//    /* this is phys addr */
-//    os_sinit_data->mle_ptab = (uint64_t)(unsigned long)ptab_base;
-//    os_sinit_data->mle_size = g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off;
-//    /* this is linear addr (offset from MLE base) of mle header */
-//    os_sinit_data->mle_hdr_base = (uint64_t)(unsigned long)&g_mle_hdr -
-//        (uint64_t)(unsigned long)&_mle_start;
-//    /* VT-d PMRs */
-//    uint64_t min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram;
-//    
-//    if ( !get_ram_ranges(&min_lo_ram, &max_lo_ram, &min_hi_ram, &max_hi_ram) )
-//        return NULL;
-//
+	/*
+	 * OS/loader to SINIT data
+	 */
+	/* check sinit supported os_sinit_data version */
+	uint32_t version = get_supported_os_sinit_data_ver(sinit);
+	if (version < MIN_OS_SINIT_DATA_VER) {
+		out_description("ERROR: unsupported OS to SINIT data version in sinit", version);
+		return NULL;
+	}
+	if (version > MAX_OS_SINIT_DATA_VER) {
+		version = MAX_OS_SINIT_DATA_VER;
+	}
+	out_description("OS to SINIT data version in sinit", version);
+
+	os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
+	size = (uint64_t *)((uint32_t)os_sinit_data - sizeof(uint64_t));
+	*size = calc_os_sinit_data_size(version);
+	memset(os_sinit_data, 0, *size);
+	os_sinit_data->version = version;
+
+	/* this is phys addr */
+	os_sinit_data->mle_ptab = (uint64_t)(unsigned long)ptab_base;
+	os_sinit_data->mle_size = g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off;
+	/* this is linear addr (offset from MLE base) of mle header */
+	os_sinit_data->mle_hdr_base = (uint64_t)(unsigned long)&g_mle_hdr - (uint64_t)(unsigned long)&_mle_start;
+	/* VT-d PMRs */
+//	uint64_t min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram;
+
+//	if (!get_ram_ranges(&min_lo_ram, &max_lo_ram, &min_hi_ram, &max_hi_ram)) {
+//		return NULL;
+//	}
+
 //    set_vtd_pmrs(os_sinit_data, min_lo_ram, max_lo_ram, min_hi_ram,
 //                 max_hi_ram);
 //    /* LCP owner policy data */
@@ -692,32 +696,35 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 //        os_sinit_data->lcp_po_base = (unsigned long)&os_mle_data->lcp_po_data;
 //        os_sinit_data->lcp_po_size = lcp_size;
 //    }
-//    /* capabilities : choose monitor wake mechanism first */
-//    txt_caps_t sinit_caps = get_sinit_capabilities(sinit);
-//    txt_caps_t caps_mask = { 0 };
-//    caps_mask.rlp_wake_getsec = 1;
-//    caps_mask.rlp_wake_monitor = 1;
-//    caps_mask.pcr_map_da = 1;
-//    os_sinit_data->capabilities._raw = MLE_HDR_CAPS & ~caps_mask._raw;
-//    if ( sinit_caps.rlp_wake_monitor )
-//        os_sinit_data->capabilities.rlp_wake_monitor = 1;
-//    else if ( sinit_caps.rlp_wake_getsec )
-//        os_sinit_data->capabilities.rlp_wake_getsec = 1;
-//    else {     /* should have been detected in verify_acmod() */
-//        printk(TBOOT_ERR"SINIT capabilities are incompatible (0x%x)\n", sinit_caps._raw);
-//        return NULL;
-//    }
-//    
-//    if ( sinit_caps.tcg_event_log_format ){
-//        printk(TBOOT_INFO"SINIT ACM supports TCG compliant TPM 2.0 event log format, tcg_event_log_format = %d \n", 
-//              sinit_caps.tcg_event_log_format);
-//        os_sinit_data->capabilities.tcg_event_log_format = 1;
-//    }
-//    /* capabilities : require MLE pagetable in ECX on launch */
-//    /* TODO: when SINIT ready
-//     * os_sinit_data->capabilities.ecx_pgtbl = 1;
-//     */
-//    os_sinit_data->capabilities.ecx_pgtbl = 0;
+
+
+	/* capabilities : choose monitor wake mechanism first */
+	txt_caps_t sinit_caps = get_sinit_capabilities(sinit);
+	txt_caps_t caps_mask = { 0 };
+	caps_mask.rlp_wake_getsec = 1;
+	caps_mask.rlp_wake_monitor = 1;
+	caps_mask.pcr_map_da = 1;
+	os_sinit_data->capabilities._raw = MLE_HDR_CAPS & ~caps_mask._raw;
+	if (sinit_caps.rlp_wake_monitor)
+		os_sinit_data->capabilities.rlp_wake_monitor = 1;
+	else if (sinit_caps.rlp_wake_getsec)
+		os_sinit_data->capabilities.rlp_wake_getsec = 1;
+	else {     /* should have been detected in verify_acmod() */
+		out_description("SINIT capabilities are incompatible", sinit_caps._raw);
+		return NULL;
+	}
+   
+	if (sinit_caps.tcg_event_log_format) {
+		out_description("SINIT ACM supports TCG compliant TPM 2.0 event log format, tcg_event_log_format", sinit_caps.tcg_event_log_format);
+		os_sinit_data->capabilities.tcg_event_log_format = 1;
+	}
+
+	/* capabilities : require MLE pagetable in ECX on launch */
+	/* TODO: when SINIT ready
+	 * os_sinit_data->capabilities.ecx_pgtbl = 1;
+	 */
+
+	os_sinit_data->capabilities.ecx_pgtbl = 0;
 //    if (is_loader_launch_efi(lctx)){
 //        /* we were launched EFI, set efi_rsdt_ptr */
 //        struct acpi_rsdp *rsdp = get_rsdp(lctx);
@@ -738,7 +745,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 //        }
 //    }
 //        
-//    /* capabilities : choose DA/LG */
+	/* capabilities : choose DA/LG */
 //    os_sinit_data->capabilities.pcr_map_no_legacy = 1;
 //    if ( sinit_caps.pcr_map_da && get_tboot_prefer_da() )
 //        os_sinit_data->capabilities.pcr_map_da = 1;
@@ -755,29 +762,42 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 //        return NULL;
 //    }
 //    g_using_da = os_sinit_data->capabilities.pcr_map_da;
-//
-//    /* PCR mapping selection MUST be zero in TPM2.0 mode
-//     * since D/A mapping is the only supported by TPM2.0 */
-//    if ( g_tpm->major >= TPM20_VER_MAJOR ) {
-//        os_sinit_data->flags = (g_tpm->extpol == TB_EXTPOL_AGILE) ? 0 : 1;
-//        os_sinit_data->capabilities.pcr_map_no_legacy = 0;
-//        os_sinit_data->capabilities.pcr_map_da = 0;
-//        g_using_da = 1;
-//    }   
-//
-//    /* Event log initialization */
-//    if ( os_sinit_data->version >= 6 )
-//        init_os_sinit_ext_data(os_sinit_data->ext_data_elts);
-//
-//    print_os_sinit_data(os_sinit_data);
-//
-//    /*
-//     * SINIT to MLE data will be setup by SINIT
-//     */
-//
+
+	/* 
+	 * PCR mapping selection MUST be zero in TPM2.0 mode
+	 * since D/A mapping is the only supported by TPM2.0
+	 */
+
+	/* 
+	 * Bhushan : assumption : we know on our development machine we have TPM 1.2.
+	 */
+
+	/*
+	if ( g_tpm->major >= TPM20_VER_MAJOR ) {
+		os_sinit_data->flags = (g_tpm->extpol == TB_EXTPOL_AGILE) ? 0 : 1;
+		os_sinit_data->capabilities.pcr_map_no_legacy = 0;
+		os_sinit_data->capabilities.pcr_map_da = 0;
+		g_using_da = 1;
+	}   
+	*/
+
+	/* Event log initialization */
+	
+	/*
+	if ( os_sinit_data->version >= 6 )
+		init_os_sinit_ext_data(os_sinit_data->ext_data_elts);
+	*/
+
+	print_os_sinit_data(os_sinit_data);
+	wait(5000);
+
+	/*
+	 * SINIT to MLE data will be setup by SINIT
+	 */
+
 	return txt_heap;
 }
-//
+
 //static void txt_wakeup_cpus(void)
 //{
 //    uint16_t cs;
@@ -888,6 +908,8 @@ int txt_launch_environment()
 		return 0;
 	}
 
+	out_info("Initializing Heap .....");
+	wait(3000);
 
 	/* initialize TXT heap */
 	txt_heap = init_txt_heap(mle_ptab_base, g_sinit);

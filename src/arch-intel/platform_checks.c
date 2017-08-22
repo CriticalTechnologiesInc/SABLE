@@ -7,6 +7,7 @@
 #include "hash.h"
 #include "uuid.h"
 #include "mtrrs.h"
+#include "mle.h"
 #include "heap.h"
 #include "acpi.h"
 
