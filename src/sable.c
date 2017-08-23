@@ -34,15 +34,19 @@
 #include "types.h"
 #include "msr.h"
 #include "processor.h"
+#include "loader.h"
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
+
+extern loader_ctx *g_ldr_ctx;
 
 int prepare_sinit_acm(struct mbi *m);
 int platform_pre_checks();
 void determine_loader_type(uint32_t magic);
 void determine_loader_type_context(void *addr, uint32_t magic);
 int txt_launch_environment();
+int copy_e820_map(loader_ctx *lctx);
 
 // Result generators
 RESULT_GEN(TPM_NONCE);
@@ -442,6 +446,13 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   /*
    * Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
    */
+
+  if (!copy_e820_map(g_ldr_ctx)) {
+	out_info("Copying of e820 map failed");
+	while(1);
+  } else {
+	out_info("Copying e820 map : done");
+  }
 
   /*
    * verify SINIT AC module : step 3

@@ -14,6 +14,7 @@
 #include "hash.h"
 #include "heap.h"
 #include "smx.h"
+#include "loader.h"
 
 __data acm_hdr_t *g_sinit = 0;
 
@@ -29,16 +30,6 @@ __data acm_hdr_t *g_sinit = 0;
 /*
  * Code to be removed : start
  */
-
-#define MB_NONE 0
-#define MB1_ONLY 1
-#define MB2_ONLY 2
-#define MB_BOTH 3
-
-typedef struct {
-	void *addr;
-	uint32_t type;
-} loader_ctx;
 
  /* loader context struct saved so that post_launch() can use it */
 __data loader_ctx g_loader_ctx = { NULL, 0 };
