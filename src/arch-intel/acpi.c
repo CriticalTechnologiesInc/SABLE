@@ -167,11 +167,12 @@ static int  find_rsdp(void)
 	return 0;
 }
 
-//struct acpi_rsdp
-//*get_rsdp(loader_ctx *lctx)
-//{
-//    if (rsdp != NULL)
-//        return rsdp;
+struct acpi_rsdp *get_rsdp()	//(loader_ctx *lctx)
+{
+	if (rsdp != NULL)
+		return rsdp;
+	out_info("EORROR : RSDP not found");
+	wait(4000);
 //    if (true == find_rsdp())
 //        return rsdp;
 //    /* so far we're striking out.  Must have been an EFI lauch */
@@ -182,9 +183,8 @@ static int  find_rsdp(void)
 //    /* EFI launch, and the loader didn't grace us with an ACPI tag.
 //     * We can try to find this the hard way, right?
 //     */
-//    return NULL;
-//}
-//
+	return NULL;
+}
 
 /* this function can find dmar table whether or not it was hidden */
 

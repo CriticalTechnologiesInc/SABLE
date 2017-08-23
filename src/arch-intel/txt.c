@@ -12,6 +12,7 @@
 #include "mtrrs.h"
 #include "hash.h"
 #include "heap.h"
+#include "acpi.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -177,7 +178,7 @@ int get_parameters(getsec_parameters_t *params)
 ///* counter timeout for waiting for all APs to enter wait-for-sipi */
 //#define AP_WFS_TIMEOUT     0x10000000
 //
-//__data struct acpi_rsdp g_rsdp;
+__data struct acpi_rsdp g_rsdp;
 extern char __start[];		/* start of module */
 extern char _end[];		/* end of module */
 extern char _mle_start[];	/* start of text section */
@@ -600,7 +601,7 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 //    return true;
 //}
 //
-//__data uint32_t g_using_da = 0;
+__data uint32_t g_using_da = 0;
 //__data acm_hdr_t *g_sinit = 0;
 //
 
@@ -684,7 +685,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 //    /* LCP owner policy data */
 //    void *lcp_base = NULL;
 //    uint32_t lcp_size = 0;
-//
+
 //    if ( find_lcp_module(lctx, &lcp_base, &lcp_size) && lcp_size > 0 ) {
 //        /* copy to heap */
 //        if ( lcp_size > sizeof(os_mle_data->lcp_po_data) ) {
@@ -726,27 +727,28 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 
 	os_sinit_data->capabilities.ecx_pgtbl = 0;
 //    if (is_loader_launch_efi(lctx)){
-//        /* we were launched EFI, set efi_rsdt_ptr */
-//        struct acpi_rsdp *rsdp = get_rsdp(lctx);
-//        if (rsdp != NULL){
-//            if (version < 6){
-//                /* rsdt */
-//                /* NOTE: Winston Wang says this doesn't work for v5 */
-//                os_sinit_data->efi_rsdt_ptr = (uint64_t) rsdp->rsdp1.rsdt;
-//            } else {
-//                /* rsdp */
-//                memcpy((void *)&g_rsdp, rsdp, sizeof(struct acpi_rsdp));
-//                os_sinit_data->efi_rsdt_ptr = (uint64_t)((uint32_t)&g_rsdp);
-//            }
-//        } else {
-//            /* per discussions--if we don't have an ACPI pointer, die */
-//            printk(TBOOT_ERR"Failed to find RSDP for EFI launch\n");
-//            return NULL;
-//        }
+	/* we were launched EFI, set efi_rsdt_ptr */
+	struct acpi_rsdp *rsdp = get_rsdp(); //get_rsdp(lctx);
+	if (rsdp != NULL){
+		if (version < 6){
+			/* rsdt */
+			/* NOTE: Winston Wang says this doesn't work for v5 */
+			os_sinit_data->efi_rsdt_ptr = (uint64_t) rsdp->rsdp1.rsdt;
+		} else {
+			/* rsdp */
+			memcpy((void *)&g_rsdp, rsdp, sizeof(struct acpi_rsdp));
+			os_sinit_data->efi_rsdt_ptr = (uint64_t)((uint32_t)&g_rsdp);
+		}
+	} else {
+		/* per discussions--if we don't have an ACPI pointer, die */
+		out_info("ERROR: Failed to find RSDP for EFI launch\n");
+		while(1);
+		return NULL;
+	}
 //    }
-//        
+
 	/* capabilities : choose DA/LG */
-//    os_sinit_data->capabilities.pcr_map_no_legacy = 1;
+	os_sinit_data->capabilities.pcr_map_no_legacy = 1;
 //    if ( sinit_caps.pcr_map_da && get_tboot_prefer_da() )
 //        os_sinit_data->capabilities.pcr_map_da = 1;
 //    else if ( !sinit_caps.pcr_map_no_legacy )
@@ -761,7 +763,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 //               sinit_caps._raw);
 //        return NULL;
 //    }
-//    g_using_da = os_sinit_data->capabilities.pcr_map_da;
+	g_using_da = os_sinit_data->capabilities.pcr_map_da;
 
 	/* 
 	 * PCR mapping selection MUST be zero in TPM2.0 mode
