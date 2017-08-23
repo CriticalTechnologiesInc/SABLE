@@ -21,6 +21,33 @@ __data acm_hdr_t *g_sinit = 0;
  __text char g_cmdline[CMDLINE_SIZE] = { 0 };
 
 
+/*
+ * Bhushan: I am adding loader_ctx and it varible g_ldr_ctx just to make coding simple.
+ * we dont need this structure and we can safely remove it by resolving all references. 
+ */
+
+/*
+ * Code to be removed : start
+ */
+
+#define MB_NONE 0
+#define MB1_ONLY 1
+#define MB2_ONLY 2
+#define MB_BOTH 3
+
+typedef struct {
+	void *addr;
+	uint32_t type;
+} loader_ctx;
+
+ /* loader context struct saved so that post_launch() can use it */
+__data loader_ctx g_loader_ctx = { NULL, 0 };
+__data loader_ctx *g_ldr_ctx = &g_loader_ctx;
+
+/*
+ * Code to be removed : end
+ */
+
 
 void print_txt_caps(txt_caps_t caps)
 { 
@@ -666,6 +693,66 @@ void determine_loader_type(uint32_t magic)
 			out_info("PROBLEM : no multi boot launch");
 			break;
 	}
+}
+
+
+void determine_loader_type_context(void *addr, uint32_t magic)
+{
+	if (g_ldr_ctx->addr == NULL){
+		/* brave new world */
+		g_ldr_ctx->addr = addr;  /* save for post launch */
+		switch (magic){
+			case MB_MAGIC:
+				out_info("Initializing context with MBI 1");
+				wait(3000);
+				// BHUSHAN : in case of sable we will be here
+				g_ldr_ctx->type = MB1_ONLY;
+				{
+					/* we may as well do this here--if we received an ELF
+					 * sections tag, we won't use it, and it's useless to
+					 * Xen downstream, since it's OUR ELF sections, not Xen's
+					 */
+					multiboot_info_t *mbi = (multiboot_info_t *) addr;
+					if (mbi->flags & MBI_AOUT) {
+						mbi->flags &= ~MBI_AOUT;
+					}
+					if (mbi->flags & MBI_ELF){
+						mbi->flags &= ~MBI_ELF;
+					}
+				}
+				break;
+			case MB2_LOADER_MAGIC:
+				g_ldr_ctx->type = MB2_ONLY;
+				out_info("ERROR : we dont expect to be here");
+				while(1);
+				/*
+				// save the original MB2 info size, since we have
+				// to put updates inline
+				
+				g_mb_orig_size = *(uint32_t *) addr;
+				{
+					// we may as well do this here--if we received an ELF
+					// sections tag, we won't use it, and it's useless to
+					// Xen downstream, since it's OUR ELF sections, not Xen's
+					//
+					struct mb2_tag *start = (struct mb2_tag *)(addr + 8);
+					start = find_mb2_tag_type(start, MB2_TAG_TYPE_ELF_SECTIONS);
+					if (start != NULL)
+					if (start != NULL)
+					(void) remove_mb2_tag(g_ldr_ctx, start);
+				}
+				*/
+				break;
+			default:
+				g_ldr_ctx->type = 0;
+				break;
+		}
+	}
+	/* so at this point, g_ldr_ctx->type has one of three values:
+	 * 0: not a multiboot launch--we're doomed
+	 * 1: MB1 launch
+	 * 2: MB2 launch
+	 */
 }
 
 uint32_t get_supported_os_sinit_data_ver(const acm_hdr_t* hdr)

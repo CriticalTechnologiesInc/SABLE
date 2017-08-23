@@ -41,6 +41,7 @@
 int prepare_sinit_acm(struct mbi *m);
 int platform_pre_checks();
 void determine_loader_type(uint32_t magic);
+void determine_loader_type_context(void *addr, uint32_t magic);
 int txt_launch_environment();
 
 // Result generators
@@ -424,6 +425,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
 
   determine_loader_type(flags);
+  determine_loader_type_context(m, flags);
   wait(2000);
 
   /*
