@@ -28,6 +28,8 @@
  
 extern acm_hdr_t *g_sinit;
 
+extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
+
 int get_parameters(getsec_parameters_t *params)
 {
 	unsigned long cr4;
@@ -609,6 +611,33 @@ __data uint32_t g_using_da = 0;
  * sets up TXT heap
  */
 
+void set_vtd_pmrs(os_sinit_data_t *os_sinit_data, uint64_t min_lo_ram, uint64_t max_lo_ram, uint64_t min_hi_ram, uint64_t max_hi_ram)
+{    
+	out_description64("min_lo_ram", min_lo_ram);
+	out_description64("max_lo_ram", max_lo_ram);
+	out_description64("min_hi_ram", min_hi_ram);
+	out_description64("max_hi_ram", max_hi_ram);
+
+	/*
+	 * base must be 2M-aligned and size must be multiple of 2M
+	 * (so round bases and sizes down--rounding size up might conflict
+	 * with a BIOS-reserved region and cause problems; in practice, rounding
+	 * base down doesn't)
+	 * we want to protect all of usable mem so that any kernel allocations
+	 * before VT-d remapping is enabled are protected
+	 */
+
+	min_lo_ram &= ~0x1fffffULL;
+	uint64_t lo_size = (max_lo_ram - min_lo_ram) & ~0x1fffffULL;
+	os_sinit_data->vtd_pmr_lo_base = min_lo_ram;
+	os_sinit_data->vtd_pmr_lo_size = lo_size;
+
+	min_hi_ram &= ~0x1fffffULL;
+	uint64_t hi_size = (max_hi_ram - min_hi_ram) & ~0x1fffffULL;
+	os_sinit_data->vtd_pmr_hi_base = min_hi_ram;
+	os_sinit_data->vtd_pmr_hi_size = hi_size;
+}
+
 static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 {
 	txt_heap_t *txt_heap;
@@ -674,14 +703,13 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	/* this is linear addr (offset from MLE base) of mle header */
 	os_sinit_data->mle_hdr_base = (uint64_t)(unsigned long)&g_mle_hdr - (uint64_t)(unsigned long)&_mle_start;
 	/* VT-d PMRs */
-//	uint64_t min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram;
+	uint64_t min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram;
 
-//	if (!get_ram_ranges(&min_lo_ram, &max_lo_ram, &min_hi_ram, &max_hi_ram)) {
-//		return NULL;
-//	}
+	if (!get_ram_ranges(&min_lo_ram, &max_lo_ram, &min_hi_ram, &max_hi_ram)) {
+		return NULL;
+	}
 
-//    set_vtd_pmrs(os_sinit_data, min_lo_ram, max_lo_ram, min_hi_ram,
-//                 max_hi_ram);
+	set_vtd_pmrs(os_sinit_data, min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram);
 //    /* LCP owner policy data */
 //    void *lcp_base = NULL;
 //    uint32_t lcp_size = 0;
