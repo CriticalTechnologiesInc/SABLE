@@ -440,55 +440,54 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 //    }
 //}
 //
-//static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
-//{
-//    heap_ext_data_element_t* elt = elts;
-//    heap_event_log_ptr_elt_t* evt_log;
-//    txt_caps_t sinit_caps;
-//	
-//    if ( g_tpm->major == TPM12_VER_MAJOR ) {
-//        evt_log = (heap_event_log_ptr_elt_t *)elt->data;
-//        evt_log->event_log_phys_addr = (uint64_t)(unsigned long)init_event_log();
-//        elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR;
-//        elt->size = sizeof(*elt) + sizeof(*evt_log);
-//    } 
-//    else 
-//        if ( g_tpm->major == TPM20_VER_MAJOR ) {
-//       	    if (g_sinit != NULL) {
-//	        sinit_caps = get_sinit_capabilities(g_sinit);
-//	    }
-//	    else 
-//		return;
-//            if (sinit_caps.tcg_event_log_format) {
-//		g_elog_2_1 = (heap_event_log_ptr_elt2_1_t *)elt->data;
-//		init_evtlog_desc_1(g_elog_2_1);
-//		elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2_1;
-//		elt->size = sizeof(*elt) + sizeof(heap_event_log_ptr_elt2_1_t);
-//		printk(TBOOT_DETA"heap_ext_data_element TYPE = %d \n", elt->type);
-//		printk(TBOOT_DETA"heap_ext_data_element SIZE = %d \n", elt->size);
-//				
-//	    }
-//	    else {
-//		g_elog_2 = (heap_event_log_ptr_elt2_t *)elt->data;
-//		if ( g_tpm->extpol == TB_EXTPOL_AGILE )
-//	    	    g_elog_2->count = g_tpm->banks;
+static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
+{
+	txt_caps_t			sinit_caps;
+	heap_event_log_ptr_elt_t*	evt_log;
+	heap_ext_data_element_t*	elt = elts;
+
+	if (g_tpm->major == TPM12_VER_MAJOR) {
+		evt_log = (heap_event_log_ptr_elt_t *)elt->data;
+		evt_log->event_log_phys_addr = (uint64_t)(unsigned long)init_event_log();
+		elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR;
+		elt->size = sizeof(*elt) + sizeof(*evt_log);
+	} 
+	else if ( g_tpm->major == TPM20_VER_MAJOR ) {
+		out_info("We dont expect to be here: init_os_sinit_ext_data");
+		while(1);
+//		if (g_sinit != NULL) {
+//			sinit_caps = get_sinit_capabilities(g_sinit);
+//		}
 //		else 
-//		    if ( g_tpm->extpol == TB_EXTPOL_EMBEDDED )
-//			g_elog_2->count = g_tpm->alg_count;
-//		    else
-//			g_elog_2->count = 1;
-//		init_evtlog_desc(g_elog_2);
-//                elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2;
-//                elt->size = sizeof(*elt) + sizeof(u32) +
-//                g_elog_2->count * sizeof(heap_event_log_descr_t);
-//		printk(TBOOT_DETA"INTEL TXT LOG elt SIZE = %d \n", elt->size);
-//           }
-//       }
-//    elt = (void *)elt + elt->size;
-//    elt->type = HEAP_EXTDATA_TYPE_END;
-//    elt->size = sizeof(*elt);
-//}
-//
+//			return;
+//		if (sinit_caps.tcg_event_log_format) {
+//			g_elog_2_1 = (heap_event_log_ptr_elt2_1_t *)elt->data;
+//			init_evtlog_desc_1(g_elog_2_1);
+//			elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2_1;
+//			elt->size = sizeof(*elt) + sizeof(heap_event_log_ptr_elt2_1_t);
+//			printk(TBOOT_DETA"heap_ext_data_element TYPE = %d \n", elt->type);
+//			printk(TBOOT_DETA"heap_ext_data_element SIZE = %d \n", elt->size);
+//		} else {
+//			g_elog_2 = (heap_event_log_ptr_elt2_t *)elt->data;
+//			if (g_tpm->extpol == TB_EXTPOL_AGILE)
+//				g_elog_2->count = g_tpm->banks;
+//			else 
+//				if ( g_tpm->extpol == TB_EXTPOL_EMBEDDED )
+//					g_elog_2->count = g_tpm->alg_count;
+//				else
+//					g_elog_2->count = 1;
+//			init_evtlog_desc(g_elog_2);
+//			elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2;
+//			elt->size = sizeof(*elt) + sizeof(u32) +
+//			g_elog_2->count * sizeof(heap_event_log_descr_t);
+//			printk(TBOOT_DETA"INTEL TXT LOG elt SIZE = %d \n", elt->size);
+//		}
+	}
+	elt = (void *)elt + elt->size;
+	elt->type = HEAP_EXTDATA_TYPE_END;
+	elt->size = sizeof(*elt);
+}
+
 //bool evtlog_append_tpm12(uint8_t pcr, tb_hash_t *hash, uint32_t type)
 //{
 //    if ( g_elog == NULL )
@@ -617,6 +616,7 @@ void set_vtd_pmrs(os_sinit_data_t *os_sinit_data, uint64_t min_lo_ram, uint64_t 
 	out_description64("max_lo_ram", max_lo_ram);
 	out_description64("min_hi_ram", min_hi_ram);
 	out_description64("max_hi_ram", max_hi_ram);
+	wait(6000);
 
 	/*
 	 * base must be 2M-aligned and size must be multiple of 2M
@@ -777,20 +777,18 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 
 	/* capabilities : choose DA/LG */
 	os_sinit_data->capabilities.pcr_map_no_legacy = 1;
-//    if ( sinit_caps.pcr_map_da && get_tboot_prefer_da() )
-//        os_sinit_data->capabilities.pcr_map_da = 1;
-//    else if ( !sinit_caps.pcr_map_no_legacy )
-//        os_sinit_data->capabilities.pcr_map_no_legacy = 0;
-//    else if ( sinit_caps.pcr_map_da ) {
-//        printk(TBOOT_INFO
-//               "DA is the only supported PCR mapping by SINIT, use it\n");
-//        os_sinit_data->capabilities.pcr_map_da = 1;
-//    }
-//    else {
-//        printk(TBOOT_ERR"SINIT capabilities are incompatible (0x%x)\n", 
-//               sinit_caps._raw);
-//        return NULL;
-//    }
+	if(sinit_caps.pcr_map_da && get_tboot_prefer_da())
+		os_sinit_data->capabilities.pcr_map_da = 1;
+	else if ( !sinit_caps.pcr_map_no_legacy )
+		os_sinit_data->capabilities.pcr_map_no_legacy = 0;
+	else if ( sinit_caps.pcr_map_da ) {
+		out_info("DA is the only supported PCR mapping by SINIT, use it");
+		wait(3000);
+		os_sinit_data->capabilities.pcr_map_da = 1;
+	} else {
+		out_description("SINIT capabilities are incompatible ", sinit_caps._raw);
+		return NULL;
+	}
 	g_using_da = os_sinit_data->capabilities.pcr_map_da;
 
 	/* 
@@ -798,25 +796,29 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	 * since D/A mapping is the only supported by TPM2.0
 	 */
 
-	/* 
-	 * Bhushan : assumption : we know on our development machine we have TPM 1.2.
-	 */
-
-	/*
 	if ( g_tpm->major >= TPM20_VER_MAJOR ) {
+
+		/*
+		 * Bhushan :  assumption : we know our development environment is TPM 1.2
+		 */
+
+		out_info("ERROR: we dont expect to here");
+		while(1);
+		/*
 		os_sinit_data->flags = (g_tpm->extpol == TB_EXTPOL_AGILE) ? 0 : 1;
 		os_sinit_data->capabilities.pcr_map_no_legacy = 0;
 		os_sinit_data->capabilities.pcr_map_da = 0;
 		g_using_da = 1;
+		*/
 	}   
-	*/
+
 
 	/* Event log initialization */
 	
-	/*
-	if ( os_sinit_data->version >= 6 )
+
+	if (os_sinit_data->version >= 6)
 		init_os_sinit_ext_data(os_sinit_data->ext_data_elts);
-	*/
+
 
 	print_os_sinit_data(os_sinit_data);
 	wait(5000);
@@ -949,8 +951,8 @@ int txt_launch_environment()
 		return 0;
 	}
 
-//    /* save MTRRs before we alter them for SINIT launch */
-//    os_mle_data = get_os_mle_data_start(txt_heap);
+	/* save MTRRs before we alter them for SINIT launch */
+	os_mle_data = get_os_mle_data_start(txt_heap);
 //    save_mtrrs(&(os_mle_data->saved_mtrr_state));
 //
 //    /* set MTRRs properly for AC module (SINIT) */
