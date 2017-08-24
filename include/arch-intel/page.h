@@ -50,8 +50,9 @@
 //#define FOURMB_PAGE_SHIFT 22
 //
 ///* macros to rounds things up/down to a page */
-//#define PAGE_UP(p)   (((unsigned long)(p) + PAGE_SIZE- 1) & PAGE_MASK)
-//#define PAGE_DOWN(p) ((unsigned long)(p) & PAGE_MASK)
+
+#define PAGE_UP(p)   (((unsigned long)(p) + PAGE_SIZE- 1) & PAGE_MASK)
+#define PAGE_DOWN(p) ((unsigned long)(p) & PAGE_MASK)
 //#endif    /* __PAGE_H__ */
 //
 //

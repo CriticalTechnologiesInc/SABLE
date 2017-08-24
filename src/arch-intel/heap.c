@@ -49,10 +49,10 @@
 #include "util.h"
 #include "config_regs.h"
 #include "uuid.h"
-#include "mtrrs.h"
 #include "mle.h"
-#include "heap.h"
 #include "acmod.h"
+#include "mtrrs.h"
+#include "heap.h"
 //#endif
 //
 ///*

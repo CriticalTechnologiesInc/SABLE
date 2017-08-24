@@ -10,7 +10,8 @@
 #include "acmod.h"
 #include "page.h"
 #include "mtrrs.h"
-#include "hash.h"
+//#include "hash.h"
+#include "intel_tpm.h"
 #include "heap.h"
 #include "acpi.h"
 
@@ -363,28 +364,27 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 }
 
 
-//static __data event_log_container_t *g_elog = NULL;
+static __data event_log_container_t *g_elog = NULL;
 //static __data heap_event_log_ptr_elt2_t *g_elog_2 = NULL;
 //static __data heap_event_log_ptr_elt2_1_t *g_elog_2_1 = NULL;
-//
-///* should be called after os_mle_data initialized */
-//static void *init_event_log(void)
-//{
-//    os_mle_data_t *os_mle_data = get_os_mle_data_start(get_txt_heap());
-//    g_elog = (event_log_container_t *)&os_mle_data->event_log_buffer;
-//
-//    memcpy((void *)g_elog->signature, EVTLOG_SIGNATURE,
-//           sizeof(g_elog->signature));
-//    g_elog->container_ver_major = EVTLOG_CNTNR_MAJOR_VER;
-//    g_elog->container_ver_minor = EVTLOG_CNTNR_MINOR_VER;
-//    g_elog->pcr_event_ver_major = EVTLOG_EVT_MAJOR_VER;
-//    g_elog->pcr_event_ver_minor = EVTLOG_EVT_MINOR_VER;
-//    g_elog->size = sizeof(os_mle_data->event_log_buffer);
-//    g_elog->pcr_events_offset = sizeof(*g_elog);
-//    g_elog->next_event_offset = sizeof(*g_elog);
-//
-//    return (void *)g_elog;
-//}
+
+/* should be called after os_mle_data initialized */
+static void *init_event_log(void)
+{
+	os_mle_data_t *os_mle_data = get_os_mle_data_start(get_txt_heap());
+	g_elog = (event_log_container_t *)&os_mle_data->event_log_buffer;
+
+	memcpy((void *)g_elog->signature, EVTLOG_SIGNATURE, sizeof(g_elog->signature));
+	g_elog->container_ver_major = EVTLOG_CNTNR_MAJOR_VER;
+	g_elog->container_ver_minor = EVTLOG_CNTNR_MINOR_VER;
+	g_elog->pcr_event_ver_major = EVTLOG_EVT_MAJOR_VER;
+	g_elog->pcr_event_ver_minor = EVTLOG_EVT_MINOR_VER;
+	g_elog->size = sizeof(os_mle_data->event_log_buffer);
+	g_elog->pcr_events_offset = sizeof(*g_elog);
+	g_elog->next_event_offset = sizeof(*g_elog);
+
+	return (void *)g_elog;
+}
 //
 ///* initialize TCG compliant TPM 2.0 event log descriptor */
 //static void init_evtlog_desc_1(heap_event_log_ptr_elt2_1_t *evt_log)
@@ -442,7 +442,7 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 //
 static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
 {
-	txt_caps_t			sinit_caps;
+//	txt_caps_t			sinit_caps;
 	heap_event_log_ptr_elt_t*	evt_log;
 	heap_ext_data_element_t*	elt = elts;
 
@@ -777,7 +777,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 
 	/* capabilities : choose DA/LG */
 	os_sinit_data->capabilities.pcr_map_no_legacy = 1;
-	if(sinit_caps.pcr_map_da && get_tboot_prefer_da())
+	if(sinit_caps.pcr_map_da && 0 ) //&& get_tboot_prefer_da())
 		os_sinit_data->capabilities.pcr_map_da = 1;
 	else if ( !sinit_caps.pcr_map_no_legacy )
 		os_sinit_data->capabilities.pcr_map_no_legacy = 0;
@@ -924,7 +924,7 @@ int txt_is_launched(void)
 int txt_launch_environment()
 {
 	void	*mle_ptab_base;
-//    os_mle_data_t *os_mle_data;
+	os_mle_data_t *os_mle_data;
 	txt_heap_t *txt_heap;
 
 	/* print some debug info */
@@ -953,20 +953,25 @@ int txt_launch_environment()
 
 	/* save MTRRs before we alter them for SINIT launch */
 	os_mle_data = get_os_mle_data_start(txt_heap);
-//    save_mtrrs(&(os_mle_data->saved_mtrr_state));
-//
-//    /* set MTRRs properly for AC module (SINIT) */
-//    if ( !set_mtrrs_for_acmod(g_sinit) )
-//        return TB_ERR_FATAL;
+	save_mtrrs(&(os_mle_data->saved_mtrr_state));
 
-//   /* deactivate current locality */
-//   if (g_tpm_family == TPM_IF_20_CRB ) {
-//       printk(TBOOT_INFO"Relinquish CRB localility 0 before executing GETSEC[SENTER]...\n");
-//	if (!tpm_relinquish_locality_crb(0)){
-//		printk(TBOOT_INFO"Relinquish CRB locality 0 failed...\n");
-//		apply_policy(TB_ERR_TPM_NOT_READY) ;
-//	}
-//   }
+	/* set MTRRs properly for AC module (SINIT) */
+	if (!set_mtrrs_for_acmod(g_sinit)) {
+		out_info("seting MTRRs for SINIT ACM failed");
+		while(1);
+		return 0;
+	}
+
+	/* deactivate current locality */
+	if (g_tpm_family == TPM_IF_20_CRB ) {
+		out_info("We dont expect to be here");
+		while(1);
+//		printk(TBOOT_INFO"Relinquish CRB localility 0 before executing GETSEC[SENTER]...\n");
+//		if (!tpm_relinquish_locality_crb(0)){
+//			printk(TBOOT_INFO"Relinquish CRB locality 0 failed...\n");
+//			apply_policy(TB_ERR_TPM_NOT_READY) ;
+//		}
+	}
 
 	out_info("executing GETSEC[SENTER]...\n");
 
