@@ -88,6 +88,15 @@ The NVRAM space password should be unique to each SEC, and known only to the pla
 owner and the user(s) of that SEC. The NVRAM index should be at least 4, and the
 minimum recommended size is 384 bytes.
 
+**NOTE:** TPM NVRAM space is finite, limited, and varies by TPM version and
+manufacturer. Under the TPM v1.2 specification, TPM 1.2 chips must have at
+least 1280 bytes of NVRAM, which is sufficient to support up to three SECs
+on one system. But most TPM chips have much more than 1280 bytes of NVRAM.
+To conserve space, we recommend storing SEC configuration data contiguously,
+e.g. with the first configuration at NVRAM offset 4 with size 384, the second
+configuration at offset 4 + 384 = 388 with size 384, the third configuration
+at offset 388 + 384 = 772 with size 384, etc.
+
 Next you will need to create a new entry (or update an existing entry) in your GRUB2
 configuration for your SEC.  The easiest way to add a SEC is to copy an existing
 GRUB2 menuentry from your `grub.cfg` into your `/etc/grub.d/40_custom`, then edit
