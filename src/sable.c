@@ -417,6 +417,9 @@ static RESULT prepare_tpm(void) {
   return ret;
 }
 
+RESULT post_launch(struct mbi *m);
+int txt_is_launched(void);
+
 /**
  * This function runs before the late launch and has to enable SVM in the
  * processor and disable all localities.
@@ -431,6 +434,13 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   determine_loader_type(flags);
   determine_loader_type_context(m, flags);
   wait(2000);
+
+  if (txt_is_launched()) {
+     out_info("We are in measured launch .. Post_launch started ...");
+     wait(5000);
+     post_launch(m);
+  }
+
 
   /*
    * Bhushan: check for system bootstrap processor
