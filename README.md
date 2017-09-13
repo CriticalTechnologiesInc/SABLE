@@ -67,7 +67,7 @@ to the `CMAKE_C_FLAGS` variable. This will disable certain checks on platform ha
 
 Note: Some TPM v1.2 chips support the 'TPM_Sealx' command, which adds additional security
 to the bus channel between the CPU and the TPM. If your TPM chip supports TPM_Sealx, you
-can tell SABLE to use it by compiling with `-DTPM_USE_SEALX` in the `CMAKE_C_FLAGS`
+can tell SABLE to use it by compiling with `-DUSE_TPM_SEALX` in the `CMAKE_C_FLAGS`
 variable.
 
 Installation
