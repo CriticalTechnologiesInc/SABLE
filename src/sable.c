@@ -264,7 +264,7 @@ static RESULT_(CSTRING)
   const UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
   BYTE *seed = alloc(heap, seedLen);
-  Pack_Context *pctx = alloc(sizeof(Pack_Context));
+  Pack_Context *pctx = alloc(heap, sizeof(Pack_Context));
   pack_init(pctx, seed, seedLen);
   marshal_array(sessions[0]->nonceEven.nonce, sizeof(TPM_NONCE), pctx, NULL);
   marshal_array(sessions[0]->nonceOdd.nonce, sizeof(TPM_NONCE), pctx, NULL);
@@ -410,7 +410,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
 
-  init_heap(heap, sizeof(heap));
+  init_heap(heap, sizeof(heap_array));
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
   ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
 
