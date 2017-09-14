@@ -53,7 +53,7 @@ static TPM_SESSION *sessions[2] = {NULL, NULL};
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR
-    "." SABLE_VERSION_TWEAK "\n";
+    "." SABLE_VERSION_PATCH "\n";
 
 /* EXCEPT:
  * ERROR_SHA1_DATA_SIZE
