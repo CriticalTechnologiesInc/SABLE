@@ -27,6 +27,19 @@
 #define cs_sel                1<<3 /* 0x08 */
 #define ds_sel                2<<3 /* 0x10 */
 
+
+/* OsSinitData field offsets */
+#define TXT_PRIV_CONFIG_REGS_BASE	0xfed20000
+#define TXTCR_HEAP_BASE			0x0300
+#define MLE_PGTBL_OFF			8
+
+/* From http://fxr.watson.org/fxr/source/i386/include/param.h */
+#define PAGE_SHIFT       12                 /* LOG2(PAGE_SIZE) */
+#define PAGE_SIZE        (1 << PAGE_SHIFT)  /* bytes/page */
+/* PAGE_MASK is used to pass bits 12 and above. */
+#define PAGE_MASK        (~(PAGE_SIZE-1))
+
+
 #define VM_CR_MSR 0xc0010114
 
 .macro	FUNCTION name
@@ -52,6 +65,52 @@ FUNCTION __start
 /* Bhushan _post_launch_entry is just place holder. we have to provide implementation when required */
 
 FUNCTION _post_launch_entry
+
+/* entry point post-launch, to verify memory layout */
+/* (must all be w/in one page; since _start is page-aligned, it will be; */
+/* which is why we can't call much other code (e.g. printk, TPM fns, etc.) */
+/* verify phys addr we were entered at is the one we expected
+ * ebx contains the phys addr of the entry point
+ * ecx contains the phy addr of the MLE page table
+ */
+	/*
+	 cmp $_post_launch_entry, %ebx
+	jne layout_err
+	*/
+
+	/* verify last entry in MLE page table is the one we expected
+	 * this is sufficient because: 1) all addrs must be phys increasing
+	 * and 2) tboot is phys contig--therefore if any page were moved to
+	 * a different phys addr then the last page would have to be different
+	 * from tboot's last page
+	 */
+	 /* get addr of MLE page table from OsSinitData */
+	/* start of TXT heap (== BiosDataSize) */
+	mov (TXT_PRIV_CONFIG_REGS_BASE + TXTCR_HEAP_BASE), %eax
+	add (%eax), %eax                   /* skip BiosData */
+	add (%eax), %eax                   /* skip OsMleData */
+	mov (MLE_PGTBL_OFF+8)(%eax), %eax  /* addr of MLE page table */
+	/* get to page table itself (there is only one for tboot) */
+	mov (%eax), %eax          /* pgdir ptr -> pgdir */
+	/* TODO when SINIT ready */
+	/* mov (%ecx), %eax */
+	and $PAGE_MASK, %eax
+	mov (%eax), %eax          /* pgdir -> pgtbl */
+	and $PAGE_MASK, %eax
+	/* find last page (pte) */
+	mov $_mle_end, %ecx
+	sub $_mle_start, %ecx     /* size of MLE */
+	shr $PAGE_SHIFT-3, %ecx
+	sub $8, %ecx              /* size/4k*8 is offset+1 of last pte */
+	add %ecx, %eax
+	mov (%eax), %eax          /* pte of last page */
+	and $PAGE_MASK, %eax
+	/* calc expected addr of last page */
+	mov $(_mle_end - 1), %ebx /* addr of last byte of MLE... */
+	and $PAGE_MASK, %ebx      /* ...rounded to page start */
+	/* are they equal? */
+	// cmp %ebx, %eax
+	// je __start                /* yes, so continue with normal launch */
 	jmp __start
 
 FUNCTION smp_init_start

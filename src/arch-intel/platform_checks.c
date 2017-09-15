@@ -190,7 +190,7 @@ int txt_verify_platform(void)
 		return 0;
 	}
 
-	wait(2000);
+//	wait(2000);
 	if (!vtd_bios_enabled() ) {
 		out_info("txt_verify_platform : vtd_bios_enabled error");
 		return 0;
@@ -221,7 +221,7 @@ int platform_pre_checks() {
 	} else {
 		out_info("Suppots_txt : DONE");
 	}
-	wait(2000);
+//	wait(2000);
 	/* make TPM ready for measured launch */
 
 	if (!tpm_detect()) {
@@ -230,15 +230,15 @@ int platform_pre_checks() {
 	} else {
 		out_info("TPM is detected and initialized");
 	}
-	wait(2000);
+//	wait(2000);
 
 	/* verify SE enablement status */
 	verify_IA32_se_svn_status();
-	wait(2000);
+//	wait(2000);
 
 	/* check previous erros */
 	txt_display_errors();
-	wait(2000);
+//	wait(2000);
 
 	/* need to verify that platform can perform measured launch */
 	if (txt_verify_platform()) {

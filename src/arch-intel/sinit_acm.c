@@ -364,7 +364,7 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
  		     (((chipset_id->flags & 0x1) == 1) && ((didvid.revision_id & chipset_id->revision_id) != 0)))) {
 			break;
 		}
-		wait(3000);
+//		wait(3000);
 	}
 	if ( i >= chipset_id_list->count ) {
 		out_info("ERROR: chipset id mismatch");
@@ -398,7 +398,7 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 			if ((proc_id->fms == (fms & proc_id->fms_mask)) && (proc_id->platform_id == (platform_id & proc_id->platform_mask))) {
 				break;
 			}
-			wait(3000);
+		//	wait(3000);
 		}
 		if ( i >= proc_id_list->count ) {
 			out_info("ERROR : processor mismatch");
@@ -630,7 +630,7 @@ int prepare_sinit_acm(struct mbi *m) {
 		struct module *mod = get_module_mb1(m, i);
 		out_string((const char *)mod->string); // this line can case error if mod->string is null
 
-		wait(4000);
+	//	wait(4000);
 		out_string("Working on module :\n");
 		base2 = (void *)mod->mod_start;
 		uint32_t size2 = mod->mod_end - (unsigned long)(base2);

@@ -354,24 +354,39 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   RESULT sha1_ret;
   SHA1_Context sctx;
 
+  out_info("Bhushan: we are in mbi_calc_hash");
   ERROR(~mbi->flags & (enum mbi_enum)MBI_FLAG_MODS, ERROR_BAD_MODULE,
         "module flag missing");
   ERROR(!mbi->mods_count, ERROR_NO_MODULE, "no module to hash");
   out_description("Hashing modules count", mbi->mods_count);
 
   struct module *m = (struct module *)(mbi->mods_addr);
-  for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
+//  for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
+  /*
+   * Bhushan : Modified to hash only one module
+   */
+
+  for (unsigned i = 0; i < 1; i++, m++) {
     sha1_init(&sctx);
 
+    out_description("Bhushan : Hashing module", i);
     ERROR(m->mod_end < m->mod_start, ERROR_BAD_MODULE,
           "mod_end less than start");
+    out_description("Modules start", (unsigned int)m->mod_start);
+    out_description("Modules end", (unsigned int)m->mod_end);
+    out_description("Modules size:", (unsigned int)m->mod_end - m->mod_start);
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
     sha1_finish(&sctx);
 
+    out_info("Bhushan: Extending TPM");
     extend_ret = TPM_Extend(19, sctx.hash);
     THROW(extend_ret.exception);
   }
+
+  /* 
+   * Bhushan: we dont need to hash cmdline as it being hashed in SINIT to sable transition as a part of SABLE
+   */
 
   struct module *a = (struct module *)(mbi->mods_addr);
   sha1_init(&sctx);
@@ -381,6 +396,7 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
       sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
   }
   sha1_finish(&sctx);
+  out_info("Extending TPM with cmd line");
   RESULT_(TPM_PCRVALUE) ext_ret = TPM_Extend(19, sctx.hash);
   THROW(ext_ret.exception);
 
@@ -427,18 +443,24 @@ int txt_is_launched(void);
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch 015\n");
+  out_string("I am in pre_launch 018\n");
   out_description("Bhushan: module count", m->mods_count);
 
+  out_description("mbi adress : m", (unsigned int)m);
+  out_description("conetext->addr", (unsigned int)g_ldr_ctx->addr);
 
   determine_loader_type(flags);
-  determine_loader_type_context(m, flags);
-  wait(2000);
+  if (g_ldr_ctx->type == 0) {
+  	determine_loader_type_context(m, flags);
+  } else {
+	out_info("SKIPPING as context is already INITIALIZED");
+  }
+  wait(5000);
 
   if (txt_is_launched()) {
      out_info("We are in measured launch .. Post_launch started ...");
      wait(5000);
-     post_launch(m);
+     post_launch(g_ldr_ctx->addr);
   }
 
 
@@ -543,6 +565,8 @@ void _pre_launch(struct mbi *m, unsigned flags) {
 RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
+ out_description("Bhushan : in post launch with mbi @ :", (unsigned int)m);
+
 #ifdef __ARCH_AMD__
   RESULT revert_skinit_ret = revert_skinit();
 #ifdef TARGET_QEMU
@@ -552,7 +576,7 @@ RESULT post_launch(struct mbi *m) {
 #endif
 
   // Finding NV Index
-  int nvIndex = 0;
+  int nvIndex = 4;
   char *val = cmdlineArgVal((char *)m->cmdline, "--nv-index=");
   while (val[0] != '\0' && val[0] != ' ') {
     nvIndex *= 10;
@@ -560,11 +584,18 @@ RESULT post_launch(struct mbi *m) {
     val++;
   }
 
+  /* 
+   * Bhushan : I guess this asset is not effective. as we should check variouse flags to decide
+   * if we have valide mbi as m can be !null but there will not be any mbi present
+   */
+
   ERROR(!m, ERROR_NO_MBI, "no mbi in sable()");
 
   if (tis_init()) {
+    out_info("Bhushan: accessing TIS");
     RESULT tis_access_ret = tis_access(TIS_LOCALITY_2, 0);
     THROW(tis_access_ret.exception);
+    out_info("Bhushan: Calculating hash");
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 
