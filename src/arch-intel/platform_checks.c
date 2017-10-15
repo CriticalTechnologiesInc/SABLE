@@ -214,6 +214,7 @@ int txt_verify_platform(void)
 } 
 
 int txt_is_launched(void);
+void intel_post_launch(void);
 
 int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
@@ -254,7 +255,7 @@ int platform_pre_checks() {
 		out_info("We are in measured launch .. Post_launch started ...");
 		out_info("Place Holder for txt_post_launch()");
 		wait(5000);
-		// txt_post_launch();
+		intel_post_launch();
 	}
 
 	/* make the CPU ready for measured launch */

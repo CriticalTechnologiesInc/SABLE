@@ -160,6 +160,7 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/arch-intel/e820.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/loader.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/mtrrs.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/post_launch.c
   )
 
 set_target_properties (cleanup-Intel

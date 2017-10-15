@@ -573,6 +573,7 @@ RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
  out_description("Bhushan : in post launch with mbi @ :", (unsigned int)m);
+ wait(3000);
 
 #ifdef __ARCH_AMD__
   RESULT revert_skinit_ret = revert_skinit();
