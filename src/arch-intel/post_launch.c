@@ -161,6 +161,7 @@ RESULT post_launch(struct mbi *m);
 //}
 //
 
+extern void txt_post_launch(void);
 
 void intel_post_launch(void)
 {
@@ -175,7 +176,7 @@ void intel_post_launch(void)
 //    /* init MLE/kernel shared data page early, .num_in_wfs used in ap wakeup*/
 //    _tboot_shared.num_in_wfs = 0;
 //
-//    txt_post_launch();
+	txt_post_launch();
 //
 //    /* backup DMAR table */
 //    save_vtd_dmar_table();

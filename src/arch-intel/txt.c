@@ -1161,17 +1161,46 @@ int txt_prepare_cpu(void)
 	return 1;
 }
 
-//void txt_post_launch(void)
-//{
+int txt_post_launch_verify_platform(void)
+{
+//	txt_heap_t *txt_heap;
+
+	/*
+	 * verify some of the heap structures
+	 */
+
+//	txt_heap = get_txt_heap();
+
+
+//	if (!verify_txt_heap(txt_heap, 0))
+//		return 1;
+
+	/* verify the saved MTRRs */
+//	if (!verify_saved_mtrrs(txt_heap))
+//		return 1;
+
+	/* verify that VT-d PMRs were really set as required */
+//	if (!verify_vtd_pmrs(txt_heap) ) 
+//		return 1;
+
+	return 0;
+}                        
+
+
+void txt_post_launch(void)
+{
 //    txt_heap_t *txt_heap;
 //    os_mle_data_t *os_mle_data;
-//    tb_error_t err;
-//
-//    /* verify MTRRs, VT-d settings, TXT heap, etc. */
-//    err = txt_post_launch_verify_platform();
-//    /* don't return the error yet, because we need to restore settings */
-//    if ( err != TB_ERR_NONE )
-//        printk(TBOOT_ERR"failed to verify platform\n");
+	int err;
+
+	/* verify MTRRs, VT-d settings, TXT heap, etc. */
+	err = txt_post_launch_verify_platform();
+
+	/* don't return the error yet, because we need to restore settings */
+	if (err != 0) {
+		out_info("failed to verify platform");
+		while(1);
+	}
 //
 //    /* get saved OS state (os_mvmm_data_t) from LT heap */
 //    txt_heap = get_txt_heap();
@@ -1213,8 +1242,8 @@ int txt_prepare_cpu(void)
 //    write_priv_config_reg(TXTCR_CMD_OPEN_LOCALITY1, 0x01);
 //    read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
 //    printk(TBOOT_INFO"opened TPM locality 1\n");
-//}
-//
+}
+
 //void ap_wait(unsigned int cpuid)
 //{
 //    if ( cpuid >= NR_CPUS ) {

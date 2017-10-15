@@ -927,7 +927,7 @@ int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only)
 	}
 
 	out_info("ERROR : We are here !! : implementation is under progress");
-	wait(3000);
+	while(1);
 
 //    /* check that total size is within the heap */
 //    uint64_t size1 = get_bios_data_size(txt_heap);
