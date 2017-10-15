@@ -621,6 +621,23 @@ int prepare_sinit_acm(struct mbi *m) {
 
 	out_description("Bhushan: prepare_sinit", m->mods_count);
 	out_description("Bhushan: prepare_sinit tboot", ((multiboot_info_t *) m)->mods_count);
+	out_description("g_sinit", (unsigned int) g_sinit);
+	wait(3000);
+
+	if (g_sinit != NULL) {
+
+		/*
+		 * Just temporary workaround
+		 * Bhushan : in post launch we dont need to check for SINIT ACM module
+		 * we expect g_sinit to be initialized already in pre_launch and skip 
+		 * current search. ATTENTION we are assuming this is expected and retuning true.
+		 * this might hide potential bugs. Have a closer look.
+		 */
+
+		out_info("ATTENTION : g_sinit is already intialized ..skipping SINIT operation");	
+		wait(2000);
+		return 1;
+	}
 
 	/*
 	 * Step 1 : find SINIT ACM and match with platform in module list

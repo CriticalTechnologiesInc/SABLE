@@ -287,6 +287,7 @@ int copy_e820_map(loader_ctx *lctx)
 	g_nr_map = 0;
 
 	if (have_loader_memmap(lctx)){
+		out_info("BHUSHAN: VERIFY: attention copping e820");
 		uint32_t memmap_length = get_loader_memmap_length(lctx);
 		memory_map_t *memmap = get_loader_memmap(lctx);
 		out_info("original e820 map:");

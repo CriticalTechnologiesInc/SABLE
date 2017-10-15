@@ -213,6 +213,8 @@ int txt_verify_platform(void)
 	return 1;
 } 
 
+int txt_is_launched(void);
+
 int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
@@ -246,6 +248,13 @@ int platform_pre_checks() {
 	} else {
 		out_info("Platform is NOT ready for measured launch");
 		return 0;
+	}
+
+	if (txt_is_launched()) {
+		out_info("We are in measured launch .. Post_launch started ...");
+		out_info("Place Holder for txt_post_launch()");
+		wait(5000);
+		// txt_post_launch();
 	}
 
 	/* make the CPU ready for measured launch */

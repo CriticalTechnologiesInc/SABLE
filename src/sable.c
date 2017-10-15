@@ -455,6 +455,11 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   } else {
 	out_info("SKIPPING as context is already INITIALIZED");
   }
+
+  /*
+
+  // moved post launch in appropriate place
+
   wait(5000);
 
   if (txt_is_launched()) {
@@ -463,6 +468,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
      post_launch(g_ldr_ctx->addr);
   }
 
+  */
 
   /*
    * Bhushan: check for system bootstrap processor
@@ -476,7 +482,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   out_description("BSP is cpu ", get_apicid());
 
   /*
-   * Bhushan : ToDo : Here we have step to make copy of e820 map , Skippign for now
+   * Bhushan : Making copy e820 map to restore after post launch
    */
 
   if (!copy_e820_map(g_ldr_ctx)) {
@@ -492,6 +498,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
     if(!prepare_sinit_acm(m)) {
           out_string("Bhushan: Problem with SINIT AC module");
+	  while(1);
 //     // ERROR occurred : Stop here
     } else {
           out_info("SINIT verificaton : DONE");
