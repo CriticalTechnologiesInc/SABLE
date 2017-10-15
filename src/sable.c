@@ -576,7 +576,7 @@ RESULT post_launch(struct mbi *m) {
 #endif
 
   // Finding NV Index
-  int nvIndex = 4;
+  int nvIndex = 0;
   char *val = cmdlineArgVal((char *)m->cmdline, "--nv-index=");
   while (val[0] != '\0' && val[0] != ' ') {
     nvIndex *= 10;
