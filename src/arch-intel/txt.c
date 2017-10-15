@@ -1163,17 +1163,17 @@ int txt_prepare_cpu(void)
 
 int txt_post_launch_verify_platform(void)
 {
-//	txt_heap_t *txt_heap;
+	txt_heap_t *txt_heap;
 
 	/*
 	 * verify some of the heap structures
 	 */
 
-//	txt_heap = get_txt_heap();
+	txt_heap = get_txt_heap();
 
 
-//	if (!verify_txt_heap(txt_heap, 0))
-//		return 1;
+	if (!verify_txt_heap(txt_heap, 0))
+		return 1;
 
 	/* verify the saved MTRRs */
 //	if (!verify_saved_mtrrs(txt_heap))

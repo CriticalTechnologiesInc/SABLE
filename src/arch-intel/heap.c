@@ -36,13 +36,14 @@
 //#ifndef IS_INCLUDED
 #include "config.h"
 #include "types.h"
+#include "platform.h"
 //#include <stdbool.h>
 //#include <compiler.h>
 //#include <string.h>
 //#include <printk.h>
 //#include <multiboot.h>
 //#include <mle.h>
-//#include <misc.h>
+#include <misc.h>
 #include "hash.h"
 //#include <tpm.h>
 //#include <txt/mtrrs.h>
@@ -656,60 +657,62 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 }
 
 //#ifndef IS_INCLUDED
-//
-//static void print_os_mle_data(const os_mle_data_t *os_mle_data)
-//{
-//    printk(TBOOT_DETA"os_mle_data (@%p, %Lx):\n", os_mle_data,
-//           *((uint64_t *)os_mle_data - 1));
-//    printk(TBOOT_DETA"\t version: %u\n", os_mle_data->version);
-//    /* TBD: perhaps eventually print saved_mtrr_state field */
-//    printk(TBOOT_DETA"\t loader context addr: %p\n", os_mle_data->lctx_addr);
-//}
-//
-//static bool verify_os_mle_data(const txt_heap_t *txt_heap)
-//{
-//    uint64_t size, heap_size;
-//    os_mle_data_t *os_mle_data;
-//
-//    /* check size */
-//    heap_size = read_priv_config_reg(TXTCR_HEAP_SIZE);
-//    size = get_os_mle_data_size(txt_heap);
-//    if ( size == 0 ) {
-//        printk(TBOOT_ERR"OS to MLE data size is 0\n");
-//        return false;
-//    }
-//    if ( size > heap_size ) {
-//        printk(TBOOT_ERR"OS to MLE data size is larger than heap size "
-//               "(%Lx, heap size=%Lx)\n", size, heap_size);
-//        return false;
-//    }
-//    if ( size != (sizeof(os_mle_data_t) + sizeof(size)) ) {
-//        printk(TBOOT_ERR"OS to MLE data size (%Lx) is not equal to "
-//               "os_mle_data_t size (%x)\n", size, sizeof(os_mle_data_t));
-//        return false;
-//    }
-//
-//    os_mle_data = get_os_mle_data_start(txt_heap);
-//
-//    /* check version */
-//    /* since this data is from our pre-launch to post-launch code only, it */
-//    /* should always be this */
-//    if ( os_mle_data->version != 3 ) {
-//        printk(TBOOT_ERR"unsupported OS to MLE data version (%u)\n",
-//               os_mle_data->version);
-//        return false;
-//    }
-//
-//    /* field checks */
-//    if ( os_mle_data->lctx_addr == NULL ) {
-//        printk(TBOOT_ERR"OS to MLE data loader context addr field is NULL\n");
-//        return false;
-//    }
-//
-//    print_os_mle_data(os_mle_data);
-//
-//    return true;
-//}
+
+static void print_os_mle_data(const os_mle_data_t *os_mle_data)
+{
+	out_info("os_mle_data");
+	out_description("os_mle_data address", (unsigned int)os_mle_data);
+	out_description("  o size", *((uint64_t *)os_mle_data - 1));
+	out_description("  o version", os_mle_data->version);
+	/* TBD: perhaps eventually print saved_mtrr_state field */
+	out_description("      o loader context addr", (unsigned int)os_mle_data->lctx_addr);
+}
+
+static bool verify_os_mle_data(const txt_heap_t *txt_heap)
+{
+	uint64_t size, heap_size;
+	os_mle_data_t *os_mle_data;
+
+	/* check size */
+	heap_size = read_priv_config_reg(TXTCR_HEAP_SIZE);
+	size = get_os_mle_data_size(txt_heap);
+	if (size == 0) {
+		out_info("OS to MLE data size is 0");
+		return 0;
+	}
+	if (size > heap_size) {
+		out_info("OS to MLE data size is larger than heap size");
+		out_description("size", size);
+		out_description("head size", heap_size);
+		return 0;
+	}
+	if (size != (sizeof(os_mle_data_t) + sizeof(size))) {
+		out_info("OS to MLE data size is not equal to os_mle_data_t + size");
+		out_description("size", size);
+		out_description("size of os_mle_data", sizeof(os_mle_data_t));
+		return 0;
+	}
+
+	os_mle_data = get_os_mle_data_start(txt_heap);
+
+	/* check version */
+	/* since this data is from our pre-launch to post-launch code only, it */
+	/* should always be this */
+	if (os_mle_data->version != 3) {
+		out_description("unsupported OS to MLE data version", os_mle_data->version);
+		return 0;
+	}
+
+	/* field checks */
+	if (os_mle_data->lctx_addr == NULL ) {
+		out_info("OS to MLE data loader context addr field is NULL");
+		return 0;
+	}
+
+	print_os_mle_data(os_mle_data);
+
+	return 1;
+}
 
 /*
  * Make sure version is in [MIN_OS_SINIT_DATA_VER, MAX_OS_SINIT_DATA_VER]
@@ -926,41 +929,38 @@ int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only)
 		return 1;
 	}
 
-	out_info("ERROR : We are here !! : implementation is under progress");
-	while(1);
 
-//    /* check that total size is within the heap */
-//    uint64_t size1 = get_bios_data_size(txt_heap);
-//    uint64_t size2 = get_os_mle_data_size(txt_heap);
-//    uint64_t size3 = get_os_sinit_data_size(txt_heap);
-//    uint64_t size4 = get_sinit_mle_data_size(txt_heap);
-//
-//    /* overflow? */
-//    if ( plus_overflow_u64(size1, size2) ) {
-//        printk(TBOOT_ERR"TXT heap data size overflows\n");
-//        return false;
-//    }
-//    if ( plus_overflow_u64(size3, size4) ) {
-//        printk(TBOOT_ERR"TXT heap data size overflows\n");
-//        return false;
-//    }
-//    if ( plus_overflow_u64(size1 + size2, size3 + size4) ) {
-//        printk(TBOOT_ERR"TXT heap data size overflows\n");
-//        return false;
-//    }
-//
-//    if ( (size1 + size2 + size3 + size4) >
-//         read_priv_config_reg(TXTCR_HEAP_SIZE) ) {
-//        printk(TBOOT_ERR"TXT heap data sizes (%Lx, %Lx, %Lx, %Lx) are larger than\n"
-//               "heap total size (%Lx)\n", size1, size2, size3, size4,
-//               read_priv_config_reg(TXTCR_HEAP_SIZE));
-//        return false;
-//    }
-//
-//    /* verify OS to MLE data */
-//    if ( !verify_os_mle_data(txt_heap) )
-//        return false;
-//
+	/* check that total size is within the heap */
+	uint64_t size1 = get_bios_data_size(txt_heap);
+	uint64_t size2 = get_os_mle_data_size(txt_heap);
+	uint64_t size3 = get_os_sinit_data_size(txt_heap);
+	uint64_t size4 = get_sinit_mle_data_size(txt_heap);
+
+	/* overflow? */
+	if (plus_overflow_u64(size1, size2)) {
+		out_info("TXT heap data size overflows");
+		return 0;
+	}
+
+	if (plus_overflow_u64(size3, size4)) {
+		out_info("TXT heap data size overflows");
+		return 0;
+	}
+	if ( plus_overflow_u64(size1 + size2, size3 + size4) ) {
+		out_info("TXT heap data size overflows");
+		return 0;
+	}
+
+	if ( (size1 + size2 + size3 + size4) >
+		read_priv_config_reg(TXTCR_HEAP_SIZE) ) {
+		out_info("TXT heap data sizes size1, size2, size3, size4, are larger than heap total");
+		return 0;
+	}
+
+	/* verify OS to MLE data */
+	if ( !verify_os_mle_data(txt_heap) )
+		return 0;
+
 //    /* verify OS to SINIT data */
 //    if ( !verify_os_sinit_data(txt_heap) )
 //        return false;
