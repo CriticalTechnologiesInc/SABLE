@@ -151,11 +151,12 @@ static int  verify_custom_elt(const heap_ext_data_element_t *elt)
 	return 1;
 }
 
-///* HEAP_EVENT_LOG_POINTER_ELEMENT */
-//static inline void print_heap_hash(const sha1_hash_t hash)
-//{
-//    print_hash((const tb_hash_t *)hash, TB_HALG_SHA1);
-//}
+/* HEAP_EVENT_LOG_POINTER_ELEMENT */
+static inline void print_heap_hash(const sha1_hash_t hash)
+{
+	//print_hash((const tb_hash_t *)hash, TB_HALG_SHA1);
+	hex_dump((unsigned char *)hash, SHA1_LENGTH);
+}
 
 void print_event(const tpm12_pcr_event_t *evt)
 {
@@ -163,7 +164,7 @@ void print_event(const tpm12_pcr_event_t *evt)
 	out_description("\t\t\t     PCRIndex", evt->pcr_index);
 	out_description("\t\t\t     Type", evt->type);
 	out_info("\t\t\t     Digest: ");
-//	print_heap_hash(evt->digest);
+	print_heap_hash(evt->digest);
 	out_description("\t\t\t     Data: bytes", evt->data_size);
 //	print_hex("\t\t\t         ", evt->data, evt->data_size);
 }
@@ -705,8 +706,9 @@ static bool verify_os_mle_data(const txt_heap_t *txt_heap)
 
 	/* field checks */
 	if (os_mle_data->lctx_addr == NULL ) {
-		out_info("OS to MLE data loader context addr field is NULL");
-		return 0;
+		out_info("REMOVE THIS CODE : OS to MLE data loader context addr field is NULL");
+		wait(2000);
+		// return 0;
 	}
 
 	print_os_mle_data(os_mle_data);
@@ -785,51 +787,50 @@ void print_os_sinit_data(const os_sinit_data_t *os_sinit_data)
 	}
 }
 
-//static bool verify_os_sinit_data(const txt_heap_t *txt_heap)
-//{
-//    uint64_t size, heap_size;
-//    os_sinit_data_t *os_sinit_data;
-//
-//    /* check size */
-//    heap_size = read_priv_config_reg(TXTCR_HEAP_SIZE);
-//    size = get_os_sinit_data_size(txt_heap);
-//    if ( size == 0 ) {
-//        printk(TBOOT_ERR"OS to SINIT data size is 0\n");
-//        return false;
-//    }
-//    if ( size > heap_size ) {
-//        printk(TBOOT_ERR"OS to SINIT data size is larger than heap size "
-//               "(%Lx, heap size=%Lx)\n", size, heap_size);
-//        return false;
-//    }
-//
-//    os_sinit_data = get_os_sinit_data_start(txt_heap);
-//
-//    /* check version (but since we create this, it should always be OK) */
-//    if ( os_sinit_data->version < MIN_OS_SINIT_DATA_VER ||
-//         os_sinit_data->version > MAX_OS_SINIT_DATA_VER ) {
-//        printk(TBOOT_ERR"unsupported OS to SINIT data version (%u)\n",
-//               os_sinit_data->version);
-//        return false;
-//    }
-//
-//    if ( size != calc_os_sinit_data_size(os_sinit_data->version) ) {
-//        printk(TBOOT_ERR"OS to SINIT data size (%Lx) does not match for version (%x)\n",
-//               size, sizeof(os_sinit_data_t));
-//        return false;
-//    }
-//
-//    if ( os_sinit_data->version >= 6 ) {
-//        if ( !verify_ext_data_elts(os_sinit_data->ext_data_elts,
-//                                   size - sizeof(*os_sinit_data) - sizeof(size)) )
-//            return false;
-//    }
-//
-//    print_os_sinit_data(os_sinit_data);
-//
-//    return true;
-//}
-//
+static bool verify_os_sinit_data(const txt_heap_t *txt_heap)
+{
+	uint64_t size, heap_size;
+	os_sinit_data_t *os_sinit_data;
+
+	/* check size */
+	heap_size = read_priv_config_reg(TXTCR_HEAP_SIZE);
+	size = get_os_sinit_data_size(txt_heap);
+	if (size == 0) {
+		out_info("OS to SINIT data size is 0\n");
+		return 0;
+	}
+	if ( size > heap_size ) {
+		out_info("OS to SINIT data size is larger than heap size");
+		out_description("size", size);
+		out_description("heap_size", heap_size);
+		return 0;
+	}
+
+	os_sinit_data = get_os_sinit_data_start(txt_heap);
+
+	/* check version (but since we create this, it should always be OK) */
+	if (os_sinit_data->version < MIN_OS_SINIT_DATA_VER || os_sinit_data->version > MAX_OS_SINIT_DATA_VER ) {
+		out_description("unsupported OS to SINIT data version", os_sinit_data->version);
+		return 0;
+	}
+
+	if ( size != calc_os_sinit_data_size(os_sinit_data->version) ) {
+		out_info("OS to SINIT data size (%Lx) does not match for version");
+		out_description("size", size);
+		out_description("os_sinit_data_t",  sizeof(os_sinit_data_t));
+		return 0;
+	}
+
+	if (os_sinit_data->version >= 6) {
+		if (!verify_ext_data_elts(os_sinit_data->ext_data_elts, size - sizeof(*os_sinit_data) - sizeof(size)) )
+			return 0;
+	}
+
+	print_os_sinit_data(os_sinit_data);
+
+	return 1;
+}
+
 //static void print_sinit_mdrs(const sinit_mdr_t mdrs[], uint32_t num_mdrs)
 //{
 //    static const char *mem_types[] = {"GOOD", "SMRAM OVERLAY",
@@ -846,78 +847,77 @@ void print_os_sinit_data(const os_sinit_data_t *os_sinit_data)
 //            printk(TBOOT_DETA"(%d)\n", (int)mdrs[i].mem_type);
 //    }
 //}
-//
-//static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
-//{
-//    printk(TBOOT_DETA"sinit_mle_data (@%p, %Lx):\n", sinit_mle_data,
+
+static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
+{
+	out_info("sinit_mle_data");
+	out_description("    sinit_mle_data", (int unsigned)sinit_mle_data);
 //           *((uint64_t *)sinit_mle_data - 1));
-//    printk(TBOOT_DETA"\t version: %u\n", sinit_mle_data->version);
-//    printk(TBOOT_DETA"\t bios_acm_id: \n\t");
-//    print_heap_hash(sinit_mle_data->bios_acm_id);
-//    printk(TBOOT_DETA"\t edx_senter_flags: 0x%08x\n",
-//           sinit_mle_data->edx_senter_flags);
-//    printk(TBOOT_DETA"\t mseg_valid: 0x%Lx\n", sinit_mle_data->mseg_valid);
-//    printk(TBOOT_DETA"\t sinit_hash:\n\t"); print_heap_hash(sinit_mle_data->sinit_hash);
-//    printk(TBOOT_DETA"\t mle_hash:\n\t"); print_heap_hash(sinit_mle_data->mle_hash);
-//    printk(TBOOT_DETA"\t stm_hash:\n\t"); print_heap_hash(sinit_mle_data->stm_hash);
-//    printk(TBOOT_DETA"\t lcp_policy_hash:\n\t");
-//        print_heap_hash(sinit_mle_data->lcp_policy_hash);
-//    printk(TBOOT_DETA"\t lcp_policy_control: 0x%08x\n",
-//           sinit_mle_data->lcp_policy_control);
-//    printk(TBOOT_DETA"\t rlp_wakeup_addr: 0x%x\n", sinit_mle_data->rlp_wakeup_addr);
-//    printk(TBOOT_DETA"\t num_mdrs: %u\n", sinit_mle_data->num_mdrs);
-//    printk(TBOOT_DETA"\t mdrs_off: 0x%x\n", sinit_mle_data->mdrs_off);
-//    printk(TBOOT_DETA"\t num_vtd_dmars: %u\n", sinit_mle_data->num_vtd_dmars);
-//    printk(TBOOT_DETA"\t vtd_dmars_off: 0x%x\n", sinit_mle_data->vtd_dmars_off);
+	out_description("    version:", sinit_mle_data->version);
+	out_info("    bios_acm_id:");
+	print_heap_hash(sinit_mle_data->bios_acm_id);
+	out_description("    edx_senter_flags", sinit_mle_data->edx_senter_flags);
+	out_description("    mseg_valid", sinit_mle_data->mseg_valid);
+	out_info("sinit_hash:"); 
+	print_heap_hash(sinit_mle_data->sinit_hash);
+	out_info("mle_hash:"); 
+	print_heap_hash(sinit_mle_data->mle_hash);
+	out_info("stm_hash:"); 
+	print_heap_hash(sinit_mle_data->stm_hash);
+	out_info("lcp_policy_hash:");
+		print_heap_hash(sinit_mle_data->lcp_policy_hash);
+	out_description("lcp_policy_control ", sinit_mle_data->lcp_policy_control);
+	out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
+	out_description("num_mdrs ", sinit_mle_data->num_mdrs);
+	out_description("mdrs_off ", sinit_mle_data->mdrs_off);
+	out_description("num_vtd_dmars ", sinit_mle_data->num_vtd_dmars);
+	out_description("vtd_dmars_off ", sinit_mle_data->vtd_dmars_off);
 //    print_sinit_mdrs((sinit_mdr_t *)
 //                     (((void *)sinit_mle_data - sizeof(uint64_t)) +
 //                      sinit_mle_data->mdrs_off), sinit_mle_data->num_mdrs);
-//    if ( sinit_mle_data->version >= 8 )
-//        printk(TBOOT_DETA"\t proc_scrtm_status: 0x%08x\n",
-//               sinit_mle_data->proc_scrtm_status);
-//    if ( sinit_mle_data->version >= 9 )
-//        print_ext_data_elts(sinit_mle_data->ext_data_elts);
-//}
-//
-//static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)
-//{
-//    uint64_t size, heap_size;
-//    sinit_mle_data_t *sinit_mle_data;
-//
-//    /* check size */
-//    heap_size = read_priv_config_reg(TXTCR_HEAP_SIZE);
-//    size = get_sinit_mle_data_size(txt_heap);
-//    if ( size == 0 ) {
-//        printk(TBOOT_ERR"SINIT to MLE data size is 0\n");
-//        return false;
-//    }
-//    if ( size > heap_size ) {
-//        printk(TBOOT_ERR"SINIT to MLE data size is larger than heap size\n"
+	if (sinit_mle_data->version >= 8)
+		out_description("proc_scrtm_status ", sinit_mle_data->proc_scrtm_status);
+	if (sinit_mle_data->version >= 9)
+		print_ext_data_elts(sinit_mle_data->ext_data_elts);
+}
+
+static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)
+{
+	uint64_t size, heap_size;
+	sinit_mle_data_t *sinit_mle_data;
+
+	/* check size */
+	heap_size = read_priv_config_reg(TXTCR_HEAP_SIZE);
+	size = get_sinit_mle_data_size(txt_heap);
+	if ( size == 0 ) {
+		out_info("SINIT to MLE data size is 0\n");
+		return 0;
+	}
+	if ( size > heap_size ) {
+		out_info("SINIT to MLE data size is larger than heap size");
 //               "(%Lx, heap size=%Lx)\n", size, heap_size);
-//        return false;
-//    }
-//
-//    sinit_mle_data = get_sinit_mle_data_start(txt_heap);
-//
-//    /* check version */
-//    if ( sinit_mle_data->version < 6 ) {
-//        printk(TBOOT_ERR"unsupported SINIT to MLE data version (%u)\n",
-//               sinit_mle_data->version);
-//        return false;
-//    }
-//    else if ( sinit_mle_data->version > 9 ) {
-//        printk(TBOOT_WARN"unsupported SINIT to MLE data version (%u)\n",
-//               sinit_mle_data->version);
-//    }
-//
-//    /* this data is generated by SINIT and so is implicitly trustworthy, */
-//    /* so we don't need to validate it's fields */
-//
-//    print_sinit_mle_data(sinit_mle_data);
-//
-//    return true;
-//}
-//
+		return 0;
+	}
+
+	sinit_mle_data = get_sinit_mle_data_start(txt_heap);
+
+	/* check version */
+	if ( sinit_mle_data->version < 6 ) {
+		out_description("unsupported SINIT to MLE data version", sinit_mle_data->version);
+		return 0;
+	}
+	else if ( sinit_mle_data->version > 9 ) {
+		out_description("unsupported SINIT to MLE data version", sinit_mle_data->version);
+	}
+
+	/* this data is generated by SINIT and so is implicitly trustworthy, */
+	/* so we don't need to validate it's fields */
+
+	print_sinit_mle_data(sinit_mle_data);
+
+	return 1;
+}
+
 int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only)
 {
 	/* verify BIOS to OS data */
@@ -961,14 +961,14 @@ int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only)
 	if ( !verify_os_mle_data(txt_heap) )
 		return 0;
 
-//    /* verify OS to SINIT data */
-//    if ( !verify_os_sinit_data(txt_heap) )
-//        return false;
-//
-//    /* verify SINIT to MLE data */
-//    if ( !verify_sinit_mle_data(txt_heap) )
-//        return false;
-//
+	/* verify OS to SINIT data */
+	if ( !verify_os_sinit_data(txt_heap) )
+		return 0;
+
+	/* verify SINIT to MLE data */
+	if ( !verify_sinit_mle_data(txt_heap) )
+		return 0;
+
 	return 1;
 }
 //

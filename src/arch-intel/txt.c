@@ -1176,8 +1176,8 @@ int txt_post_launch_verify_platform(void)
 		return 1;
 
 	/* verify the saved MTRRs */
-//	if (!verify_saved_mtrrs(txt_heap))
-//		return 1;
+	//if (!verify_saved_mtrrs(txt_heap))
+	//	return 1;
 
 	/* verify that VT-d PMRs were really set as required */
 //	if (!verify_vtd_pmrs(txt_heap) ) 

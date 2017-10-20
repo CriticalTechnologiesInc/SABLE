@@ -327,29 +327,29 @@ typedef struct __attribute__ ((packed)) {
 //    uint8_t   mem_type;
 //    uint8_t   reserved[7];
 //} sinit_mdr_t;
-//
-//typedef struct __packed {
-//    uint32_t     version;             /* currently 6-9 */
-//    sha1_hash_t  bios_acm_id;         /* only for tpm1.2 */
-//    uint32_t     edx_senter_flags;    /* only for tpm1.2 */
-//    uint64_t     mseg_valid;          /* only for tpm1.2 */
-//    sha1_hash_t  sinit_hash;          /* only for tpm1.2 */
-//    sha1_hash_t  mle_hash;            /* only for tpm1.2 */
-//    sha1_hash_t  stm_hash;            /* only for tpm1.2 */
-//    sha1_hash_t  lcp_policy_hash;     /* only for tpm1.2 */
-//    uint32_t     lcp_policy_control;  /* only for tpm1.2 */
-//    uint32_t     rlp_wakeup_addr;
-//    uint32_t     reserved;
-//    uint32_t     num_mdrs;
-//    uint32_t     mdrs_off;
-//    uint32_t     num_vtd_dmars;
-//    uint32_t     vtd_dmars_off;
-//    /* versions >= 8 */
-//    uint32_t     proc_scrtm_status;   /* only for tpm1.2 */
-//    /* versions >= 9 */
-//    heap_ext_data_element_t  ext_data_elts[];
-//} sinit_mle_data_t;
-//
+
+typedef struct __packed {
+	uint32_t     version;		/* currently 6-9 */
+	sha1_hash_t  bios_acm_id;	/* only for tpm1.2 */
+	uint32_t     edx_senter_flags;	/* only for tpm1.2 */
+	uint64_t     mseg_valid;	/* only for tpm1.2 */
+	sha1_hash_t  sinit_hash;	/* only for tpm1.2 */
+	sha1_hash_t  mle_hash;		/* only for tpm1.2 */
+	sha1_hash_t  stm_hash;		/* only for tpm1.2 */
+	sha1_hash_t  lcp_policy_hash;	/* only for tpm1.2 */
+	uint32_t     lcp_policy_control;/* only for tpm1.2 */
+	uint32_t     rlp_wakeup_addr;
+	uint32_t     reserved;
+	uint32_t     num_mdrs;
+	uint32_t     mdrs_off;
+	uint32_t     num_vtd_dmars;
+	uint32_t     vtd_dmars_off;
+	/* versions >= 8 */
+	uint32_t     proc_scrtm_status;	/* only for tpm1.2 */
+	/* versions >= 9 */
+	heap_ext_data_element_t  ext_data_elts[];
+} sinit_mle_data_t;
+
 //
 ///*
 // * TXT heap data format and field accessor fns
@@ -423,13 +423,10 @@ static inline uint64_t get_sinit_mle_data_size(const txt_heap_t *heap)
 	return *(uint64_t *)(heap + get_bios_data_size(heap) + get_os_mle_data_size(heap) + get_os_sinit_data_size(heap));
 }
 
-//static inline sinit_mle_data_t *get_sinit_mle_data_start(const txt_heap_t *heap)
-//{
-//    return (sinit_mle_data_t *)(heap + get_bios_data_size(heap) +
-//                                get_os_mle_data_size(heap) +
-//                                get_os_sinit_data_size(heap) +
-//                                sizeof(uint64_t));
-//}
+static inline sinit_mle_data_t *get_sinit_mle_data_start(const txt_heap_t *heap)
+{
+	return (sinit_mle_data_t *)(heap + get_bios_data_size(heap) + get_os_mle_data_size(heap) + get_os_sinit_data_size(heap) + sizeof(uint64_t));
+}
 
 extern uint64_t calc_os_sinit_data_size(uint32_t version);
 extern int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only);
