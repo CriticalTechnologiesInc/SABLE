@@ -107,7 +107,7 @@ struct acpi_xsdt {
 //#define GAS_ACCESS_DWORD		3
 //#define GAS_ACCESS_QWORD		4
 //	u_int64_t	address;
-//} __packed;
+//} __attribute__ ((packed));
 //
 ///* Fixed ACPI Descriptiion Table */
 //struct acpi_fadt {
@@ -211,37 +211,37 @@ struct acpi_xsdt {
 //	struct acpi_gas	x_pm_tmr_blk;
 //	struct acpi_gas	x_gpe0_blk;
 //	struct acpi_gas	x_gpe1_blk;
-//} __packed;
-//
-//struct acpi_madt {
-//	struct acpi_table_header	hdr;
-//#define MADT_SIG	"APIC"
-//
-//	u_int32_t	local_apic_address;
-//	u_int32_t	flags;
-//#define ACPI_APIC_PCAT_COMPAT	0x00000001
-//} __packed;
-//
-//struct acpi_madt_lapic {
-//	u_int8_t	apic_type;
-//#define	ACPI_MADT_LAPIC		0
-//	u_int8_t	length;
-//	u_int8_t	acpi_proc_id;
-//	u_int8_t	apic_id;
-//	u_int32_t	flags;
-//#define	ACPI_PROC_ENABLE	0x00000001
-//} __packed;
-//
-//struct acpi_madt_ioapic {
-//	u_int8_t	apic_type;
-//#define	ACPI_MADT_IOAPIC	1
-//	u_int8_t	length;
-//	u_int8_t	acpi_ioapic_id;
-//	u_int8_t	reserved;
-//	u_int32_t	address;
-//	u_int32_t	global_int_base;
-//} __packed;
-//typedef struct acpi_madt_ioapic acpi_table_ioapic_t;
+//} __attribute__ ((packed));
+
+struct acpi_madt {
+	struct acpi_table_header	hdr;
+#define MADT_SIG	"APIC"
+
+	u_int32_t	local_apic_address;
+	u_int32_t	flags;
+#define ACPI_APIC_PCAT_COMPAT	0x00000001
+} __attribute__ ((packed));
+
+struct acpi_madt_lapic {
+	u_int8_t	apic_type;
+#define	ACPI_MADT_LAPIC	0
+	u_int8_t	length;
+	u_int8_t	acpi_proc_id;
+	u_int8_t	apic_id;
+	u_int32_t	flags;
+#define	ACPI_PROC_ENABLE	0x00000001
+} __attribute__ ((packed));
+
+struct acpi_madt_ioapic {
+	u_int8_t	apic_type;
+#define	ACPI_MADT_IOAPIC	1
+	u_int8_t	length;
+	u_int8_t	acpi_ioapic_id;
+	u_int8_t	reserved;
+	u_int32_t	address;
+	u_int32_t	global_int_base;
+} __attribute__ ((packed));
+typedef struct acpi_madt_ioapic acpi_table_ioapic_t;
 //
 //struct acpi_madt_override {
 //	u_int8_t	apic_type;
@@ -260,7 +260,7 @@ struct acpi_xsdt {
 //#define	ACPI_OVERRIDE_TRIGGER_BUS		0x0
 //#define	ACPI_OVERRIDE_TRIGGER_EDGE		0x4
 //#define	ACPI_OVERRIDE_TRIGGER_LEVEL		0xc
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_madt_nmi {
 //	u_int8_t	apic_type;
@@ -268,7 +268,7 @@ struct acpi_xsdt {
 //	u_int8_t	length;
 //	u_int16_t	flags;		/* Same flags as acpi_madt_override */
 //	u_int32_t	global_int;
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_madt_lapic_nmi {
 //	u_int8_t	apic_type;
@@ -277,7 +277,7 @@ struct acpi_xsdt {
 //	u_int8_t	acpi_proc_id;
 //	u_int16_t	flags;		/* Same flags as acpi_madt_override */
 //	u_int8_t	local_apic_lint;
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_madt_lapic_override {
 //	u_int8_t	apic_type;
@@ -285,7 +285,7 @@ struct acpi_xsdt {
 //	u_int8_t	length;
 //	u_int16_t	reserved;
 //	u_int64_t	lapic_address;
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_madt_io_sapic {
 //	u_int8_t	apic_type;
@@ -295,7 +295,7 @@ struct acpi_xsdt {
 //	u_int8_t	reserved;
 //	u_int32_t	global_int_base;
 //	u_int64_t	iosapic_address;
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_madt_local_sapic {
 //	u_int8_t	apic_type;
@@ -308,7 +308,7 @@ struct acpi_xsdt {
 //	u_int32_t	flags;		/* Same flags as acpi_madt_lapic */
 //	u_int32_t	acpi_proc_uid;
 //	u_int8_t	acpi_proc_uid_string[1];
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_madt_platform_int {
 //	u_int8_t	apic_type;
@@ -325,11 +325,11 @@ struct acpi_xsdt {
 //	u_int32_t	global_int;
 //	u_int32_t	platform_int_flags;
 //#define	ACPI_MADT_PLATFORM_CPEI		0x00000001
-//} __packed;
+//} __attribute__ ((packed));
 //
-//union acpi_madt_entry {
-//	struct acpi_madt_lapic		madt_lapic;
-//	struct acpi_madt_ioapic		madt_ioapic;
+union acpi_madt_entry {
+	struct acpi_madt_lapic		madt_lapic;
+	struct acpi_madt_ioapic		madt_ioapic;
 //	struct acpi_madt_override	madt_override;
 //	struct acpi_madt_nmi		madt_nmi;
 //	struct acpi_madt_lapic_nmi	madt_lapic_nmi;
@@ -337,7 +337,7 @@ struct acpi_xsdt {
 //	struct acpi_madt_io_sapic	madt_io_sapic;
 //	struct acpi_madt_local_sapic	madt_local_sapic;
 //	struct acpi_madt_platform_int	madt_platform_int;
-//} __packed;
+} __attribute__ ((packed));
 //
 //struct device_scope {
 //    u_int8_t type;
@@ -346,7 +346,7 @@ struct acpi_xsdt {
 //    u_int8_t enumeration_id;
 //    u_int8_t start_bus_number;
 //    u_int16_t path[1];  /* Path starts here */
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct dmar_remapping {
 //    u_int16_t type;
@@ -363,7 +363,7 @@ struct acpi_xsdt {
 //    u_int16_t segment_number;
 //    u_int8_t register_base_address[8];
 //    struct device_scope device_scope_entry[1]; /* Device Scope starts here */
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_dmar {
 //    struct acpi_table_header hdr;
@@ -374,7 +374,7 @@ struct acpi_xsdt {
 //
 //    u_int8_t reserved[10];
 //    struct dmar_remapping table_offsets[1]; /* dmar_remapping structure starts here */
-//} __packed;
+//} __attribute__ ((packed));
 //
 //struct acpi_mcfg_mmcfg {
 //    u_int64_t base_address;
@@ -382,18 +382,18 @@ struct acpi_xsdt {
 //    u_int8_t start_bus_number;
 //    u_int8_t end_bus_number;
 //    u_int32_t reserved;
-//} __packed;
-//
-//struct acpi_mcfg {
-//    struct acpi_table_header hdr;
-//#define MCFG_SIG "MCFG"
-//
-//    u_int64_t reserved;
-//    /* struct acpi_mcfg_mmcfg table_offsets[1]; */
-//    u_int32_t base_address;
-//} __packed;
-//typedef struct acpi_mcfg acpi_table_mcfg_t;
-//
+//} __attribute__ ((packed));
+
+struct acpi_mcfg {
+	struct acpi_table_header hdr;
+	#define MCFG_SIG "MCFG"
+
+	u_int64_t reserved;
+	/* struct acpi_mcfg_mmcfg table_offsets[1]; */
+	u_int32_t base_address;
+} __attribute__ ((packed));
+typedef struct acpi_mcfg acpi_table_mcfg_t;
+
 //#if 0
 //
 //#define ACPI_FREQUENCY	3579545		/* Per ACPI spec */
@@ -501,8 +501,8 @@ extern int vtd_bios_enabled(void);
 //extern bool restore_vtd_dmar_table(void);
 //extern bool remove_vtd_dmar_table(void);
 //
-//extern struct acpi_table_ioapic *get_acpi_ioapic_table(void);
-//extern struct acpi_mcfg *get_acpi_mcfg_table(void);
+extern struct acpi_table_ioapic *get_acpi_ioapic_table(void);
+extern struct acpi_mcfg *get_acpi_mcfg_table(void);
 //extern void disable_smis(void);
 //
 //extern bool machine_sleep(const tboot_acpi_sleep_info_t *);

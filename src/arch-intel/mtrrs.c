@@ -46,51 +46,53 @@
 #include "page.h"
 //#include <tboot.h>
 //#include <loader.h>
-//#include <acpi.h>
+#include "acpi.h"
 //#include <mle.h>
-//#include <txt/config_regs.h>
+#include "config_regs.h"
 #include "uuid.h"
 #include "mle.h"
 #include "acmod.h"
 #include "mtrrs.h"
+#include "intel_tpm.h"
+
 //#include <tpm.h>
 //
-//#define MTRR_TYPE_MIXED         -1
-//#define MMIO_APIC_BASE          0xFEE00000
-//#define NR_MMIO_APIC_PAGES      1
-//#define NR_MMIO_IOAPIC_PAGES    1
-//#define NR_MMIO_PCICFG_PAGES    1
+#define MTRR_TYPE_MIXED         -1
+#define MMIO_APIC_BASE		0xFEE00000
+#define NR_MMIO_APIC_PAGES	1
+#define NR_MMIO_IOAPIC_PAGES    1
+#define NR_MMIO_PCICFG_PAGES    1
 
 #define SINIT_MTRR_MASK         0xFFFFFF  /* SINIT requires 36b mask */
 
 //
 ///* saved MTRR state or NULL if orig. MTRRs have not been changed */
 static __data mtrr_state_t *g_saved_mtrrs = NULL;
-//
-//static uint64_t get_maxphyaddr_mask(void)
-//{
-//    static bool printed_msg = false;
-//    union {
-//        uint32_t raw;
-//        struct {
-//	    uint32_t num_pa_bits  : 8;
-//	    uint32_t num_la_bits  : 8;
-//	    uint32_t reserved     : 16;
-//	};
-//    } num_addr_bits;
-//
-//    /* does CPU support 0x80000008 CPUID leaf? (all TXT CPUs should) */
-//    uint32_t max_ext_fn = cpuid_eax(0x80000000);
-//    if ( max_ext_fn < 0x80000008 )
-//        return 0xffffff;      /* if not, default is 36b support */
-//
-//    num_addr_bits.raw = cpuid_eax(0x80000008);
-//    if ( !printed_msg ) {
-//        printk(TBOOT_DETA"CPU supports %u phys address bits\n", num_addr_bits.num_pa_bits);
-//	printed_msg = true;
-//    }
-//    return ((1ULL << num_addr_bits.num_pa_bits) - 1) >> PAGE_SHIFT;
-//}
+
+static uint64_t get_maxphyaddr_mask(void)
+{
+	static int printed_msg = 0;
+	union {
+	uint32_t raw;
+		struct {
+			uint32_t num_pa_bits  : 8;
+			uint32_t num_la_bits  : 8;
+			uint32_t reserved     : 16;
+		};
+	} num_addr_bits;
+
+	/* does CPU support 0x80000008 CPUID leaf? (all TXT CPUs should) */
+	uint32_t max_ext_fn = cpuid_eax(0x80000000);
+	if (max_ext_fn < 0x80000008)
+		return 0xffffff;	/* if not, default is 36b support */
+
+	num_addr_bits.raw = cpuid_eax(0x80000008);
+	if (!printed_msg) {
+		out_description("CPU supports phys address of bits", num_addr_bits.num_pa_bits);
+		printed_msg = 1;
+	}
+	return ((1ULL << num_addr_bits.num_pa_bits) - 1) >> PAGE_SHIFT;
+}
 
 /*
  * this must be done for each processor so that all have the same
@@ -185,283 +187,261 @@ void save_mtrrs(mtrr_state_t *saved_state)
 	g_saved_mtrrs = saved_state;
 }
 
-//static void print_mtrrs(const mtrr_state_t *saved_state)
-//{
-//    printk(TBOOT_DETA"mtrr_def_type: e = %d, fe = %d, type = %x\n",
-//           saved_state->mtrr_def_type.e, saved_state->mtrr_def_type.fe,
-//           saved_state->mtrr_def_type.type );
-//    printk(TBOOT_DETA"mtrrs:\n");
-//    printk(TBOOT_DETA"\t\t    base          mask      type  v\n");
-//    for ( unsigned int i = 0; i < saved_state->num_var_mtrrs; i++ ) {
-//        printk(TBOOT_DETA"\t\t%13.13Lx %13.13Lx  %2.2x  %d\n",
-//               (uint64_t)saved_state->mtrr_physbases[i].base,
-//               (uint64_t)saved_state->mtrr_physmasks[i].mask,
-//               saved_state->mtrr_physbases[i].type,
-//               saved_state->mtrr_physmasks[i].v );
-//    }
-//}
-//
-///* base should be 4k-bytes aligned, no invalid overlap combination */
-//static int get_page_type(const mtrr_state_t *saved_state, uint32_t base)
-//{
-//    int type = -1;
-//    bool wt = false;
-//    uint64_t maxphyaddr_mask = get_maxphyaddr_mask();
-//
-//    /* omit whether the fix mtrrs are enabled, just check var mtrrs */
-//
-//    base >>= PAGE_SHIFT;
-//    for ( unsigned int i = 0; i < saved_state->num_var_mtrrs; i++ ) {
-//        const mtrr_physbase_t *base_i = &saved_state->mtrr_physbases[i];
-//        const mtrr_physmask_t *mask_i = &saved_state->mtrr_physmasks[i];
-//
-//        if ( mask_i->v == 0 )
-//            continue;
-//        if ( (base & mask_i->mask & maxphyaddr_mask) !=
-//             (base_i->base & mask_i->mask & maxphyaddr_mask) )
-//            continue;
-//
-//        type = base_i->type;
-//        if ( type == MTRR_TYPE_UNCACHABLE )
-//            return MTRR_TYPE_UNCACHABLE;
-//        if ( type == MTRR_TYPE_WRTHROUGH )
-//            wt = true;
-//    }
-//    if ( wt )
-//        return MTRR_TYPE_WRTHROUGH;
-//    if ( type != -1 )
-//        return type;
-//
-//    return saved_state->mtrr_def_type.type;
-//}
-//
-//static int get_region_type(const mtrr_state_t *saved_state,
-//                           uint32_t base, uint32_t pages)
-//{
-//    int type;
-//    uint32_t end;
-//
-//    if ( pages == 0 )
-//        return MTRR_TYPE_MIXED;
-//
-//    /* wrap the 4G address space */
-//    if ( ((uint32_t)(~0) - base) < (pages << PAGE_SHIFT) )
-//        return MTRR_TYPE_MIXED;
-//
-//    if ( saved_state->mtrr_def_type.e == 0 )
-//        return MTRR_TYPE_UNCACHABLE;
-//
-//    /* align to 4k page boundary */
-//    base &= PAGE_MASK;
-//    end = base + (pages << PAGE_SHIFT);
-//
-//    type = get_page_type(saved_state, base);
-//    base += PAGE_SIZE;
-//    for ( ; base < end; base += PAGE_SIZE )
-//        if ( type != get_page_type(saved_state, base) )
-//            return MTRR_TYPE_MIXED;
-//
-//    return type;
-//}
-//
-//static bool validate_mmio_regions(const mtrr_state_t *saved_state)
-//{
-//    acpi_table_mcfg_t *acpi_table_mcfg;
-//    acpi_table_ioapic_t *acpi_table_ioapic;
-//
-//    /* mmio space for TXT private config space should be UC */
-//    if ( get_region_type(saved_state, TXT_PRIV_CONFIG_REGS_BASE,
-//                         TXT_CONFIG_REGS_SIZE >> PAGE_SHIFT)
-//           != MTRR_TYPE_UNCACHABLE ) {
-//        printk(TBOOT_ERR"MMIO space for TXT private config space should be UC\n");
-//        return false;
-//    }
-//
-//    /* mmio space for TXT public config space should be UC */
-//    if ( get_region_type(saved_state, TXT_PUB_CONFIG_REGS_BASE,
-//                         TXT_CONFIG_REGS_SIZE >> PAGE_SHIFT)
-//           != MTRR_TYPE_UNCACHABLE ) {
-//        printk(TBOOT_ERR"MMIO space for TXT public config space should be UC\n");
-//        return false;
-//    }
-//
-//    /* mmio space for TPM should be UC */
-//    if ( get_region_type(saved_state, TPM_LOCALITY_BASE,
-//                         NR_TPM_LOCALITY_PAGES * TPM_NR_LOCALITIES)
-//           != MTRR_TYPE_UNCACHABLE ) {
-//        printk(TBOOT_ERR"MMIO space for TPM should be UC\n");
-//        return false;
-//    }
-//
-//    /* mmio space for APIC should be UC */
-//    if ( get_region_type(saved_state, MMIO_APIC_BASE, NR_MMIO_APIC_PAGES)
-//           != MTRR_TYPE_UNCACHABLE ) {
-//        printk(TBOOT_ERR"MMIO space for APIC should be UC\n");
-//        return false;
-//    }
-//
-//    /* TBD: is this check useful if we aren't DMA protecting ACPI? */
-//    /* mmio space for IOAPIC should be UC */
-//    acpi_table_ioapic = (acpi_table_ioapic_t *)get_acpi_ioapic_table();
-//    if ( acpi_table_ioapic == NULL) {
-//        printk(TBOOT_ERR"acpi_table_ioapic == NULL\n");
-//        return false;
-//    }
-//    printk(TBOOT_DETA"acpi_table_ioapic @ %p, .address = %x\n",
-//           acpi_table_ioapic, acpi_table_ioapic->address);
-//    if ( get_region_type(saved_state, acpi_table_ioapic->address,
-//                         NR_MMIO_IOAPIC_PAGES)
-//           != MTRR_TYPE_UNCACHABLE ) {
-//        printk(TBOOT_ERR"MMIO space(%x) for IOAPIC should be UC\n",
-//               acpi_table_ioapic->address);
-//        return false;
-//    }
-//
-//    /* TBD: is this check useful if we aren't DMA protecting ACPI? */
-//    /* mmio space for PCI config space should be UC */
-//    acpi_table_mcfg = (acpi_table_mcfg_t *)get_acpi_mcfg_table();
-//    if ( acpi_table_mcfg == NULL) {
-//        printk(TBOOT_ERR"acpi_table_mcfg == NULL\n");
-//        return false;
-//    }
-//    printk(TBOOT_DETA"acpi_table_mcfg @ %p, .base_address = %x\n",
-//           acpi_table_mcfg, acpi_table_mcfg->base_address);
-//    if ( get_region_type(saved_state, acpi_table_mcfg->base_address,
-//                         NR_MMIO_PCICFG_PAGES)
-//           != MTRR_TYPE_UNCACHABLE ) {
-//        printk(TBOOT_ERR"MMIO space(%x) for PCI config space should be UC\n",
-//               acpi_table_mcfg->base_address);
-//        return false;
-//    }
-//
-//    return true;
-//}
-//
-//bool validate_mtrrs(const mtrr_state_t *saved_state)
-//{
-//    mtrr_cap_t mtrr_cap;
-//    uint64_t maxphyaddr_mask = get_maxphyaddr_mask();
-//    uint64_t max_pages = maxphyaddr_mask + 1;  /* max # 4k pages supported */
-//
-//    /* check is meaningless if MTRRs were disabled */
-//    if ( saved_state->mtrr_def_type.e == 0 )
-//        return true;
-//
-//    /* number variable MTRRs */
-//    mtrr_cap.raw = rdmsr(MSR_MTRRcap);
-//    if ( mtrr_cap.vcnt < saved_state->num_var_mtrrs ) {
-//        printk(TBOOT_ERR"actual # var MTRRs (%d) < saved # (%d)\n",
-//               mtrr_cap.vcnt, saved_state->num_var_mtrrs);
-//        return false;
-//    }
-//
-//    /* variable MTRRs describing non-contiguous memory regions */
-//    for ( unsigned int ndx = 0; ndx < saved_state->num_var_mtrrs; ndx++ ) {
-//        uint64_t tb;
-//
-//        if ( saved_state->mtrr_physmasks[ndx].v == 0 )
-//            continue;
-//
-//        for ( tb = 1; tb != max_pages; tb = tb << 1 ) {
-//            if ( (tb & saved_state->mtrr_physmasks[ndx].mask & maxphyaddr_mask)
-//                 != 0 )
-//                break;
-//        }
-//        for ( ; tb != max_pages; tb = tb << 1 ) {
-//            if ( (tb & saved_state->mtrr_physmasks[ndx].mask & maxphyaddr_mask)
-//                 == 0 )
-//                break;
-//        }
-//        if ( tb != max_pages ) {
-//	    printk(TBOOT_ERR"var MTRRs with non-contiguous regions: base=0x%Lx, mask=0x%Lx\n",
-//                   (uint64_t)saved_state->mtrr_physbases[ndx].base
-//                                  & maxphyaddr_mask,
-//                   (uint64_t)saved_state->mtrr_physmasks[ndx].mask
-//                                  & maxphyaddr_mask);
-//            print_mtrrs(saved_state);
-//            return false;
-//        }
-//    }
-//
-//    /* overlaping regions with invalid memory type combinations */
-//    for ( unsigned int ndx = 0; ndx < saved_state->num_var_mtrrs; ndx++ ) {
-//        const mtrr_physbase_t *base_ndx = &saved_state->mtrr_physbases[ndx];
-//        const mtrr_physmask_t *mask_ndx = &saved_state->mtrr_physmasks[ndx];
-//
-//        if ( mask_ndx->v == 0 )
-//            continue;
-//
-//        for ( unsigned int i = ndx + 1; i < saved_state->num_var_mtrrs; i++ ) {
-//            const mtrr_physbase_t *base_i = &saved_state->mtrr_physbases[i];
-//            const mtrr_physmask_t *mask_i = &saved_state->mtrr_physmasks[i];
-//
-//            if ( mask_i->v == 0 )
-//                continue;
-//
-//            if ( (base_ndx->base & mask_ndx->mask & mask_i->mask & maxphyaddr_mask)
-//                    != (base_i->base & mask_i->mask & maxphyaddr_mask) &&
-//                 (base_i->base & mask_i->mask & mask_ndx->mask & maxphyaddr_mask)
-//                    != (base_ndx->base & mask_ndx->mask & maxphyaddr_mask) )
-//                continue;
-//
-//            if ( base_ndx->type == base_i->type )
-//                continue;
-//            if ( base_ndx->type == MTRR_TYPE_UNCACHABLE
-//                 || base_i->type == MTRR_TYPE_UNCACHABLE )
-//                continue;
-//            if ( base_ndx->type == MTRR_TYPE_WRTHROUGH
-//                 && base_i->type == MTRR_TYPE_WRBACK )
-//                continue;
-//            if ( base_ndx->type == MTRR_TYPE_WRBACK
-//                 && base_i->type == MTRR_TYPE_WRTHROUGH )
-//                continue;
-//
-//            /* 2 overlapped regions have invalid mem type combination, */
-//            /* need to check whether there is a third region which has type */
-//            /* of UNCACHABLE and contains at least one of these two regions. */
-//            /* If there is, then the combination of these 3 region is valid */
-//            unsigned int j;
-//            for ( j = 0; j < saved_state->num_var_mtrrs; j++ ) {
-//                const mtrr_physbase_t *base_j
-//                        = &saved_state->mtrr_physbases[j];
-//                const mtrr_physmask_t *mask_j
-//                        = &saved_state->mtrr_physmasks[j];
-//
-//                if ( mask_j->v == 0 )
-//                    continue;
-//
-//                if ( base_j->type != MTRR_TYPE_UNCACHABLE )
-//                    continue;
-//
-//                if ( (base_ndx->base & mask_ndx->mask & mask_j->mask & maxphyaddr_mask)
-//                        == (base_j->base & mask_j->mask & maxphyaddr_mask)
-//                     && (mask_j->mask & ~mask_ndx->mask & maxphyaddr_mask) == 0 )
-//                    break;
-//
-//                if ( (base_i->base & mask_i->mask & mask_j->mask & maxphyaddr_mask)
-//                        == (base_j->base & mask_j->mask & maxphyaddr_mask)
-//                     && (mask_j->mask & ~mask_i->mask & maxphyaddr_mask) == 0 )
-//                    break;
-//            }
-//            if ( j < saved_state->num_var_mtrrs )
-//                continue;
-//
-//            printk(TBOOT_ERR"var MTRRs overlaping regions, invalid type combinations\n");
-//            print_mtrrs(saved_state);
-//            return false;
-//        }
-//    }
-//
-//    if ( !validate_mmio_regions(saved_state) ) {
-//        printk(TBOOT_ERR"Some mmio region should be UC type\n");
-//        print_mtrrs(saved_state);
-//        return false;
-//    }
-//
-//    print_mtrrs(saved_state);
-//    return true;
-//}
-//
+static void print_mtrrs(const mtrr_state_t *saved_state)
+{
+	out_info("mtrr_def_type");
+	out_description64("e = ", saved_state->mtrr_def_type.e);
+	out_description64("fe = ", saved_state->mtrr_def_type.fe);
+	out_description64("type = ", saved_state->mtrr_def_type.type);
+	out_info("mtrrs:");
+	for (unsigned int i = 0; i < saved_state->num_var_mtrrs; i++) {
+		out_description64("base", (uint64_t)saved_state->mtrr_physbases[i].base);
+		out_description64("mask", (uint64_t)saved_state->mtrr_physmasks[i].mask);
+		out_description64("type", saved_state->mtrr_physbases[i].type);
+		out_description64("v", saved_state->mtrr_physmasks[i].v);
+	}
+}
+
+/* base should be 4k-bytes aligned, no invalid overlap combination */
+static int get_page_type(const mtrr_state_t *saved_state, uint32_t base)
+{
+	int type = -1;
+	bool wt = false;
+	uint64_t maxphyaddr_mask = get_maxphyaddr_mask();
+
+	/* omit whether the fix mtrrs are enabled, just check var mtrrs */
+
+	base >>= PAGE_SHIFT;
+	for (unsigned int i = 0; i < saved_state->num_var_mtrrs; i++) {
+		const mtrr_physbase_t *base_i = &saved_state->mtrr_physbases[i];
+		const mtrr_physmask_t *mask_i = &saved_state->mtrr_physmasks[i];
+
+		if (mask_i->v == 0)
+			continue;
+	if ((base & mask_i->mask & maxphyaddr_mask) != (base_i->base & mask_i->mask & maxphyaddr_mask) )
+		continue;
+
+	type = base_i->type;
+	if (type == MTRR_TYPE_UNCACHABLE)
+		return MTRR_TYPE_UNCACHABLE;
+	if (type == MTRR_TYPE_WRTHROUGH)
+		wt = 1;
+	}
+	if (wt)
+		return MTRR_TYPE_WRTHROUGH;
+	if ( type != -1 )
+		return type;
+
+	return saved_state->mtrr_def_type.type;
+}
+
+static int get_region_type(const mtrr_state_t *saved_state, uint32_t base, uint32_t pages)
+{
+	int type;
+	uint32_t end;
+
+	if (pages == 0)
+		return MTRR_TYPE_MIXED;
+
+	/* wrap the 4G address space */
+	if ( ((uint32_t)(~0) - base) < (pages << PAGE_SHIFT))
+		return MTRR_TYPE_MIXED;
+
+	if ( saved_state->mtrr_def_type.e == 0 )
+		return MTRR_TYPE_UNCACHABLE;
+
+	/* align to 4k page boundary */
+	base &= PAGE_MASK;
+	end = base + (pages << PAGE_SHIFT);
+
+	type = get_page_type(saved_state, base);
+	base += PAGE_SIZE;
+	for ( ; base < end; base += PAGE_SIZE )
+		if ( type != get_page_type(saved_state, base) )
+			return MTRR_TYPE_MIXED;
+
+	return type;
+}
+
+static bool validate_mmio_regions(const mtrr_state_t *saved_state)
+{
+	acpi_table_mcfg_t *acpi_table_mcfg;
+	acpi_table_ioapic_t *acpi_table_ioapic;
+
+	/* mmio space for TXT private config space should be UC */
+	if (get_region_type(saved_state, TXT_PRIV_CONFIG_REGS_BASE, TXT_CONFIG_REGS_SIZE >> PAGE_SHIFT) != MTRR_TYPE_UNCACHABLE ) {
+		out_info("MMIO space for TXT private config space should be UC");
+		return 0;
+	}
+
+	/* mmio space for TXT public config space should be UC */
+	if (get_region_type(saved_state, TXT_PUB_CONFIG_REGS_BASE, TXT_CONFIG_REGS_SIZE >> PAGE_SHIFT) != MTRR_TYPE_UNCACHABLE ) {
+		out_info("MMIO space for TXT public config space should be UC");
+		return 0;
+	}
+
+	/* mmio space for TPM should be UC */
+	if (get_region_type(saved_state, TPM_LOCALITY_BASE, NR_TPM_LOCALITY_PAGES * TPM_NR_LOCALITIES) != MTRR_TYPE_UNCACHABLE ) {
+		out_info("MMIO space for TPM should be UC\n");
+		return 0;
+	}
+
+	/* mmio space for APIC should be UC */
+	if ( get_region_type(saved_state, MMIO_APIC_BASE, NR_MMIO_APIC_PAGES) != MTRR_TYPE_UNCACHABLE ) {
+		out_info("MMIO space for APIC should be UC\n");
+		return 0;
+	}
+
+	/* TBD: is this check useful if we aren't DMA protecting ACPI? */
+	/* mmio space for IOAPIC should be UC */
+	acpi_table_ioapic = (acpi_table_ioapic_t *)get_acpi_ioapic_table();
+	if (acpi_table_ioapic == NULL) {
+		out_info("acpi_table_ioapic == NULL");
+		return 0;
+	}
+	out_description("acpi_table_ioapic @", (unsigned int)acpi_table_ioapic);
+	out_description("address = ", acpi_table_ioapic->address);
+	if (get_region_type(saved_state, acpi_table_ioapic->address, NR_MMIO_IOAPIC_PAGES) != MTRR_TYPE_UNCACHABLE ) {
+		out_description("MMIO space(%x) for IOAPIC should be UC", acpi_table_ioapic->address);
+		return 0;
+	}
+
+	/* TBD: is this check useful if we aren't DMA protecting ACPI? */
+	/* mmio space for PCI config space should be UC */
+	acpi_table_mcfg = (acpi_table_mcfg_t *)get_acpi_mcfg_table();
+	if ( acpi_table_mcfg == NULL) {
+		out_info("acpi_table_mcfg == NULL\n");
+		return 1;
+	}
+	out_description("acpi_table_mcfg @ ", (unsigned int)acpi_table_mcfg);
+	out_description("base_address", acpi_table_mcfg->base_address);
+	if (get_region_type(saved_state, acpi_table_mcfg->base_address, NR_MMIO_PCICFG_PAGES) != MTRR_TYPE_UNCACHABLE ) {
+		out_description("MMIO space(%x) for PCI config space should be UC", acpi_table_mcfg->base_address);
+		return 0;
+	}
+	return 1;
+}
+
+int validate_mtrrs(const mtrr_state_t *saved_state)
+{
+	mtrr_cap_t mtrr_cap;
+	uint64_t maxphyaddr_mask = get_maxphyaddr_mask();
+	uint64_t max_pages = maxphyaddr_mask + 1;  /* max # 4k pages supported */
+
+	/* check is meaningless if MTRRs were disabled */
+	if (saved_state->mtrr_def_type.e == 0)
+		return 1;
+
+	/* number variable MTRRs */
+	mtrr_cap.raw = rdmsr(MSR_MTRRcap);
+	if (mtrr_cap.vcnt < saved_state->num_var_mtrrs) {
+		out_info("actual # var MTRRs < saved #");
+		out_description("mtrr_cap.vcnt", mtrr_cap.vcnt);
+		out_description("saved_state->num_var_mtrrs", saved_state->num_var_mtrrs);
+		return 0;
+	}
+
+	/* variable MTRRs describing non-contiguous memory regions */
+	for (unsigned int ndx = 0; ndx < saved_state->num_var_mtrrs; ndx++ ) {
+		uint64_t tb;
+
+		if (saved_state->mtrr_physmasks[ndx].v == 0 )
+			continue;
+
+		for (tb = 1; tb != max_pages; tb = tb << 1) {
+			if ( (tb & saved_state->mtrr_physmasks[ndx].mask & maxphyaddr_mask) != 0)
+			break;
+		}
+		for ( ; tb != max_pages; tb = tb << 1 ) {
+			if ((tb & saved_state->mtrr_physmasks[ndx].mask & maxphyaddr_mask) == 0)
+				break;
+		}
+		if ( tb != max_pages ) {
+			out_info("var MTRRs with non-contiguous regions: base, mask");
+			out_description("base : ", (uint64_t)saved_state->mtrr_physbases[ndx].base & maxphyaddr_mask);
+			out_description("mask : ", (uint64_t)saved_state->mtrr_physmasks[ndx].mask & maxphyaddr_mask);
+			print_mtrrs(saved_state);
+			return false;
+		}
+	}
+
+	/* overlaping regions with invalid memory type combinations */
+	for ( unsigned int ndx = 0; ndx < saved_state->num_var_mtrrs; ndx++ ) {
+		const mtrr_physbase_t *base_ndx = &saved_state->mtrr_physbases[ndx];
+		const mtrr_physmask_t *mask_ndx = &saved_state->mtrr_physmasks[ndx];
+
+		if (mask_ndx->v == 0)
+			continue;
+
+		for (unsigned int i = ndx + 1; i < saved_state->num_var_mtrrs; i++) {
+			const mtrr_physbase_t *base_i = &saved_state->mtrr_physbases[i];
+			const mtrr_physmask_t *mask_i = &saved_state->mtrr_physmasks[i];
+
+			if (mask_i->v == 0)
+				continue;
+
+		if ((base_ndx->base & mask_ndx->mask & mask_i->mask & maxphyaddr_mask)
+		    != (base_i->base & mask_i->mask & maxphyaddr_mask)
+		    && (base_i->base & mask_i->mask & mask_ndx->mask & maxphyaddr_mask)
+		    != (base_ndx->base & mask_ndx->mask & maxphyaddr_mask) )
+				continue;
+
+		if (base_ndx->type == base_i->type)
+			continue;
+		if (base_ndx->type == MTRR_TYPE_UNCACHABLE || base_i->type == MTRR_TYPE_UNCACHABLE)
+			continue;
+		if (base_ndx->type == MTRR_TYPE_WRTHROUGH && base_i->type == MTRR_TYPE_WRBACK)
+			continue;
+		if (base_ndx->type == MTRR_TYPE_WRBACK && base_i->type == MTRR_TYPE_WRTHROUGH)
+			continue;
+
+		/* 2 overlapped regions have invalid mem type combination, */
+		/* need to check whether there is a third region which has type */
+		/* of UNCACHABLE and contains at least one of these two regions. */
+		/* If there is, then the combination of these 3 region is valid */
+		
+		unsigned int j;
+		for ( j = 0; j < saved_state->num_var_mtrrs; j++ ) {
+			const mtrr_physbase_t *base_j = &saved_state->mtrr_physbases[j];
+			const mtrr_physmask_t *mask_j = &saved_state->mtrr_physmasks[j];
+
+			if (mask_j->v == 0) {
+				continue;
+			}
+
+			if (base_j->type != MTRR_TYPE_UNCACHABLE)
+				continue;
+
+			if ((base_ndx->base & mask_ndx->mask & mask_j->mask & maxphyaddr_mask)
+			    == (base_j->base & mask_j->mask & maxphyaddr_mask)
+			    && (mask_j->mask & ~mask_ndx->mask & maxphyaddr_mask) == 0) {
+				break;
+			}
+
+			if ((base_i->base & mask_i->mask & mask_j->mask & maxphyaddr_mask)
+			    == (base_j->base & mask_j->mask & maxphyaddr_mask)
+			    && (mask_j->mask & ~mask_i->mask & maxphyaddr_mask) == 0 )
+				break;
+			}
+			if (j < saved_state->num_var_mtrrs)
+			continue;
+
+			out_info("var MTRRs overlaping regions, invalid type combinations");
+			print_mtrrs(saved_state);
+			return 0;
+		}
+	}
+
+	if (!validate_mmio_regions(saved_state)) {
+		out_info("Some mmio region should be UC type");
+		print_mtrrs(saved_state);
+		return 0;
+	}
+
+	print_mtrrs(saved_state);
+	return 1;
+}
+
 //void restore_mtrrs(const mtrr_state_t *saved_state)
 //{
 //    /* called by apply_policy() so use saved ptr */

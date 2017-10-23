@@ -302,12 +302,12 @@ int vtd_bios_enabled(void)
 //    printk(TBOOT_DETA"DMAR table @ %p removed.\n", hdr);
 //    return true;
 //}
-//
-//static struct acpi_madt *get_apic_table(void)
-//{
-//    return (struct acpi_madt *)find_table(MADT_SIG);
-//}
-//
+
+static struct acpi_madt *get_apic_table(void)
+{
+	return (struct acpi_madt *)find_table(MADT_SIG);
+}
+
 //uint32_t get_madt_apic_base(void)
 //{
 //    struct acpi_madt *madt = get_apic_table();
@@ -318,38 +318,38 @@ int vtd_bios_enabled(void)
 //    return (uint32_t)madt->local_apic_address;
 //}
 //
-//struct acpi_table_ioapic *get_acpi_ioapic_table(void)
-//{
-//    struct acpi_madt *madt = get_apic_table();
-//    if ( madt == NULL ) {
-//        printk(TBOOT_ERR"no MADT table found\n");
-//        return NULL;
-//    }
-//
-//    /* APIC tables begin after MADT */
-//    union acpi_madt_entry *entry = (union acpi_madt_entry *)(madt + 1);
-//
-//	while ( (void *)entry < ((void *)madt + madt->hdr.length) ) {
-//		uint8_t length = entry->madt_lapic.length;
-//
-//		if ( entry->madt_lapic.apic_type == ACPI_MADT_IOAPIC ) {
-//			if ( length != sizeof(entry->madt_ioapic) ) {
-//                printk(TBOOT_ERR"APIC length error.\n");
-//                return NULL;
-//            }
-//            return (struct acpi_table_ioapic *)entry;
-//        }
-//		entry = (void *)entry + length;
-//	}
-//    printk(TBOOT_ERR"no IOAPIC type.\n");
-//    return NULL;
-//}
-//
-//struct acpi_mcfg *get_acpi_mcfg_table(void)
-//{
-//    return (struct acpi_mcfg *)find_table(MCFG_SIG);
-//}
-//
+struct acpi_table_ioapic *get_acpi_ioapic_table(void)
+{
+	struct acpi_madt *madt = get_apic_table();
+	if ( madt == NULL ) {
+		out_info("no MADT table found");
+		return NULL;
+	}
+
+	/* APIC tables begin after MADT */
+	union acpi_madt_entry *entry = (union acpi_madt_entry *)(madt + 1);
+
+	while ( (void *)entry < ((void *)madt + madt->hdr.length) ) {
+		uint8_t length = entry->madt_lapic.length;
+
+		if (entry->madt_lapic.apic_type == ACPI_MADT_IOAPIC) {
+			if (length != sizeof(entry->madt_ioapic) ) {
+				out_info("APIC length error.");
+				return NULL;
+			}
+			return (struct acpi_table_ioapic *)entry;
+		}
+		entry = (void *)entry + length;
+	}
+	out_info("no IOAPIC type.");
+	return NULL;
+}
+
+struct acpi_mcfg *get_acpi_mcfg_table(void)
+{
+	return (struct acpi_mcfg *)find_table(MCFG_SIG);
+}
+
 //static bool write_to_reg(const tboot_acpi_generic_address_t *reg,
 //                         uint32_t val)
 //{

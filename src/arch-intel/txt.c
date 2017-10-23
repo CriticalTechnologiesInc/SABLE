@@ -1161,6 +1161,16 @@ int txt_prepare_cpu(void)
 	return 1;
 }
 
+
+static int verify_saved_mtrrs(txt_heap_t *txt_heap)
+{   
+	os_mle_data_t *os_mle_data;
+	os_mle_data = get_os_mle_data_start(txt_heap);
+
+	return validate_mtrrs(&(os_mle_data->saved_mtrr_state));
+}   
+
+
 int txt_post_launch_verify_platform(void)
 {
 	txt_heap_t *txt_heap;
@@ -1176,8 +1186,8 @@ int txt_post_launch_verify_platform(void)
 		return 1;
 
 	/* verify the saved MTRRs */
-	//if (!verify_saved_mtrrs(txt_heap))
-	//	return 1;
+	if (!verify_saved_mtrrs(txt_heap))
+		return 1;
 
 	/* verify that VT-d PMRs were really set as required */
 //	if (!verify_vtd_pmrs(txt_heap) ) 

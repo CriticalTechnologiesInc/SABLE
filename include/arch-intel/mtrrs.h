@@ -122,10 +122,10 @@ typedef union {
 #define MAX_VARIABLE_MTRRS      16
 
 typedef struct {
-    mtrr_def_type_t	    mtrr_def_type;
-    unsigned int        num_var_mtrrs;
-    mtrr_physbase_t     mtrr_physbases[MAX_VARIABLE_MTRRS];
-    mtrr_physmask_t     mtrr_physmasks[MAX_VARIABLE_MTRRS];
+    mtrr_def_type_t	mtrr_def_type;
+    unsigned int	num_var_mtrrs;
+    mtrr_physbase_t	mtrr_physbases[MAX_VARIABLE_MTRRS];
+    mtrr_physmask_t	mtrr_physmasks[MAX_VARIABLE_MTRRS];
 } mtrr_state_t;
 
 extern int set_mtrrs_for_acmod(const acm_hdr_t *hdr);
@@ -133,7 +133,7 @@ extern void save_mtrrs(mtrr_state_t *saved_state);
 extern void set_all_mtrrs(int enable);
 extern int set_mem_type(const void *base, uint32_t size, uint32_t mem_type);
 extern void restore_mtrrs(const mtrr_state_t *saved_state);
-//extern bool validate_mtrrs(const mtrr_state_t *saved_state);
+extern int validate_mtrrs(const mtrr_state_t *saved_state);
 
 #endif /*__TXT_MTRRS_H__ */
 
