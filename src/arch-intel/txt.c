@@ -1171,6 +1171,105 @@ static int verify_saved_mtrrs(txt_heap_t *txt_heap)
 }   
 
 
+int e820_reserve_ram(uint64_t base, uint64_t length);
+
+static int reserve_vtd_delta_mem(uint64_t min_lo_ram, uint64_t max_lo_ram, uint64_t min_hi_ram, uint64_t max_hi_ram)
+{
+	uint64_t base, length;
+	(void)min_lo_ram; (void)min_hi_ram;/* portably suppress compiler warning */
+ 
+	txt_heap_t* txt_heap = get_txt_heap();
+	os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
+ 
+	if (max_lo_ram != (os_sinit_data->vtd_pmr_lo_base + os_sinit_data->vtd_pmr_lo_size) ) {
+		base = os_sinit_data->vtd_pmr_lo_base + os_sinit_data->vtd_pmr_lo_size;
+		length = max_lo_ram - base;
+		out_info("reserving memory  which was truncated for VT-d");
+		out_description("base", base);
+		out_description("base + length", base + length);
+		if (!e820_reserve_ram(base, length))
+			return 0;
+	}
+	if (max_hi_ram != (os_sinit_data->vtd_pmr_hi_base + os_sinit_data->vtd_pmr_hi_size)) {
+		base = os_sinit_data->vtd_pmr_hi_base + os_sinit_data->vtd_pmr_hi_size;
+		length = max_hi_ram - base;
+		out_info("reserving memory  which was truncated for VT-d");
+		out_description("base", base);
+		out_description("base + length", base + length);
+		if (!e820_reserve_ram(base, length))
+			return 0;
+	}
+ 
+	return 1;
+}
+
+
+static int verify_vtd_pmrs(txt_heap_t *txt_heap)
+{
+	os_sinit_data_t *os_sinit_data, tmp_os_sinit_data;
+	uint64_t min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram;
+
+	os_sinit_data = get_os_sinit_data_start(txt_heap);
+
+	/*
+	 * make sure the VT-d PMRs were actually set to cover what
+	 * we expect
+	 */
+ 
+	/* calculate what they should have been */
+	/* no e820 table on S3 resume, so use saved (sealed) values */
+
+/*
+285     if ( s3_flag ) {
+286         min_lo_ram = g_pre_k_s3_state.vtd_pmr_lo_base;
+287         max_lo_ram = min_lo_ram + g_pre_k_s3_state.vtd_pmr_lo_size;
+288         min_hi_ram = g_pre_k_s3_state.vtd_pmr_hi_base;
+289         max_hi_ram = min_hi_ram + g_pre_k_s3_state.vtd_pmr_hi_size;
+	}
+291     else {
+*/
+		if (!get_ram_ranges(&min_lo_ram, &max_lo_ram, &min_hi_ram, &max_hi_ram))
+			return 0;
+ 
+		/* if vtd_pmr_lo/hi sizes rounded to 2MB granularity are less than the
+		   max_lo/hi_ram values determined from the e820 table, then we must
+		   reserve the differences in e820 table so that unprotected memory is
+		   not used by the kernel */
+
+		if (!reserve_vtd_delta_mem(min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram) ) {
+			out_info("failed to reserve VT-d PMR delta memory");
+			return 0;
+		}
+//305     }
+ 
+	/* compare to current values */
+	memset(&tmp_os_sinit_data, 0, sizeof(tmp_os_sinit_data));
+	tmp_os_sinit_data.version = os_sinit_data->version;
+	set_vtd_pmrs(&tmp_os_sinit_data, min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram);
+
+	if ((tmp_os_sinit_data.vtd_pmr_lo_base != os_sinit_data->vtd_pmr_lo_base)
+	    || (tmp_os_sinit_data.vtd_pmr_lo_size != os_sinit_data->vtd_pmr_lo_size)
+	    || (tmp_os_sinit_data.vtd_pmr_hi_base != os_sinit_data->vtd_pmr_hi_base)
+	    || (tmp_os_sinit_data.vtd_pmr_hi_size != os_sinit_data->vtd_pmr_hi_size) ) {
+		out_info("OS to SINIT data VT-d PMR settings do not match");
+			print_os_sinit_data(&tmp_os_sinit_data);
+			print_os_sinit_data(os_sinit_data);
+			return 0;
+	}
+
+
+//326     if ( !s3_flag ) {
+//327         /* save the verified values so that they can be sealed for S3 */
+//328         g_pre_k_s3_state.vtd_pmr_lo_base = os_sinit_data->vtd_pmr_lo_base;
+//329         g_pre_k_s3_state.vtd_pmr_lo_size = os_sinit_data->vtd_pmr_lo_size;
+//330         g_pre_k_s3_state.vtd_pmr_hi_base = os_sinit_data->vtd_pmr_hi_base;
+//331         g_pre_k_s3_state.vtd_pmr_hi_size = os_sinit_data->vtd_pmr_hi_size;
+//332     }
+ 
+	return 1;
+}
+
+
 int txt_post_launch_verify_platform(void)
 {
 	txt_heap_t *txt_heap;
@@ -1190,8 +1289,8 @@ int txt_post_launch_verify_platform(void)
 		return 1;
 
 	/* verify that VT-d PMRs were really set as required */
-//	if (!verify_vtd_pmrs(txt_heap) ) 
-//		return 1;
+	if (!verify_vtd_pmrs(txt_heap)) 
+		return 1;
 
 	return 0;
 }                        
