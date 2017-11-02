@@ -1,6 +1,8 @@
 #include "mbi.h"
 #include "elf.h"
 #include "util.h"
+#include "heap.h"
+#include "alloc.h"
 
 #define KB 1024
 BYTE heap_array[8 * KB] __attribute__((aligned(8)));
