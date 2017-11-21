@@ -381,7 +381,7 @@ typedef struct __packed {
 // */
 //
 typedef void   txt_heap_t;
-//
+
 /* this is a common use with annoying casting, so make it an inline */
 static inline txt_heap_t *get_txt_heap(void)
 {

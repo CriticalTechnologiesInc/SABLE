@@ -113,6 +113,8 @@ FUNCTION _post_launch_entry
 	// je __start                /* yes, so continue with normal launch */
 	jmp __start
 
+FUNCTION _txt_wakeup
+
 FUNCTION smp_init_start
 	.code16
 
@@ -206,4 +208,6 @@ _gdt_cs:
     .quad 0x00cf9b000000ffff
 _gdt_ds:
     .quad 0x00cf93000000ffff
-end_gdt:
+FUNCTION end_gdt
+/* end_gdt: */
+/* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 

@@ -14,6 +14,7 @@
 #include "intel_tpm.h"
 #include "heap.h"
 #include "acpi.h"
+#include "atomic.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -187,7 +188,7 @@ extern char _end[];		/* end of module */
 extern char _mle_start[];	/* start of text section */
 extern char _mle_end[];		/* end of text section */
 extern char _post_launch_entry[]; /* entry point post SENTER, in boot.S */
-//extern char _txt_wakeup[];        /* RLP join address for GETSEC[WAKEUP] */
+extern char _txt_wakeup[];        /* RLP join address for GETSEC[WAKEUP] */
 
 
 
@@ -243,7 +244,7 @@ static __text const mle_hdr_t g_mle_hdr = {
 // * counts of APs going into wait-for-sipi
 // */
 ///* count of APs in WAIT-FOR-SIPI */
-//atomic_t ap_wfs_count;
+atomic_t ap_wfs_count;
 /*
  static inline void print_uuid(const uuid_t *uuid)
  {
@@ -275,7 +276,7 @@ static void print_file_info(void)
 	 * _skinit is just place holder to avoid build failure
 	 * replace it with &_post_launch_entry when required
 	 */
-//	out_description("&_txt_wakeup=", &_txt_wakeup);
+	out_description("&_txt_wakeup=", (unsigned int)&_txt_wakeup);
 	out_description("&g_mle_hdr=", (unsigned int)&g_mle_hdr);
 	wait(4000);
 }
@@ -830,37 +831,45 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	return txt_heap;
 }
 
-//static void txt_wakeup_cpus(void)
-//{
-//    uint16_t cs;
-//    mle_join_t mle_join;
-//    unsigned int ap_wakeup_count;
-//
-//    if ( !verify_stm(get_apicid()) )
+static void txt_wakeup_cpus(void)
+{
+	uint16_t cs;
+	mle_join_t mle_join;
+//	unsigned int ap_wakeup_count;
+
+//	if (!verify_stm(get_apicid()) )
 //        apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
-//
-//    /* enable SMIs on BSP before waking APs (which will enable them on APs)
-//       because some SMM may take immediate SMI and hang if AP gets in first */
-//    printk(TBOOT_DETA"enabling SMIs on BSP\n");
-//    __getsec_smctrl();
-//
-//    atomic_set(&ap_wfs_count, 0);
-//
-//    /* RLPs will use our GDT and CS */
-//    extern char gdt_table[], gdt_table_end[];
-//    __asm__ __volatile__ ("mov %%cs, %0\n" : "=r"(cs));
-//
-//    mle_join.entry_point = (uint32_t)(unsigned long)&_txt_wakeup;
-//    mle_join.seg_sel = cs;
-//    mle_join.gdt_base = (uint32_t)gdt_table;
-//    mle_join.gdt_limit = gdt_table_end - gdt_table - 1;
-//
-//    printk(TBOOT_DETA"mle_join.entry_point = %x\n", mle_join.entry_point);
-//    printk(TBOOT_DETA"mle_join.seg_sel = %x\n", mle_join.seg_sel);
-//    printk(TBOOT_DETA"mle_join.gdt_base = %x\n", mle_join.gdt_base);
-//    printk(TBOOT_DETA"mle_join.gdt_limit = %x\n", mle_join.gdt_limit);
-//
-//    write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
+
+	/*
+	 * enable SMIs on BSP before waking APs (which will enable them on APs)
+	 * because some SMM may take immediate SMI and hang if AP gets in first
+	 */
+
+	out_info("enabling SMIs on BSP");
+	__getsec_smctrl();
+
+	atomic_set(&ap_wfs_count, 0);
+
+	/* RLPs will use our GDT and CS */
+	extern char gdt[], end_gdt[];
+	__asm__ __volatile__ ("mov %%cs, %0\n" : "=r"(cs));
+
+	mle_join.entry_point = (uint32_t)(unsigned long)&_txt_wakeup;
+	mle_join.seg_sel = cs;
+
+//	mle_join.gdt_base = (uint32_t)gdt_table;
+//	mle_join.gdt_limit = gdt_table_end - gdt_table - 1;
+
+	mle_join.gdt_base = (uint32_t) gdt;
+	mle_join.gdt_limit = end_gdt - gdt - 1;
+
+	
+	out_description("mle_join.entry_point ", (unsigned int)mle_join.entry_point);
+	out_description("mle_join.seg_sel ", mle_join.seg_sel);
+	out_description("mle_join.gdt_base ", mle_join.gdt_base);
+	out_description("mle_join.gdt_limit ", mle_join.gdt_limit);
+
+	write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
 //
 //    mtx_init(&ap_lock);
 //
@@ -910,8 +919,8 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 //        printk(TBOOT_INFO"wait-for-sipi loop timed-out\n");
 //    else
 //        printk(TBOOT_INFO"all APs in wait-for-sipi\n");
-//}
-//
+}
+
 int txt_is_launched(void)
 {
 	txt_sts_t sts;
@@ -1298,8 +1307,8 @@ int txt_post_launch_verify_platform(void)
 
 void txt_post_launch(void)
 {
-//    txt_heap_t *txt_heap;
-//    os_mle_data_t *os_mle_data;
+//	txt_heap_t *txt_heap;
+//	os_mle_data_t *os_mle_data;
 	int err;
 
 	/* verify MTRRs, VT-d settings, TXT heap, etc. */
@@ -1310,19 +1319,21 @@ void txt_post_launch(void)
 		out_info("failed to verify platform");
 		while(1);
 	}
-//
-//    /* get saved OS state (os_mvmm_data_t) from LT heap */
-//    txt_heap = get_txt_heap();
-//    os_mle_data = get_os_mle_data_start(txt_heap);
-//
-//    /* clear error registers so that we start fresh */
-//    write_priv_config_reg(TXTCR_ERRORCODE, 0x00000000);
-//    write_priv_config_reg(TXTCR_ESTS, 0xffffffff);  /* write 1's to clear */
-//
-//    /* bring RLPs into environment (do this before restoring MTRRs to ensure */
-//    /* SINIT area is mapped WB for MONITOR-based RLP wakeup) */
-//    txt_wakeup_cpus();
-//
+	out_info("Platform verification done");
+	wait(3000);
+
+	/* get saved OS state (os_mvmm_data_t) from LT heap */
+//	txt_heap = get_txt_heap();
+//	os_mle_data = get_os_mle_data_start(txt_heap);
+
+	/* clear error registers so that we start fresh */
+	write_priv_config_reg(TXTCR_ERRORCODE, 0x00000000);
+	write_priv_config_reg(TXTCR_ESTS, 0xffffffff);  /* write 1's to clear */
+
+	/* bring RLPs into environment (do this before restoring MTRRs to ensure */
+	/* SINIT area is mapped WB for MONITOR-based RLP wakeup) */
+	txt_wakeup_cpus();
+
 //    /* restore pre-SENTER IA32_MISC_ENABLE_MSR (no verification needed)
 //       (do after AP wakeup so that if restored MSR has MWAIT clear it won't
 //       prevent wakeup) */

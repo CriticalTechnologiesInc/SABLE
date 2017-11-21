@@ -366,7 +366,8 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
    * Bhushan : Modified to hash only one module
    */
 
-  for (unsigned i = 0; i < 1; i++, m++) {
+ // for (unsigned i = 0; i < 1; i++, m++) {
+  for (unsigned i = 1; i < mbi->mods_count; i++, m++) {
     sha1_init(&sctx);
 
     out_description("Bhushan : Hashing module", i);

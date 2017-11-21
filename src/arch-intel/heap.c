@@ -879,6 +879,8 @@ static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
 		out_description("proc_scrtm_status ", sinit_mle_data->proc_scrtm_status);
 	if (sinit_mle_data->version >= 9)
 		print_ext_data_elts(sinit_mle_data->ext_data_elts);
+	out_info("BHUSHAN : CHECK RPL WAKEUP ADD");
+	wait(4000);
 }
 
 static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)
