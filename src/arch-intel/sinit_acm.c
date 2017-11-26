@@ -58,7 +58,7 @@ static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 {
  	uint32_t user_area_off;
 
-	wait(4000);
+//	wait(4000);
  
 	/* overflow? */
  	if (plus_overflow_u32(hdr->header_len, hdr->scratch_size)) {
@@ -101,7 +101,7 @@ static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 int is_acmod(const void *acmod_base, uint32_t acmod_size, uint8_t *type)
 {
 
-	wait(4000);
+	//wait(4000);
 	acm_hdr_t *acm_hdr = (acm_hdr_t *)acmod_base;
 
 	/* first check size */
@@ -164,7 +164,7 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
 {                   
 	uint8_t type;
 
-	wait(4000);
+//	wait(4000);
 	if (!is_acmod(acmod_base, acmod_size, &type))
 		return 0;
 
@@ -178,7 +178,7 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
 struct module *get_module_mb1(struct mbi *m, unsigned int i)
 {
 	
-	wait(4000);
+//	wait(4000);
 	if (m == NULL) {
 		out_string("Error: mbi pointer is zero.\n");
 		return NULL;
@@ -622,7 +622,7 @@ int prepare_sinit_acm(struct mbi *m) {
 	out_description("Bhushan: prepare_sinit", m->mods_count);
 	out_description("Bhushan: prepare_sinit tboot", ((multiboot_info_t *) m)->mods_count);
 	out_description("g_sinit", (unsigned int) g_sinit);
-	wait(3000);
+//	wait(3000);
 
 	if (g_sinit != NULL) {
 
@@ -635,7 +635,7 @@ int prepare_sinit_acm(struct mbi *m) {
 		 */
 
 		out_info("ATTENTION : g_sinit is already intialized ..skipping SINIT operation");	
-		wait(2000);
+		wait(1000);
 		return 1;
 	}
 
@@ -712,7 +712,7 @@ void determine_loader_type_context(void *addr, uint32_t magic)
 		switch (magic){
 			case MB_MAGIC:
 				out_info("Initializing context with MBI 1");
-				wait(3000);
+			//	wait(3000);
 				// BHUSHAN : in case of sable we will be here
 				g_ldr_ctx->type = MB1_ONLY;
 				{

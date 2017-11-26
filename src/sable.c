@@ -509,7 +509,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
    * verify platform : step 1 and 2
    */
 
-  wait(2000);
+  //wait(2000);
   if(!platform_pre_checks()) {
      out_info("Bhushan: Problem with platform configuration detected");
      // ERROR occurred : Stop here

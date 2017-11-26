@@ -254,7 +254,7 @@ int platform_pre_checks() {
 	if (txt_is_launched()) {
 		out_info("We are in measured launch .. Post_launch started ...");
 		out_info("Place Holder for txt_post_launch()");
-		wait(5000);
+//		wait(5000);
 		intel_post_launch();
 	}
 

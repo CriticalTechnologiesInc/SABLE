@@ -15,6 +15,7 @@
 #include "heap.h"
 #include "acpi.h"
 #include "atomic.h"
+#include "keyboard.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -870,6 +871,8 @@ static void txt_wakeup_cpus(void)
 	out_description("mle_join.gdt_limit ", mle_join.gdt_limit);
 
 	write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
+
+	WAIT_FOR_INPUT();
 //
 //    mtx_init(&ap_lock);
 //
@@ -938,25 +941,25 @@ int txt_launch_environment()
 
 	/* print some debug info */
 	print_file_info();
-	wait(3000);
+//	wait(3000);
 	print_mle_hdr(&g_mle_hdr);
-	wait(3000);
+//	wait(3000);
 	/* create MLE page table */
 	mle_ptab_base = build_mle_pagetable(g_mle_hdr.mle_start_off + TBOOT_BASE_ADDR, g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off);
 	if (mle_ptab_base == NULL) {
 		out_info("Failed to create pages");
-		wait(3000);
+//		wait(3000);
 		return 0;
 	}
 
 	out_info("Initializing Heap .....");
-	wait(3000);
+//	wait(3000);
 
 	/* initialize TXT heap */
 	txt_heap = init_txt_heap(mle_ptab_base, g_sinit);
 	if (txt_heap == NULL) {
 		out_info("Failed to initialize heap");
-		wait(3000);
+//		wait(3000);
 		return 0;
 	}
 
