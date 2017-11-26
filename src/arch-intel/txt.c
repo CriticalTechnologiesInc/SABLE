@@ -869,6 +869,7 @@ static void txt_wakeup_cpus(void)
 	mle_join.gdt_limit = end_gdt - gdt - 1;
 
 	WAIT_FOR_INPUT();
+	WAIT_FOR_INPUT();
 	
 	out_description("mle_join.entry_point ", (unsigned int)mle_join.entry_point);
 	out_description("mle_join.seg_sel ", mle_join.seg_sel);
@@ -876,6 +877,8 @@ static void txt_wakeup_cpus(void)
 	out_description("mle_join.gdt_limit ", mle_join.gdt_limit);
 
 	write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
+	
+	WAIT_FOR_INPUT();
 
 	mtx_init(&ap_lock);
 
@@ -886,16 +889,17 @@ static void txt_wakeup_cpus(void)
 	/* choose wakeup mechanism based on capabilities used */
 	if (os_sinit_data->capabilities.rlp_wake_monitor) {
 		out_info("joining RLPs to MLE with MONITOR wakeup");
+		WAIT_FOR_INPUT();
 		out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
+		WAIT_FOR_INPUT();
 		*((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
 	}
 	else {
 		out_info("joining RLPs to MLE with GETSEC[WAKEUP]");
+		WAIT_FOR_INPUT();
 		__getsec_wakeup();
 		out_info("GETSEC[WAKEUP] completed");
 	}
-
-	WAIT_FOR_INPUT();
 
 	/* assume BIOS isn't lying to us about # CPUs, else some CPUS may not */
 	/* have entered wait-for-sipi before we launch *or* we have to wait */
@@ -911,6 +915,7 @@ static void txt_wakeup_cpus(void)
 
 	out_description("waiting for all APs to enter wait-for-sipi... count : ", ap_wakeup_count);
 	/* wait for all APs that woke up to have entered wait-for-sipi */
+	WAIT_FOR_INPUT();
 	uint32_t timeout = AP_WFS_TIMEOUT;
 	do {
 		if (timeout % 0x8000 == 0)
@@ -1405,24 +1410,24 @@ void txt_post_launch(void)
 //    atomic_dec((atomic_t *)&_tboot_shared.num_in_wfs);
 //    cpu_wakeup(cpuid, sipi_vec);
 //}
-//
-//void txt_cpu_wakeup(void)
-//{
+
+void txt_cpu_wakeup(void)
+{
 //    txt_heap_t *txt_heap;
 //    os_mle_data_t *os_mle_data;
 //    uint64_t madt_apicbase, msr_apicbase;
-//    unsigned int cpuid = get_apicid();
-//
-//    if ( cpuid >= NR_CPUS ) {
-//        printk(TBOOT_ERR"cpuid (%u) exceeds # supported CPUs\n", cpuid);
-//        apply_policy(TB_ERR_FATAL);
-//        return;
-//    }
-//
+	unsigned int cpuid = get_apicid();
+
+	if (cpuid >= NR_CPUS) {
+		out_description("cpuid exceeds # supported CPUs. id", cpuid);
+		return;
+	}
+
 //    mtx_enter(&ap_lock);
-//
-//    printk(TBOOT_INFO"cpu %u waking up from TXT sleep\n", cpuid);
-//
+
+	out_description("cpu waking up from TXT sleep :", cpuid);
+	WAIT_FOR_INPUT();
+
 //    /* restore LAPIC base address for AP */
 //    madt_apicbase = (uint64_t)get_madt_apic_base();
 //    if ( madt_apicbase == 0 ) {
@@ -1457,8 +1462,8 @@ void txt_post_launch(void)
 //        ap_wait(cpuid);
 //    else
 //        handle_init_sipi_sipi(cpuid);
-//}
-//
+}
+
 //tb_error_t txt_protect_mem_regions(void)
 //{
 //    uint64_t base, size;

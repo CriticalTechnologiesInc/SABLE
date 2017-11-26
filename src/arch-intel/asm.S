@@ -40,6 +40,9 @@
 #define PAGE_MASK        (~(PAGE_SIZE-1))
 
 
+#define NR_CPUS		512
+#define AP_STACK_SIZE	0x0800
+
 #define VM_CR_MSR 0xc0010114
 
 .macro	FUNCTION name
@@ -114,6 +117,60 @@ FUNCTION _post_launch_entry
 	jmp __start
 
 FUNCTION _txt_wakeup
+
+	/*
+	 * entry point for GETSEC[WAKEUP]
+	 */
+
+
+//	leal    STACK_TOP,%esp
+//	xchg    %eax,%edx
+//	xchg    %ebx,%eax
+//	pushl	%eax
+//	pushl   $exit
+//	jmp     _pre_launch
+
+
+
+	# prepare this thread for C code
+	/* Set up a few descriptors: on entry only CS is guaranteed good. */
+	lgdt    %cs:pgdt_desc
+	mov     $0x10, %ecx
+	mov     %ecx, %ds
+	mov     %ecx, %es
+	mov     %ecx, %fs
+	mov     %ecx, %gs
+	mov     %ecx, %ss
+//	ljmp    $(cs_sel), $(1f)
+	
+	/* Load IDT */
+//1:	lidt    idt_descr
+
+	/* enable MCE Machine-check exception */
+//	mov     %cr4,%eax
+//	or      $CR4_MCE,%eax
+//	mov     %eax,%cr4
+
+	# get initial 32-bit local APIC ID for this processor
+	mov     $0x0b, %eax
+	xor     %edx, %edx
+	cpuid
+
+	# set stack as id-based offset from AP stack base
+	# spin hlt if we exceed, since C code can't handle shared stack
+	cmp     $NR_CPUS, %edx
+	jl      3f
+	# TBD: increment global counter so BSP can tell we exceeded NR_CPUS
+2:	cli
+	hlt
+	jmp     2b
+3:	mov     $AP_STACK_SIZE, %eax
+	mul     %edx
+	mov     $ap_stacks, %ecx
+	sub     %eax, %ecx
+	mov     %ecx, %esp
+
+	call    txt_cpu_wakeup
 
 FUNCTION smp_init_start
 	.code16
@@ -211,3 +268,10 @@ _gdt_ds:
 FUNCTION end_gdt
 /* end_gdt: */
 /* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 
+
+/* stacks for APs */
+
+ap_stacks_end:
+	.fill AP_STACK_SIZE * NR_CPUS, 1, 0
+ap_stacks: 
+

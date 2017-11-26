@@ -54,6 +54,7 @@
 #include "acmod.h"
 #include "mtrrs.h"
 #include "heap.h"
+#include "keyboard.h"
 //#endif
 //
 ///*
@@ -880,7 +881,7 @@ static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
 	if (sinit_mle_data->version >= 9)
 		print_ext_data_elts(sinit_mle_data->ext_data_elts);
 	out_info("BHUSHAN : CHECK RPL WAKEUP ADD");
-	wait(4000);
+	WAIT_FOR_INPUT();
 }
 
 static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)
