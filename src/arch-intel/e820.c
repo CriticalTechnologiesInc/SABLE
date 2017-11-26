@@ -109,7 +109,6 @@ static void print_map(memory_map_t *e820, int nr_map)
 		out_description64("Start ", (unsigned long long)base_addr);
 		out_description64("End ", (unsigned long long)(base_addr + length));
 		out_description("Type ", entry->type);
-		wait(2000);
 	}
 }
 

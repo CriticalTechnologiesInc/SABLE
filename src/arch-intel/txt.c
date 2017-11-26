@@ -16,6 +16,7 @@
 #include "acpi.h"
 #include "atomic.h"
 #include "keyboard.h"
+#include "mutex.h"
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -179,10 +180,10 @@ int get_parameters(getsec_parameters_t *params)
 //#include <txt/verify.h>
 //#include <txt/vmcs.h>
 //#include <io.h>
-//
-///* counter timeout for waiting for all APs to enter wait-for-sipi */
-//#define AP_WFS_TIMEOUT     0x10000000
-//
+
+/* counter timeout for waiting for all APs to enter wait-for-sipi */
+#define AP_WFS_TIMEOUT     0x10000000
+
 __data struct acpi_rsdp g_rsdp;
 extern char __start[];		/* start of module */
 extern char _end[];		/* end of module */
@@ -832,11 +833,14 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	return txt_heap;
 }
 
+/* lock that protects APs against race conditions on wakeup and shutdown */
+struct mutex ap_lock;
+
 static void txt_wakeup_cpus(void)
 {
 	uint16_t cs;
 	mle_join_t mle_join;
-//	unsigned int ap_wakeup_count;
+	unsigned int ap_wakeup_count;
 
 //	if (!verify_stm(get_apicid()) )
 //        apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
@@ -858,12 +862,13 @@ static void txt_wakeup_cpus(void)
 	mle_join.entry_point = (uint32_t)(unsigned long)&_txt_wakeup;
 	mle_join.seg_sel = cs;
 
-//	mle_join.gdt_base = (uint32_t)gdt_table;
-//	mle_join.gdt_limit = gdt_table_end - gdt_table - 1;
+//	mle_join.gdt_base = (uint32_t)gdt_table; // extra
+//	mle_join.gdt_limit = gdt_table_end - gdt_table - 1; // extra
 
 	mle_join.gdt_base = (uint32_t) gdt;
 	mle_join.gdt_limit = end_gdt - gdt - 1;
 
+	WAIT_FOR_INPUT();
 	
 	out_description("mle_join.entry_point ", (unsigned int)mle_join.entry_point);
 	out_description("mle_join.seg_sel ", mle_join.seg_sel);
@@ -872,56 +877,56 @@ static void txt_wakeup_cpus(void)
 
 	write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
 
+	mtx_init(&ap_lock);
+
+	txt_heap_t *txt_heap = get_txt_heap();
+	sinit_mle_data_t *sinit_mle_data = get_sinit_mle_data_start(txt_heap);
+	os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
+
+	/* choose wakeup mechanism based on capabilities used */
+	if (os_sinit_data->capabilities.rlp_wake_monitor) {
+		out_info("joining RLPs to MLE with MONITOR wakeup");
+		out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
+		*((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
+	}
+	else {
+		out_info("joining RLPs to MLE with GETSEC[WAKEUP]");
+		__getsec_wakeup();
+		out_info("GETSEC[WAKEUP] completed");
+	}
+
 	WAIT_FOR_INPUT();
-//
-//    mtx_init(&ap_lock);
-//
-//    txt_heap_t *txt_heap = get_txt_heap();
-//    sinit_mle_data_t *sinit_mle_data = get_sinit_mle_data_start(txt_heap);
-//    os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
-//
-//    /* choose wakeup mechanism based on capabilities used */
-//    if ( os_sinit_data->capabilities.rlp_wake_monitor ) {
-//        printk(TBOOT_INFO"joining RLPs to MLE with MONITOR wakeup\n");
-//        printk(TBOOT_DETA"rlp_wakeup_addr = 0x%x\n", sinit_mle_data->rlp_wakeup_addr);
-//        *((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
-//    }
-//    else {
-//        printk(TBOOT_INFO"joining RLPs to MLE with GETSEC[WAKEUP]\n");
-//        __getsec_wakeup();
-//        printk(TBOOT_INFO"GETSEC[WAKEUP] completed\n");
-//    }
-//
-//    /* assume BIOS isn't lying to us about # CPUs, else some CPUS may not */
-//    /* have entered wait-for-sipi before we launch *or* we have to wait */
-//    /* for timeout before launching */
-//    /* (all TXT-capable CPUs have at least 2 cores) */
-//    bios_data_t *bios_data = get_bios_data_start(txt_heap);
-//    ap_wakeup_count = bios_data->num_logical_procs - 1;
-//    if ( ap_wakeup_count >= NR_CPUS ) {
-//        printk(TBOOT_INFO"there are too many CPUs (%u)\n", ap_wakeup_count);
-//        ap_wakeup_count = NR_CPUS - 1;
-//    }
-//
-//    printk(TBOOT_INFO"waiting for all APs (%d) to enter wait-for-sipi...\n",
-//           ap_wakeup_count);
-//    /* wait for all APs that woke up to have entered wait-for-sipi */
-//    uint32_t timeout = AP_WFS_TIMEOUT;
-//    do {
-//        if ( timeout % 0x8000 == 0 )
-//            printk(TBOOT_INFO".");
-//        else
-//            cpu_relax();
-//        if ( timeout % 0x200000 == 0 )
-//            printk(TBOOT_INFO"\n");
-//        timeout--;
-//    } while ( ( atomic_read(&ap_wfs_count) < ap_wakeup_count ) &&
-//              timeout > 0 );
-//    printk(TBOOT_INFO"\n");
-//    if ( timeout == 0 )
-//        printk(TBOOT_INFO"wait-for-sipi loop timed-out\n");
-//    else
-//        printk(TBOOT_INFO"all APs in wait-for-sipi\n");
+
+	/* assume BIOS isn't lying to us about # CPUs, else some CPUS may not */
+	/* have entered wait-for-sipi before we launch *or* we have to wait */
+	/* for timeout before launching */
+	/* (all TXT-capable CPUs have at least 2 cores) */
+
+	bios_data_t *bios_data = get_bios_data_start(txt_heap);
+	ap_wakeup_count = bios_data->num_logical_procs - 1;
+	if ( ap_wakeup_count >= NR_CPUS ) {
+		out_description("there are too many CPUs ", ap_wakeup_count);
+		ap_wakeup_count = NR_CPUS - 1;
+	}
+
+	out_description("waiting for all APs to enter wait-for-sipi... count : ", ap_wakeup_count);
+	/* wait for all APs that woke up to have entered wait-for-sipi */
+	uint32_t timeout = AP_WFS_TIMEOUT;
+	do {
+		if (timeout % 0x8000 == 0)
+			out_info(".");
+		else
+			cpu_relax();
+		if (timeout % 0x200000 == 0)
+			out_info("\n");
+		timeout--;
+	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
+	out_info("\n");
+	if (timeout == 0)
+		out_info("wait-for-sipi loop timed-out");
+	else
+		out_info("all APs in wait-for-sipi");
+	WAIT_FOR_INPUT();
 }
 
 int txt_is_launched(void)
