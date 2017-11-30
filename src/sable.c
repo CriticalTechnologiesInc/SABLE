@@ -339,7 +339,16 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   RESULT sha1_ret;
   SHA1_Context sctx;
 
-  ERROR(~mbi->flags & (enum mbi_enum)MBI_FLAG_MODS, ERROR_BAD_MODULE,
+  // hash SABLE's command line
+  if (CHECK_FLAG(mbi->flags, MBI_FLAG_CMDLINE)) {
+    sha1_init(&sctx);
+    sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
+    sha1_finish(&sctx);
+    extend_ret = TPM_Extend(19, sctx.hash);
+    THROW(extend_ret.exception);
+  }
+
+  ERROR(!CHECK_FLAG(mbi->flags, MBI_FLAG_MODS), ERROR_BAD_MODULE,
         "module flag missing");
   ERROR(!mbi->mods_count, ERROR_NO_MODULE, "no module to hash");
   out_description("Hashing modules count", mbi->mods_count);
@@ -352,22 +361,16 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
           "mod_end less than start");
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
-    sha1_finish(&sctx);
+    if (strlen((char *)m->string) > 0) {
+      // hash the command-line arguments for this module
+      sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string) + 1);
+      THROW(sha1_ret.exception);
+    }
 
+    sha1_finish(&sctx);
     extend_ret = TPM_Extend(19, sctx.hash);
     THROW(extend_ret.exception);
   }
-
-  struct module *a = (struct module *)(mbi->mods_addr);
-  sha1_init(&sctx);
-  sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
-  for (unsigned i = 0; i < mbi->mods_count; i++, a++) {
-    if (strlen((char *)a->string) > 0)
-      sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
-  }
-  sha1_finish(&sctx);
-  RESULT_(TPM_PCRVALUE) ext_ret = TPM_Extend(19, sctx.hash);
-  THROW(ext_ret.exception);
 
   return ret;
 }
@@ -415,7 +418,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
 
   // set bootloader name
-  m->flags |= (enum mbi_enum)MBI_FLAG_BOOT_LOADER_NAME;
+  SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
   m->boot_loader_name = (unsigned)version_string;
 
   RESULT tpm = prepare_tpm();

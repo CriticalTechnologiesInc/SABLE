@@ -19,13 +19,16 @@
 #define MBI_MAGIC2 0x2badb002
 
 enum mbi_enum {
-  MBI_FLAG_MEM = 1 << 0,
-  MBI_FLAG_CMDLINE = 1 << 2,
-  MBI_FLAG_MODS = 1 << 3,
-  MBI_FLAG_MMAP = 1 << 6,
-  MBI_FLAG_BOOT_LOADER_NAME = 1 << 9,
-  MBI_FLAG_VBE = 1 << 11,
+  MBI_FLAG_MEM = 0,
+  MBI_FLAG_CMDLINE = 2,
+  MBI_FLAG_MODS = 3,
+  MBI_FLAG_MMAP = 6,
+  MBI_FLAG_BOOT_LOADER_NAME = 9,
+  MBI_FLAG_VBE = 11,
 };
+
+#define CHECK_FLAG(flags, bit) ((flags) & (1 << (bit)))
+#define SET_FLAG(flags, bit) flags |= (1 << (bit));
 
 struct mbh {
   unsigned magic;

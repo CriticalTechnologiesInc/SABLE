@@ -90,7 +90,7 @@ RESULT start_module(struct mbi *mbi) {
 
   // switch it on unconditionally, we assume that m->string is always
   // initialized
-  mbi->flags |= MBI_FLAG_CMDLINE;
+  SET_FLAG(mbi->flags, MBI_FLAG_CMDLINE);
 
   // search for multiboot header
   unsigned *ptr;
