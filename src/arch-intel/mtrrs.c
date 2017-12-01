@@ -442,29 +442,30 @@ int validate_mtrrs(const mtrr_state_t *saved_state)
 	return 1;
 }
 
-//void restore_mtrrs(const mtrr_state_t *saved_state)
-//{
-//    /* called by apply_policy() so use saved ptr */
+void restore_mtrrs(const mtrr_state_t *saved_state)
+{
+	/* called by apply_policy() so use saved ptr */
 //    if ( saved_state == NULL )
 //        saved_state = g_saved_mtrrs;
-//    /* haven't saved them yet, so return */
-//    if ( saved_state == NULL )
-//        return;
-//
-//    /* disable all MTRRs first */
-//    set_all_mtrrs(false);
-//
-//    /* physmask's and physbase's */
-//    for ( unsigned int ndx = 0; ndx < saved_state->num_var_mtrrs; ndx++ ) {
-//        wrmsr(MTRR_PHYS_MASK0_MSR + ndx*2,
-//              saved_state->mtrr_physmasks[ndx].raw);
-//        wrmsr(MTRR_PHYS_BASE0_MSR + ndx*2,
-//              saved_state->mtrr_physbases[ndx].raw);
-//    }
-//
-//    /* IA32_MTRR_DEF_TYPE MSR */
-//    wrmsr(MSR_MTRRdefType, saved_state->mtrr_def_type.raw);
-//}
+
+	/* haven't saved them yet, so return */
+	if (saved_state == NULL) {
+		out_info("ERROR ......... No saved state found");
+		return;
+	}
+
+	/* disable all MTRRs first */
+	set_all_mtrrs(0);
+
+	/* physmask's and physbase's */
+	for (unsigned int ndx = 0; ndx < saved_state->num_var_mtrrs; ndx++) {
+		wrmsr(MTRR_PHYS_MASK0_MSR + ndx*2, saved_state->mtrr_physmasks[ndx].raw);
+		wrmsr(MTRR_PHYS_BASE0_MSR + ndx*2, saved_state->mtrr_physbases[ndx].raw);
+	}
+
+	/* IA32_MTRR_DEF_TYPE MSR */
+	wrmsr(MSR_MTRRdefType, saved_state->mtrr_def_type.raw);
+}
 
 /*
  * set the memory type for specified range (base to base+size)

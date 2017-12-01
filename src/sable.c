@@ -361,13 +361,14 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   out_description("Hashing modules count", mbi->mods_count);
 
   struct module *m = (struct module *)(mbi->mods_addr);
-//  for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
+  for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
+
   /*
    * Bhushan : Modified to hash only one module
    */
 
  // for (unsigned i = 0; i < 1; i++, m++) {
-  for (unsigned i = 1; i < mbi->mods_count; i++, m++) {
+ // for (unsigned i = 1; i < mbi->mods_count; i++, m++) {
     sha1_init(&sctx);
 
     out_description("Bhushan : Hashing module", i);

@@ -853,6 +853,10 @@ static void txt_wakeup_cpus(void)
 	out_info("enabling SMIs on BSP");
 	__getsec_smctrl();
 
+
+	return;			/// BHSUHAN TESTING REMOVE
+
+
 	atomic_set(&ap_wfs_count, 0);
 
 	/* RLPs will use our GDT and CS */
@@ -868,7 +872,7 @@ static void txt_wakeup_cpus(void)
 	mle_join.gdt_base = (uint32_t) gdt;
 	mle_join.gdt_limit = end_gdt - gdt - 1;
 
-	WAIT_FOR_INPUT();
+//	WAIT_FOR_INPUT();
 	WAIT_FOR_INPUT();
 	
 	out_description("mle_join.entry_point ", (unsigned int)mle_join.entry_point);
@@ -915,7 +919,7 @@ static void txt_wakeup_cpus(void)
 
 	out_description("waiting for all APs to enter wait-for-sipi... count : ", ap_wakeup_count);
 	/* wait for all APs that woke up to have entered wait-for-sipi */
-	WAIT_FOR_INPUT();
+//	WAIT_FOR_INPUT();
 	uint32_t timeout = AP_WFS_TIMEOUT;
 	do {
 		if (timeout % 0x8000 == 0)
@@ -1320,8 +1324,8 @@ int txt_post_launch_verify_platform(void)
 
 void txt_post_launch(void)
 {
-//	txt_heap_t *txt_heap;
-//	os_mle_data_t *os_mle_data;
+	txt_heap_t *txt_heap;
+	os_mle_data_t *os_mle_data;
 	int err;
 
 	/* verify MTRRs, VT-d settings, TXT heap, etc. */
@@ -1336,8 +1340,8 @@ void txt_post_launch(void)
 	wait(3000);
 
 	/* get saved OS state (os_mvmm_data_t) from LT heap */
-//	txt_heap = get_txt_heap();
-//	os_mle_data = get_os_mle_data_start(txt_heap);
+	txt_heap = get_txt_heap();
+	os_mle_data = get_os_mle_data_start(txt_heap);
 
 	/* clear error registers so that we start fresh */
 	write_priv_config_reg(TXTCR_ERRORCODE, 0x00000000);
@@ -1347,11 +1351,11 @@ void txt_post_launch(void)
 	/* SINIT area is mapped WB for MONITOR-based RLP wakeup) */
 	txt_wakeup_cpus();
 
-//    /* restore pre-SENTER IA32_MISC_ENABLE_MSR (no verification needed)
-//       (do after AP wakeup so that if restored MSR has MWAIT clear it won't
-//       prevent wakeup) */
-//    printk(TBOOT_DETA"saved IA32_MISC_ENABLE = 0x%08x\n", os_mle_data->saved_misc_enable_msr);
-//    wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
+	/* restore pre-SENTER IA32_MISC_ENABLE_MSR (no verification needed)
+	   (do after AP wakeup so that if restored MSR has MWAIT clear it won't
+	   prevent wakeup) */
+	out_description("saved IA32_MISC_ENABLE", os_mle_data->saved_misc_enable_msr);
+	wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
 //    if ( use_mwait() ) {
 //        /* set MONITOR/MWAIT support */
 //        uint64_t misc;
@@ -1360,21 +1364,21 @@ void txt_post_launch(void)
 //        wrmsr(MSR_IA32_MISC_ENABLE, misc);
 //    }
 //
-//    /* restore pre-SENTER MTRRs that were overwritten for SINIT launch */
-//    restore_mtrrs(&(os_mle_data->saved_mtrr_state));
-//
-//    /* now, if there was an error, apply policy */
+	/* restore pre-SENTER MTRRs that were overwritten for SINIT launch */
+	restore_mtrrs(&(os_mle_data->saved_mtrr_state));
+
+	/* now, if there was an error, apply policy */
 //    apply_policy(err);
 //
-//    /* always set the TXT.CMD.SECRETS flag */
-//    write_priv_config_reg(TXTCR_CMD_SECRETS, 0x01);
-//    read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
-//    printk(TBOOT_INFO"set TXT.CMD.SECRETS flag\n");
-//
-//    /* open TPM locality 1 */
-//    write_priv_config_reg(TXTCR_CMD_OPEN_LOCALITY1, 0x01);
-//    read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
-//    printk(TBOOT_INFO"opened TPM locality 1\n");
+	/* always set the TXT.CMD.SECRETS flag */
+	write_priv_config_reg(TXTCR_CMD_SECRETS, 0x01);
+	read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
+	out_info("set TXT.CMD.SECRETS flag");
+
+	/* open TPM locality 1 */
+	write_priv_config_reg(TXTCR_CMD_OPEN_LOCALITY1, 0x01);
+	read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
+	out_info("opened TPM locality 1\n");
 }
 
 //void ap_wait(unsigned int cpuid)
@@ -1413,9 +1417,9 @@ void txt_post_launch(void)
 
 void txt_cpu_wakeup(void)
 {
-//    txt_heap_t *txt_heap;
-//    os_mle_data_t *os_mle_data;
-//    uint64_t madt_apicbase, msr_apicbase;
+	txt_heap_t *txt_heap;
+	os_mle_data_t *os_mle_data;
+	uint64_t madt_apicbase, msr_apicbase;
 	unsigned int cpuid = get_apicid();
 
 	if (cpuid >= NR_CPUS) {
@@ -1423,45 +1427,51 @@ void txt_cpu_wakeup(void)
 		return;
 	}
 
-//    mtx_enter(&ap_lock);
+	mtx_enter(&ap_lock);
 
 	out_description("cpu waking up from TXT sleep :", cpuid);
-	WAIT_FOR_INPUT();
+	//WAIT_FOR_INPUT();
 
-//    /* restore LAPIC base address for AP */
-//    madt_apicbase = (uint64_t)get_madt_apic_base();
-//    if ( madt_apicbase == 0 ) {
-//        printk(TBOOT_ERR"not able to get apci base from MADT\n");
+	/* restore LAPIC base address for AP */
+	madt_apicbase = (uint64_t)get_madt_apic_base();
+	if (madt_apicbase == 0) {
+		out_info("not able to get apci base from MADT\n");
 //        apply_policy(TB_ERR_FATAL);
-//        return;
-//    }
-//    msr_apicbase = rdmsr(MSR_APICBASE);
-//    if ( madt_apicbase != (msr_apicbase & ~0xFFFULL) ) {
-//        printk(TBOOT_INFO"cpu %u restore apic base to %llx\n", cpuid, madt_apicbase);
-//        wrmsr(MSR_APICBASE, (msr_apicbase & 0xFFFULL) | madt_apicbase);
-//    }
-//
-//    txt_heap = get_txt_heap();
-//    os_mle_data = get_os_mle_data_start(txt_heap);
-//
-//    /* apply (validated) (pre-SENTER) MTRRs from BSP to each AP */
-//    restore_mtrrs(&(os_mle_data->saved_mtrr_state));
-//
-//    /* restore pre-SENTER IA32_MISC_ENABLE_MSR */
-//    wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
-//
+		return;
+	}
+	msr_apicbase = rdmsr(MSR_APICBASE);
+	if (madt_apicbase != (msr_apicbase & ~0xFFFULL)) {
+		out_description("cpu restore apic base to of ", cpuid);
+		out_description64("to base", madt_apicbase);
+		wrmsr(MSR_APICBASE, (msr_apicbase & 0xFFFULL) | madt_apicbase);
+	}
+
+	txt_heap = get_txt_heap();
+	os_mle_data = get_os_mle_data_start(txt_heap);
+
+	/* apply (validated) (pre-SENTER) MTRRs from BSP to each AP */
+	restore_mtrrs(&(os_mle_data->saved_mtrr_state));
+
+	/* restore pre-SENTER IA32_MISC_ENABLE_MSR */
+	wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
+
 //    if ( !verify_stm(cpuid) )
 //        apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
-//
-//    /* enable SMIs */
-//    printk(TBOOT_DETA"enabling SMIs on cpu %u\n", cpuid);
-//    __getsec_smctrl();
-//
-//    atomic_inc(&ap_wfs_count);
+
+	/* enable SMIs */
+	out_description("enabling SMIs on cpu :", cpuid);
+	__getsec_smctrl();
+	
+	atomic_inc(&ap_wfs_count);
 //    if ( use_mwait() )
 //        ap_wait(cpuid);
 //    else
 //        handle_init_sipi_sipi(cpuid);
+	
+	//* BHUSHAN THIS IS JUST FOR TESING */
+	mtx_leave(&ap_lock);
+	//* TESTING LINE END */
+//	WAIT_FOR_INPUT();
 }
 
 //tb_error_t txt_protect_mem_regions(void)
