@@ -53,7 +53,7 @@ add_executable (sable-AMD
 set_target_properties (cleanup-AMD
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
@@ -79,7 +79,7 @@ set_target_properties (cleanup-AMD
 set_target_properties (sable-AMD
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
