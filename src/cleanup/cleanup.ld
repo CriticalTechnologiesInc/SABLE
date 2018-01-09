@@ -1,7 +1,7 @@
 SECTIONS
 {
   ENTRY(__start)
-  . = 0x200000;
+  . = 0x110000;
 
   .text :
   {
