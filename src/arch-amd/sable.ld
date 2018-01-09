@@ -8,7 +8,7 @@ SECTIONS
      */
   ENTRY(__start)
 
-  . = 0x100000;
+  . = 0x200000;
 
   .sl_header :
   {

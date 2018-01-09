@@ -359,6 +359,11 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
 
     ERROR(m->mod_end < m->mod_start, ERROR_BAD_MODULE,
           "mod_end less than start");
+#ifndef NDEBUG
+    out_description("Module", i);
+    out_description("Address", m->mod_start);
+    out_description("Size", m->mod_end - m->mod_start);
+#endif
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
     if (strlen((char *)m->string) > 0) {

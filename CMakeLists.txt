@@ -58,6 +58,8 @@ set_target_properties (cleanup-AMD
     -nostdlib \
     -Wl,--build-id=none \
     -T ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
+  LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
   COMPILE_FLAGS
     "-D__ARCH_AMD__ \
     -Wno-main \
@@ -84,6 +86,8 @@ set_target_properties (sable-AMD
     -nostdlib \
     -Wl,--build-id=none \
     -T ${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
+  LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
   COMPILE_FLAGS
     "-D__ARCH_AMD__ \
     -Wno-main \
