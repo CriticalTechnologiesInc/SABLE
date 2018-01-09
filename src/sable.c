@@ -486,7 +486,6 @@ RESULT post_launch(struct mbi *m) {
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 
-#ifndef NDEBUG
     RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
     THROW(pcr17.exception);
     show_hash("PCR[17]: ", pcr17.value);
@@ -496,7 +495,6 @@ RESULT post_launch(struct mbi *m) {
     show_hash("PCR[19]: ", pcr19.value);
 
     wait(1000);
-#endif
 
     char config_str[2];
     out_string("Configure now? [y/n]: ");
