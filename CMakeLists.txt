@@ -23,7 +23,7 @@ add_subdirectory(tools)
 set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
 if (${TARGET_ARCH} STREQUAL "AMD")
 
-  add_executable (cleanup-AMD
+add_executable (cleanup-AMD
   ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
   ${PROJECT_SOURCE_DIR}/src/elf.c
   ${PROJECT_SOURCE_DIR}/src/alloc.c

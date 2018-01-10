@@ -27,11 +27,19 @@ SECTIONS
     *(.rodata .rodata.*);
   }
 
-  . = ALIGN(0x4);
-  g_sl_end = .;
-
   .data : { *(.data) }
+  g_sl_end = .;
   .bss : { *(.bss) }
+
+  .stack :
+  {
+    FILL(0x00000000); /* zero initialize for extra security */
+    . = ALIGN(0x10000) - 1;
+    g_stack_top = .;
+    ASSERT(SIZEOF(.stack) >= 4K, "Not enough space in SLB for stack");
+  }
+
+  g_end = .;
 
   /DISCARD/ :
   {

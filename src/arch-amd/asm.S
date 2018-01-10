@@ -20,14 +20,6 @@
 #define MBI_MAGIC1 0x1BADB002
 #define MBI_MAGIC2 0x2BADB002
 
-#ifndef NDEBUG
-#define STACK_TOP 0x180000
-#define SLB_STACK_TOP 0x180000
-#else
-#define STACK_TOP 0x110000
-#define SLB_STACK_TOP 0x110000
-#endif
-
 #define ALIGN_4K 0xfffff000
 
 #define cs_sel                1<<3 /* 0x08 */
@@ -48,7 +40,7 @@ FUNCTION __mbheader
 	.long   0 - (MBI_MAGIC1 + 0x3)
 
 FUNCTION __start
-	leal    STACK_TOP,%esp
+	leal    g_stack_top,%esp
 	xchg    %eax,%edx
 	xchg    %ebx,%eax
 	pushl	%eax
@@ -114,7 +106,7 @@ FUNCTION do_skinit
 
 FUNCTION _skinit
     /* Setup ESP to top of 64K */
-    leal SLB_STACK_TOP, %esp
+    leal g_stack_top, %esp
 
 	/* clear VM_CR to enable debugging */
  	mov     $VM_CR_MSR, %ecx
@@ -132,7 +124,7 @@ FUNCTION _skinit
 	mov	%ax,   %ss
 
     /* restore stack and MBI header */
-	leal    STACK_TOP,%esp
+	leal    g_stack_top,%esp
 	movl	-4(%esp), %eax
 
 	/* jmp to main */
