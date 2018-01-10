@@ -51,7 +51,8 @@ $ make
 This will generate two binaries: `sable-<arch>` and `cleanup-<arch>`.
 Additional build options can be accessed by running `ccmake`, from a build
 directory, see the CMake documention for examples. At this time, the only
-supported build types are RELEASE and DEBUG.
+supported build type for hardware deployment is `RELEASE`. The `DEBUG` build
+type can only be deployed in Qemu.
 
 To compile SABLE source as input for Isabelle/HOL, cmake should additionally be
 configured using `-DGENERATE_ISABELLE=ON`, which can also be set using the
