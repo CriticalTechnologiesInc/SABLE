@@ -1,6 +1,7 @@
 SECTIONS
 {
   ENTRY(__start)
+
   . = 0x110000;
 
   .text :
@@ -10,19 +11,7 @@ SECTIONS
     *(.text .text.*);
     *(.rodata .rodata.*);
     *(.data .data.*);
-  }
-
-  .bss :
-  {
-     . = ALIGN(0x1000);
-     *(COMMON);
-     *(.bss);
-     . = ALIGN(0x80000);
-  }
-
-  .debug :
-  {
-     *(.debug*);
+    *(.bss .bss.*);
   }
 
   /DISCARD/ :
