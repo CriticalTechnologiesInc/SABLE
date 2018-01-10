@@ -9,6 +9,7 @@ SECTIONS
   ENTRY(__start)
 
   . = 0x100000;
+  g_begin = .;
 
   .sl_header :
   {
@@ -40,6 +41,15 @@ SECTIONS
   }
 
   g_end = .;
+
+  /* This section isn't necessary to build the ELF image, we just use it
+   * to trigger the assertion only when debugging is disabled */
+  .debug_info :
+  {
+    *(.debug_info);
+    ASSERT(SIZEOF(.debug_info) > 0 ? 1 : g_end < g_begin + 64K,
+      "SLB is larger than 64K!");
+  }
 
   /DISCARD/ :
   {
