@@ -20,8 +20,14 @@
 #define MBI_MAGIC1 0x1BADB002
 #define MBI_MAGIC2 0x2BADB002
 
+#ifndef NDEBUG
 #define STACK_TOP 0x180000
 #define SLB_STACK_TOP 0x180000
+#else
+#define STACK_TOP 0x110000
+#define SLB_STACK_TOP 0x110000
+#endif
+
 #define ALIGN_4K 0xfffff000
 
 #define cs_sel                1<<3 /* 0x08 */
