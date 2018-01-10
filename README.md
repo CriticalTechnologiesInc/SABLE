@@ -37,7 +37,7 @@ For a typical build, use:
 $ cd <path/to/sable>
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_BUILD_TYPE=RELEASE -DTARGET_ARCH=<arch> ../
+$ cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DTARGET_ARCH=<arch> ../
 $ make
 ```
 where `<arch>=[AMD|Intel]`. For a debug build, you can instead do:
@@ -45,13 +45,13 @@ where `<arch>=[AMD|Intel]`. For a debug build, you can instead do:
 $ cd <path/to/sable>
 $ mkdir build-debug
 $ cd build-debug
-$ cmake -DCMAKE_BUILD_TYPE=DEBUG -DTARGET_ARCH=<arch> ../
+$ cmake -DCMAKE_BUILD_TYPE=Debug -DTARGET_ARCH=<arch> ../
 $ make
 ```
 This will generate two binaries: `sable-<arch>` and `cleanup-<arch>`.
 Additional build options can be accessed by running `ccmake`, from a build
 directory, see the CMake documention for examples. At this time, the only
-supported build type for hardware deployment is `RELEASE`. The `DEBUG` build
+supported build type for hardware deployment is `MinSizeRel`. The `Debug` build
 type can only be deployed in Qemu.
 
 To compile SABLE source as input for Isabelle/HOL, cmake should additionally be
