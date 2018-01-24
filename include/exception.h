@@ -54,7 +54,9 @@ typedef struct tdEXCEPTION {
 #endif
 } EXCEPTION;
 
-typedef struct tdRESULT { EXCEPTION exception; } RESULT;
+typedef struct tdRESULT {
+  EXCEPTION exception;
+} RESULT;
 
 #define RESULT_GEN(Type)                                                       \
   struct Type##_exception {                                                    \
@@ -167,7 +169,9 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
                                     .l.line = xstr(__LINE__),                  \
                                     .l.function = __func__,                    \
                                     .next = e.loc};                            \
-      return (type){.exception.error = e.error, .exception.loc = loc};         \
+      return (type){.exception.error = e.error,                                \
+                    .exception.loc = loc,                                      \
+                    .exception.msg = e.msg};                                   \
     }                                                                          \
   }
 #else
