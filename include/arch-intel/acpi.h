@@ -497,7 +497,7 @@ typedef struct acpi_mcfg acpi_table_mcfg_t;
 //
 //#endif
 extern int vtd_bios_enabled(void);
-//extern bool save_vtd_dmar_table(void);
+extern int save_vtd_dmar_table(void);
 //extern bool restore_vtd_dmar_table(void);
 //extern bool remove_vtd_dmar_table(void);
 //

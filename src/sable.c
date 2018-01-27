@@ -632,6 +632,8 @@ RESULT post_launch(struct mbi *m) {
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
+    } else if (config_str[0] == 'b') {                  // BHUSHAN : REMOVE later
+      start_module(m);        				// BHUSHAN : REMOVE later
     } else {
       RESULT trusted_boot_ret = trusted_boot(nvIndex);
       THROW(trusted_boot_ret.exception);

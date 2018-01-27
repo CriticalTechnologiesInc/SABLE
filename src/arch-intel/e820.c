@@ -260,16 +260,18 @@ static bool protect_region(memory_map_t *e820map, unsigned int *nr_map, uint64_t
 //    return false;
 //}
 //
-///* helper funcs for loader.c */
-//memory_map_t *get_e820_copy()
-//{
-//    return g_copy_e820_map;
-//}
-//
-//unsigned int get_nr_map()
-//{
-//    return g_nr_map;
-//}
+
+/* helper funcs for loader.c */
+memory_map_t *get_e820_copy()
+{
+	return g_copy_e820_map;
+}
+
+
+unsigned int get_nr_map()
+{
+	return g_nr_map;
+}
 
 /*
  * copy_e820_map
@@ -548,10 +550,10 @@ int e820_reserve_ram(uint64_t base, uint64_t length)
 	return 1;
 }
 
-//void print_e820_map(void)
-//{
-//    print_map(g_copy_e820_map, g_nr_map);
-//}
+void print_e820_map(void)
+{
+	print_map(g_copy_e820_map, g_nr_map);
+}
 
 
 int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram)

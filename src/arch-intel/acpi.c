@@ -54,7 +54,7 @@
 //#endif
 //
 static struct acpi_rsdp *rsdp;
-//static struct acpi_table_header *g_dmar_table;
+static struct acpi_table_header *g_dmar_table;
 //static __data bool g_hide_dmar;
 //
 //static void dump_gas(const char *reg_name,
@@ -232,25 +232,29 @@ static struct acpi_table_header *find_table(const char *table_name)
 	out_string(table_name);
 	return NULL;
 }
-//
-//static struct acpi_dmar *get_vtd_dmar_table(void)
-//{
-//    return (struct acpi_dmar *)find_table(DMAR_SIG);
-//}
-//
+
+static struct acpi_dmar *get_vtd_dmar_table(void)
+{
+	return (struct acpi_dmar *)find_table(DMAR_SIG);
+}
+
 int vtd_bios_enabled(void)
 {
 	return find_table(DMAR_SIG) != NULL; 
 }
-//
-//bool save_vtd_dmar_table(void)
-//{
-//    /* find DMAR table and save it */
-//    g_dmar_table = (struct acpi_table_header *)get_vtd_dmar_table();
-//
-//    printk(TBOOT_DETA"DMAR table @ %p saved.\n", g_dmar_table);
-//    return true;
-//}
+
+int save_vtd_dmar_table(void)
+{
+	/* find DMAR table and save it */
+
+	/* Bhushan : make sure to remove g_dmar_table declairation while
+	   while removing this funtion */
+
+	g_dmar_table = (struct acpi_table_header *)get_vtd_dmar_table();
+
+	out_description("DMAR table saved @ : ", (unsigned int)g_dmar_table);
+	return 1;
+}
 //
 //bool restore_vtd_dmar_table(void)
 //{

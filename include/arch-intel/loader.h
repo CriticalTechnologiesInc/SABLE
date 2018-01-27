@@ -101,7 +101,7 @@ extern uint32_t get_loader_memmap_length(loader_ctx *lctx);
 //extern char *get_cmdline(loader_ctx *lctx);
 //extern void determine_loader_type(void *addr, uint32_t magic);
 //extern unsigned long get_loader_ctx_end(loader_ctx *lctx);
-//extern void replace_e820_map(loader_ctx *lctx);
+extern void replace_e820_map(loader_ctx *lctx);
 //extern uint8_t *get_loader_rsdp(loader_ctx *lctx, uint32_t *length);
 //extern bool is_loader_launch_efi(loader_ctx *lctx);
 //extern bool get_loader_efi_ptr(loader_ctx *lctx, uint32_t *address, 

@@ -63,6 +63,14 @@
 #include "loader.h"
 #include "util.h"
 
+
+/* Bhushan: move it to header file */
+
+extern memory_map_t *get_e820_copy(void);
+extern unsigned int get_nr_map(void);
+
+/* Bhushan : comment end */
+
 //
 ///* copy of kernel/VMM command line so that can append 'tboot=0x1234' */
 //static char *new_cmdline = (char *)TBOOT_KERNEL_CMDLINE_ADDR;
@@ -1824,20 +1832,24 @@ uint32_t get_loader_memmap_length(loader_ctx *lctx)
 //    return false;
 //}
 //
-//void 
-//replace_e820_map(loader_ctx *lctx)
-//{
-//    /* replace original with the copy */
-//    if (LOADER_CTX_BAD(lctx))
-//        return;
-//    if (lctx->type == MB1_ONLY){
-//        /* multiboot 1 */
-//        multiboot_info_t *mbi = (multiboot_info_t *) lctx->addr;
-//        mbi->mmap_addr = (uint32_t)get_e820_copy();
-//        mbi->mmap_length = (get_nr_map()) * sizeof(memory_map_t);
-//        mbi->flags |= MBI_MEMMAP;   /* in case only MBI_MEMLIMITS was set */
-//        return;
-//    } else {
+void replace_e820_map(loader_ctx *lctx)
+{
+	/* replace original with the copy */
+	if (LOADER_CTX_BAD(lctx)) {
+		out_info("PROBLEM : CONTEXT structure not valide");
+		return;
+	}
+	if (lctx->type == MB1_ONLY){
+		/* multiboot 1 */
+		multiboot_info_t *mbi = (multiboot_info_t *) lctx->addr;
+		mbi->mmap_addr = (uint32_t)get_e820_copy();
+		mbi->mmap_length = (get_nr_map()) * sizeof(memory_map_t);
+		mbi->flags |= MBI_MEMMAP;   /* in case only MBI_MEMLIMITS was set */
+		out_info("UPDATED E820 MAP with copy");
+		return;
+	} else {
+		out_info("We are not suppose to be here");
+		while(1);
 //        /* currently must be type 2 */
 //        memory_map_t *old, *new;
 //        uint32_t i;
@@ -1879,10 +1891,10 @@ uint32_t get_loader_memmap_length(loader_ctx *lctx)
 //        printk(TBOOT_INFO"replaced memory map:\n");
 //        print_e820_map();
 //        return;
-//    }
-//    return;
-//}
-//
+	}
+	return;
+}
+
 //void print_loader_ctx(loader_ctx *lctx)
 //{
 //    if (lctx->type != MB2_ONLY){

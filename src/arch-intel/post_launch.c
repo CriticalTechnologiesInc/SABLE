@@ -79,6 +79,12 @@
 extern loader_ctx *g_ldr_ctx;
 RESULT post_launch(struct mbi *m);
 
+/* Bhushan : present in acpi.h : just littile hack to be removed latter */
+extern int save_vtd_dmar_table(void);
+extern void print_e820_map(void);
+
+/* Bhushan : comment scope end */
+
 //extern void _prot_to_real(uint32_t dist_addr);
 //extern bool set_policy(void);
 //extern void verify_all_modules(loader_ctx *lctx);
@@ -187,22 +193,22 @@ void intel_post_launch(void)
 
 
 
-//
-//    /* backup DMAR table */
-//    save_vtd_dmar_table();
-//
+	/* Bhushan : I guess we can skip backing up DMAR. keeping it for now, will remove while master merge */
+	/* backup DMAR table */
+	save_vtd_dmar_table();
+
 //    if ( s3_flag  )    
 //         s3_launch();
 //
 //    /* remove all TXT sinit acm modules before verifying modules */
 //    remove_txt_modules(g_ldr_ctx);
 //
-//    /*
-//     * verify e820 table and adjust it to protect our memory regions
-//     */
-//
-//    /* marked mem regions used by TXT (heap, SINIT, etc.) as E820_RESERVED */
-//    err = txt_protect_mem_regions();
+	/*
+	 * verify e820 table and adjust it to protect our memory regions
+	 */
+
+	/* marked mem regions used by TXT (heap, SINIT, etc.) as E820_RESERVED */
+//	err = txt_protect_mem_regions();
 //    apply_policy(err);
 //
 //    /* ensure all modules are in RAM */
@@ -236,17 +242,17 @@ void intel_post_launch(void)
 //            apply_policy(TB_ERR_FATAL);
 //    }
 //
-//    /* replace map in loader context with copy */
-//    replace_e820_map(g_ldr_ctx);
-//
-//    printk(TBOOT_DETA"adjusted e820 map:\n");
-//    print_e820_map();
-//
+	/* replace map in loader context with copy */
+	replace_e820_map(g_ldr_ctx);
+
+	out_info("adjusted e820 map:");
+	print_e820_map();
+	wait(1000);
 //    /*
 //     * verify modules against policy
 //     */
 //    verify_all_modules(g_ldr_ctx);
-//
+
 //    /*
 //     * verify nv indices against policy
 //     */
@@ -263,10 +269,10 @@ void intel_post_launch(void)
 //    if ( g_tpm->major == TPM20_VER_MAJOR ) {
 //	g_tpm->context_save(g_tpm, g_tpm->cur_loc, handle2048, &tpm2_context_saved);
 //    }
-//
-//	/*
-//     * init MLE/kernel shared data page
-//     */
+
+	/*
+	 * init MLE/kernel shared data page
+	 */
 //    memset(&_tboot_shared, 0, PAGE_SIZE);
 //    _tboot_shared.uuid = (uuid_t)TBOOT_SHARED_UUID;
 //    _tboot_shared.version = 6;
