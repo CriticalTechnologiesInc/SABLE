@@ -113,7 +113,7 @@ would become
 ```
 menuentry 'SABLE-Ubuntu' {
   ...
-  multiboot /boot/sable-<arch> --nv-index=<SEC-nv-index> --nv-region=<SEC-nv-region>
+  multiboot /boot/sable-<arch> --nv-index=<SEC-nv-index> --nv-size=<SEC-nv-size>
   module /boot/cleanup-<arch>
   module /boot/grub/i386-pc/core.img
   module /boot/mylinux

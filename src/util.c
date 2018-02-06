@@ -299,4 +299,15 @@ char *cmdlineArgVal(char *cmdline, char *cmdlineArg) {
   val += strLen(cmdlineArg);
   return val;
 }
+
+int aToI(char* str) {
+  int ret = 0;
+  while (str[0] != '\0' && str[0] != ' ') {
+    out_char(str[0]);
+    ret *= 10;
+    ret += (str[0] - '0');
+    str++;
+  }
+  return ret;
+}
 #endif
