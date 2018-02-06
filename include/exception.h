@@ -3,6 +3,7 @@
 
 #ifndef NDEBUG
 #include "alloc.h"
+#include "heap.h"
 #endif
 
 typedef enum tdERROR {
@@ -53,7 +54,9 @@ typedef struct tdEXCEPTION {
 #endif
 } EXCEPTION;
 
-typedef struct tdRESULT { EXCEPTION exception; } RESULT;
+typedef struct tdRESULT {
+  EXCEPTION exception;
+} RESULT;
 
 #define RESULT_GEN(Type)                                                       \
   struct Type##_exception {                                                    \
@@ -72,7 +75,7 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #ifndef NDEBUG
 #define EXCEPT(exp, message)                                                   \
   ret.exception.error = exp;                                                   \
-  ret.exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST));                     \
+  ret.exception.loc = alloc(heap, sizeof(SOURCE_LOCATION_LIST));               \
   ret.exception.loc->l.file = __FILENAME__;                                    \
   ret.exception.loc->l.line = xstr(__LINE__);                                  \
   ret.exception.loc->l.function = __func__;                                    \
@@ -100,7 +103,8 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
   {                                                                            \
     if (value) {                                                               \
       return (type){.exception.error = error,                                  \
-                    .exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST)),      \
+                    .exception.loc =                                           \
+                        alloc(heap, sizeof(SOURCE_LOCATION_LIST)),             \
                     .exception.loc->l.file = __FILENAME__,                     \
                     .exception.loc->l.line = xstr(__LINE__),                   \
                     .exception.loc->l.function = __func__,                     \
@@ -138,7 +142,7 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
   {                                                                            \
     if (e.error) {                                                             \
       ret.exception = e;                                                       \
-      ret.exception.loc = alloc(sizeof(SOURCE_LOCATION_LIST));                 \
+      ret.exception.loc = alloc(heap, sizeof(SOURCE_LOCATION_LIST));           \
       ret.exception.loc->l.file = __FILENAME__;                                \
       ret.exception.loc->l.line = xstr(__LINE__);                              \
       ret.exception.loc->l.function = __func__;                                \
@@ -160,12 +164,14 @@ typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 #define THROW_TYPE(type, e)                                                    \
   {                                                                            \
     if (e.error) {                                                             \
-      SOURCE_LOCATION_LIST *loc = alloc(sizeof(SOURCE_LOCATION_LIST));         \
+      SOURCE_LOCATION_LIST *loc = alloc(heap, sizeof(SOURCE_LOCATION_LIST));   \
       *loc = (SOURCE_LOCATION_LIST){.l.file = __FILENAME__,                    \
                                     .l.line = xstr(__LINE__),                  \
                                     .l.function = __func__,                    \
                                     .next = e.loc};                            \
-      return (type){.exception.error = e.error, .exception.loc = loc};         \
+      return (type){.exception.error = e.error,                                \
+                    .exception.loc = loc,                                      \
+                    .exception.msg = e.msg};                                   \
     }                                                                          \
   }
 #else

@@ -12,7 +12,7 @@
 #include "msr.h"
 #include "mtrrs.h"
 #include "hash.h"
-#include "heap.h"
+#include "arch-intel/heap.h"
 #include "smx.h"
 #include "loader.h"
 

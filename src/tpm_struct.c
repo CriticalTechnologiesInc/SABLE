@@ -1,6 +1,7 @@
 #ifndef ISABELLE
 #include "asm.h"
 #include "alloc.h"
+#include "heap.h"
 #include "hmac.h"
 #include "util.h"
 #include "tpm_struct.h"
@@ -188,7 +189,7 @@ void unmarshal_ptr(void *ptr, UINT32 size, Unpack_Context *ctx,
   ASSERT(ctx);
   void **tmp = (void **)ptr;
   check_unpack_overflow(ctx, size);
-  *tmp = alloc(size);
+  *tmp = alloc(heap, size);
   ASSERT(*tmp);
   memcpy(*tmp, ctx->unpack_buffer + ctx->bytes_unpacked, size);
   ctx->bytes_unpacked += size;
@@ -344,7 +345,7 @@ struct extracted_TPM_STORED_DATA12
 extract_TPM_STORED_DATA12(TPM_STORED_DATA12 storedData) {
   UINT32 size = sizeof_TPM_STORED_DATA12(&storedData);
   struct extracted_TPM_STORED_DATA12 ret = {.dataSize = size,
-                                            .data = alloc(size)};
+                                            .data = alloc(heap, size)};
   pack_TPM_STORED_DATA12(ret.data, ret.dataSize, &storedData);
   return ret;
 }

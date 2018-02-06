@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.0.2)
 project (SABLE C ASM)
 set (SABLE_VERSION_MAJOR 0)
 set (SABLE_VERSION_MINOR 5)
-set (SABLE_VERSION_TWEAK 1)
+set (SABLE_VERSION_PATCH 2)
 
 message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
 message (STATUS "BHUSHAN : TARGET_ARCH is '${TARGET_ARCH}'")
@@ -56,11 +56,13 @@ add_executable (sable-AMD
 set_target_properties (cleanup-AMD
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
     -T ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
+  LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
   COMPILE_FLAGS
     "-D__ARCH_AMD__ \
     -Wno-main \
@@ -82,11 +84,13 @@ set_target_properties (cleanup-AMD
 set_target_properties (sable-AMD
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
     -T ${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
+  LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/arch-amd/sable.ld"
   COMPILE_FLAGS
     "-D__ARCH_AMD__ \
     -Wno-main \

@@ -1,31 +1,29 @@
 SECTIONS
 {
   ENTRY(__start)
-  . = 0x200000;
+
+  . = 0x10000000 - 0x10000;
 
   .text :
   {
+    . = ALIGN(0x10000);
+    g_cleanup_begin = .;
     KEEP(*(.text.__mbheader));
     KEEP(*(.text.__start));
     *(.text .text.*);
     *(.rodata .rodata.*);
-    *(.data .data.*);
   }
 
-  .bss :
+  .data : { *(.data) }
+  .bss : { *(.bss) }
+
+  .stack :
   {
-     . = ALIGN(0x1000); 
-     *(COMMON);
-     *(.bss);
-     . = ALIGN(0x80000);
+    . = ALIGN(0x10000) - 1;
+    g_stack_top = .;
   }
 
-
-  .debug :
-  {
-     *(.debug*);
-  }
-
+  g_cleanup_end = .;
 
   /DISCARD/ :
   {

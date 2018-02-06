@@ -59,7 +59,12 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
            TPM_AUTHDATA parentAuth, TPM_SESSION **parentSession,
            TPM_AUTHDATA dataAuth, TPM_SESSION **dataSession);
 RESULT_(TPM_STORED_DATA12)
-TPM_Sealx(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+#ifdef USE_TPM_SEALX
+TPM_Sealx
+#else
+TPM_Seal
+#endif
+(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
          TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
          UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret);
 

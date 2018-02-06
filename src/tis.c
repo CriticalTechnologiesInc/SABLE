@@ -56,6 +56,7 @@ enum TIS_TPM_VENDOR tis_init() {
   switch (id->did_vid) {
   case 0x2e4d5453: /* "STM." */
   case 0x4a100000:
+  case 0x104a: // Lenovo deskop
     out_description("STM rev:", id->rid);
     return TIS_INIT_STM;
   case 0xb15d1:

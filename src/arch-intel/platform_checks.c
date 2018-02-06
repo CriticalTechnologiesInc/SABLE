@@ -10,7 +10,7 @@
 #include "config.h"
 #include "acmod.h"
 #include "mtrrs.h"
-#include "heap.h"
+#include "arch-intel/heap.h"
 #include "acpi.h"
 
 int tpm_detect(void);

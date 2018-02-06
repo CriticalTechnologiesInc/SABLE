@@ -53,7 +53,7 @@
 #include "mle.h"
 #include "acmod.h"
 #include "mtrrs.h"
-#include "heap.h"
+#include "arch-intel/heap.h"
 #include "keyboard.h"
 //#endif
 //

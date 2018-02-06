@@ -25,7 +25,7 @@ FUNCTION __mbheader
 	.long   0 - 0x1BADB002
 
 FUNCTION __start
-	leal    _stack,%esp
+	leal    g_stack_top,%esp
 	xchg    %eax,%edx
 	xchg    %ebx,%eax
 	pushl	%eax
@@ -42,10 +42,3 @@ FUNCTION reboot
        .bss
 dummy_idt_desc:
 	.space 8
-
-	/* our stack */
-	.globl  _stack
-	.bss
-_stack_end:
-	.space  512
-_stack:

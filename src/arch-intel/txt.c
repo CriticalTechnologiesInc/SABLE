@@ -12,7 +12,7 @@
 #include "mtrrs.h"
 //#include "hash.h"
 #include "intel_tpm.h"
-#include "heap.h"
+#include "arch-intel/heap.h"
 #include "acpi.h"
 #include "atomic.h"
 #include "keyboard.h"

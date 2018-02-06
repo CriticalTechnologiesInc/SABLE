@@ -37,7 +37,7 @@ For a typical build, use:
 $ cd <path/to/sable>
 $ mkdir build
 $ cd build
-$ cmake -DCMAKE_BUILD_TYPE=RELEASE -DTARGET_ARCH=<arch> ../
+$ cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DTARGET_ARCH=<arch> ../
 $ make
 ```
 where `<arch>=[AMD|Intel]`. For a debug build, you can instead do:
@@ -45,13 +45,14 @@ where `<arch>=[AMD|Intel]`. For a debug build, you can instead do:
 $ cd <path/to/sable>
 $ mkdir build-debug
 $ cd build-debug
-$ cmake -DCMAKE_BUILD_TYPE=DEBUG -DTARGET_ARCH=<arch> ../
+$ cmake -DCMAKE_BUILD_TYPE=Debug -DTARGET_ARCH=<arch> ../
 $ make
 ```
 This will generate two binaries: `sable-<arch>` and `cleanup-<arch>`.
 Additional build options can be accessed by running `ccmake`, from a build
 directory, see the CMake documention for examples. At this time, the only
-supported build types are RELEASE and DEBUG.
+supported build type for hardware deployment is `MinSizeRel`. The `Debug` build
+type can only be deployed in Qemu.
 
 To compile SABLE source as input for Isabelle/HOL, cmake should additionally be
 configured using `-DGENERATE_ISABELLE=ON`, which can also be set using the
@@ -65,10 +66,10 @@ be the input for the Norrish C Parser in Isabelle/HOL.
 Note: When building for the Qemu environment, use `ccmake` to add `-DTARGET_QEMU`
 to the `CMAKE_C_FLAGS` variable. This will disable certain checks on platform hardware.
 
-Note: Some systems may be configured in such a manner that TPM NVRAM can only
-be read by the TPM owner. In this case, SABLE should be build with the
-`NV_OWNER_REQUIRED` option enabled. This can be set by appending `-DNV_OWNER_REQUIRED`
-to the `CMAKE_C_FLAGS` variable in `ccmake`.
+Note: Some TPM v1.2 chips support the 'TPM_Sealx' command, which adds additional security
+to the bus channel between the CPU and the TPM. If your TPM chip supports TPM_Sealx, you
+can tell SABLE to use it by compiling with `-DUSE_TPM_SEALX` in the `CMAKE_C_FLAGS`
+variable.
 
 Installation
 ---------------
@@ -87,6 +88,15 @@ If the TPM owner password is well-known (all zeros), use the `-y` flag instead o
 The NVRAM space password should be unique to each SEC, and known only to the platform
 owner and the user(s) of that SEC. The NVRAM index should be at least 4, and the
 minimum recommended size is 384 bytes.
+
+**NOTE:** TPM NVRAM space is finite, limited, and varies by TPM version and
+manufacturer. Under the TPM v1.2 specification, TPM 1.2 chips must have at
+least 1280 bytes of NVRAM, which is sufficient to support up to three SECs
+on one system. But most TPM chips have much more than 1280 bytes of NVRAM.
+To conserve space, we recommend storing SEC configuration data contiguously,
+e.g. with the first configuration at NVRAM offset 4 with size 384, the second
+configuration at offset 4 + 384 = 388 with size 384, the third configuration
+at offset 388 + 384 = 772 with size 384, etc.
 
 Next you will need to create a new entry (or update an existing entry) in your GRUB2
 configuration for your SEC.  The easiest way to add a SEC is to copy an existing

@@ -90,7 +90,7 @@ RESULT start_module(struct mbi *mbi) {
 
   // switch it on unconditionally, we assume that m->string is always
   // initialized
-  mbi->flags |= MBI_FLAG_CMDLINE;
+  SET_FLAG(mbi->flags, MBI_FLAG_CMDLINE);
 
   // search for multiboot header
   unsigned *ptr;
@@ -127,8 +127,6 @@ RESULT start_module(struct mbi *mbi) {
     elf = (struct eh *)m->mod_start;
     elf_magic = (unsigned int *)elf->e_ident;
     elf_class_data = (unsigned short *)(elf->e_ident + 4);
-    out_description("elf magic:", *elf_magic);
-    out_description("elf class_data:", *elf_class_data);
 
     ERROR(*elf_magic != 0x464c457f || *elf_class_data != 0x0101,
           ERROR_BAD_ELF_HEADER, "ELF header incorrect");

@@ -14,6 +14,7 @@
 
 #ifndef ISABELLE
 #include "asm.h"
+#include "heap.h"
 #include "alloc.h"
 #include "dev.h"
 #include "mbi.h"
@@ -35,6 +36,10 @@
 #include "msr.h"
 #include "processor.h"
 #include "loader.h"
+
+#define KB 1024
+BYTE heap_array[8 * KB] __attribute__((aligned(8)));
+BYTE *heap = heap_array;
 
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
@@ -61,7 +66,7 @@ static TPM_SESSION *sessions[2] = {NULL, NULL};
 
 const char *const version_string =
     "SABLE:   v." SABLE_VERSION_MAJOR "." SABLE_VERSION_MINOR
-    "." SABLE_VERSION_TWEAK "\n";
+    "." SABLE_VERSION_PATCH "\n";
 
 /* EXCEPT:
  * ERROR_SHA1_DATA_SIZE
@@ -106,8 +111,8 @@ RESULT_GEN(TPM_PCR_INFO_LONG);
 // the passphrase may be sealed/unsealed
 static RESULT_(TPM_PCR_INFO_LONG) get_pcr_info(void) {
   RESULT_(TPM_PCR_INFO_LONG) ret = {.exception.error = NONE};
-  TPM_PCRVALUE *pcr_values = alloc(2 * sizeof(TPM_PCRVALUE));
-  BYTE *pcr_select_bytes = alloc(3);
+  TPM_PCRVALUE *pcr_values = alloc(heap, 2 * sizeof(TPM_PCRVALUE));
+  BYTE *pcr_select_bytes = alloc(heap, 3);
   pcr_select_bytes[0] = 0x00;
   pcr_select_bytes[1] = 0x00;
   pcr_select_bytes[2] = 0x0a;
@@ -162,21 +167,26 @@ static RESULT_(TPM_STORED_DATA12)
   RESULT_(TPM_PCR_INFO_LONG) pcr_info = get_pcr_info();
   THROW(pcr_info.exception);
 
+#ifdef USE_TPM_SEALX
   UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
-  BYTE *seed = alloc(seedLen);
+  BYTE *seed = alloc(heap, seedLen);
   memcpy(seed, &sessions[0]->nonceEven, sizeof(TPM_NONCE));
   memcpy(seed + sizeof(TPM_NONCE), &sessions[0]->nonceOdd, sizeof(TPM_NONCE));
   memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE), "XOR", 3);
   memcpy(seed + sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3, &sharedSecret,
          sizeof(TPM_SECRET));
   const BYTE *mask = mgf1(seed, seedLen, lenPassphrase);
-  BYTE *passEnc = alloc(lenPassphrase);
+  BYTE *passEnc = alloc(heap, lenPassphrase);
   do_xor((const BYTE *)passphrase, mask, passEnc, lenPassphrase);
 
   // Encrypt the passphrase using the SRK
   return TPM_Sealx(TPM_KH_SRK, encAuth, pcr_info.value, passEnc, lenPassphrase,
                    &sessions[0], sharedSecret);
+#else
+  return TPM_Seal(TPM_KH_SRK, encAuth, pcr_info.value, (const BYTE *)passphrase,
+                  lenPassphrase, &sessions[0], sharedSecret);
+#endif
 }
 
 static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
@@ -197,7 +207,7 @@ static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
 
 RESULT configure(UINT32 index) {
   RESULT ret = {.exception.error = NONE};
-  char *passphrase = alloc(PASSPHRASE_STR_SIZE);
+  char *passphrase = alloc(heap, PASSPHRASE_STR_SIZE);
 
   // get the passphrase, passphrase authdata, and SRK authdata
   EXCLUDE(out_string("Please enter the passphrase (" xstr(
@@ -230,31 +240,10 @@ RESULT configure(UINT32 index) {
 #endif
 
 static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
-#ifdef NV_OWNER_REQUIRED
-  EXCLUDE(out_string("Please enter the nvAuthData (" xstr(
-      AUTHDATA_STR_SIZE) " char max): ");)
-  RESULT_(TPM_AUTHDATA) nv_auth_ret = get_authdata();
-  THROW_TYPE(RESULT_(TPM_STORED_DATA12), nv_auth_ret.exception);
-
-  const OPTION(TPM_AUTHDATA)
-      nv_auth = {.value = nv_auth_ret.value, .hasValue = true};
-
-  RESULT owner_oiap_ret = TPM_OIAP(&sessions[0]);
-  THROW_TYPE(RESULT_(TPM_STORED_DATA12), owner_oiap_ret.exception);
-  RESULT_(TPM_NONCE) nonceOdd = get_nonce();
-  THROW_TYPE(RESULT_(TPM_STORED_DATA12), nonceOdd.exception);
-  sessions[0]->nonceOdd = nonceOdd.value;
-  sessions[0]->continueAuthSession = FALSE;
-
-  RESULT_(HEAP_DATA)
-  val = TPM_NV_ReadValue(index, 0, 400, nv_auth, &sessions[0]);
-  THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
-#else
   const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
-
   RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(index, 0, 400, nv_auth, NULL);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
-#endif
+
   return (RESULT_(TPM_STORED_DATA12)){
       .exception.error = NONE,
       .value = unpack_TPM_STORED_DATA12(val.value.data, val.value.dataSize)};
@@ -284,10 +273,11 @@ static RESULT_(CSTRING)
   sessions[1]->nonceOdd = nonceOdd.value;
   sessions[1]->continueAuthSession = FALSE;
 
+#ifdef USE_TPM_SEALX
   const UINT32 seedLen =
       sizeof(TPM_NONCE) + sizeof(TPM_NONCE) + 3 + sizeof(TPM_SECRET);
-  BYTE *seed = alloc(seedLen);
-  Pack_Context *pctx = alloc(sizeof(Pack_Context));
+  BYTE *seed = alloc(heap, seedLen);
+  Pack_Context *pctx = alloc(heap, sizeof(Pack_Context));
   pack_init(pctx, seed, seedLen);
   marshal_array(sessions[0]->nonceEven.nonce, sizeof(TPM_NONCE), pctx, NULL);
   marshal_array(sessions[0]->nonceOdd.nonce, sizeof(TPM_NONCE), pctx, NULL);
@@ -301,10 +291,18 @@ static RESULT_(CSTRING)
   THROW(unseal_ret.exception);
 
   const BYTE *mask = mgf1(seed, seedLen, unseal_ret.value.dataSize);
-  BYTE *passUnc = alloc(unseal_ret.value.dataSize);
+  BYTE *passUnc = alloc(heap, unseal_ret.value.dataSize);
   do_xor(unseal_ret.value.data, mask, passUnc, unseal_ret.value.dataSize);
 
   ret.value = (CSTRING)passUnc;
+#else
+  RESULT_(HEAP_DATA)
+  unseal_ret = TPM_Unseal(sealed_pp, TPM_KH_SRK, sharedSecret, &sessions[0],
+                          pp_auth, &sessions[1]);
+  THROW(unseal_ret.exception);
+
+  ret.value = (CSTRING)unseal_ret.value.data;
+#endif
 
   return ret;
 }
@@ -333,7 +331,7 @@ RESULT trusted_boot(UINT32 index) {
   EXCLUDE(
       out_string("\n\nIf this is correct, please type YES in all capitals: ");)
 
-  EXCLUDE(char *yes_string = alloc(4); get_string(yes_string, 4, true);
+  EXCLUDE(char *yes_string = alloc(heap, 4); get_string(yes_string, 4, true);
           if (memcmp("YES", yes_string, 3)) reboot();)
 
   return ret;
@@ -354,53 +352,44 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   RESULT sha1_ret;
   SHA1_Context sctx;
 
-  out_info("Bhushan: we are in mbi_calc_hash");
-  ERROR(~mbi->flags & (enum mbi_enum)MBI_FLAG_MODS, ERROR_BAD_MODULE,
+  // hash SABLE's command line
+  if (CHECK_FLAG(mbi->flags, MBI_FLAG_CMDLINE)) {
+    sha1_init(&sctx);
+    sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
+    sha1_finish(&sctx);
+    extend_ret = TPM_Extend(19, sctx.hash);
+    THROW(extend_ret.exception);
+  }
+
+  ERROR(!CHECK_FLAG(mbi->flags, MBI_FLAG_MODS), ERROR_BAD_MODULE,
         "module flag missing");
   ERROR(!mbi->mods_count, ERROR_NO_MODULE, "no module to hash");
   out_description("Hashing modules count", mbi->mods_count);
 
   struct module *m = (struct module *)(mbi->mods_addr);
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
-
-  /*
-   * Bhushan : Modified to hash only one module
-   */
-
- // for (unsigned i = 0; i < 1; i++, m++) {
- // for (unsigned i = 1; i < mbi->mods_count; i++, m++) {
     sha1_init(&sctx);
 
     out_description("Bhushan : Hashing module", i);
     ERROR(m->mod_end < m->mod_start, ERROR_BAD_MODULE,
           "mod_end less than start");
-    out_description("Modules start", (unsigned int)m->mod_start);
-    out_description("Modules end", (unsigned int)m->mod_end);
-    out_description("Modules size:", (unsigned int)m->mod_end - m->mod_start);
+#ifndef NDEBUG
+    out_description("Module", i);
+    out_description("Address", m->mod_start);
+    out_description("Size", m->mod_end - m->mod_start);
+#endif
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
-    sha1_finish(&sctx);
+    if (strlen((char *)m->string) > 0) {
+      // hash the command-line arguments for this module
+      sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string) + 1);
+      THROW(sha1_ret.exception);
+    }
 
-    out_info("Bhushan: Extending TPM");
+    sha1_finish(&sctx);
     extend_ret = TPM_Extend(19, sctx.hash);
     THROW(extend_ret.exception);
   }
-
-  /* 
-   * Bhushan: we dont need to hash cmdline as it being hashed in SINIT to sable transition as a part of SABLE
-   */
-
-  struct module *a = (struct module *)(mbi->mods_addr);
-  sha1_init(&sctx);
-  sha1(&sctx, (BYTE *)mbi->cmdline, strLen((char *)mbi->cmdline));
-  for (unsigned i = 0; i < mbi->mods_count; i++, a++){
-    if(strlen((char *)a->string) > 0)
-      sha1(&sctx, (unsigned char *)a->string, strlen((char *)a->string) + 1);
-  }
-  sha1_finish(&sctx);
-  out_info("Extending TPM with cmd line");
-  RESULT_(TPM_PCRVALUE) ext_ret = TPM_Extend(19, sctx.hash);
-  THROW(ext_ret.exception);
 
   return ret;
 }
@@ -445,7 +434,8 @@ int txt_is_launched(void);
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  out_string("I am in pre_launch 018\n");
+  out_string("Master Merge1\n");
+  wait(3000);
   out_description("Bhushan: module count", m->mods_count);
 
   out_description("mbi adress : m", (unsigned int)m);
@@ -471,6 +461,21 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   }
 
   */
+
+  init_heap(heap, sizeof(heap_array));
+
+  /*
+   * skipping these changes in post launch
+   */
+
+  if (!txt_is_launched()) {
+      ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
+      ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
+
+      // set bootloader name
+      SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
+      m->boot_loader_name = (unsigned)version_string;
+  }
 
   /*
    * Bhushan: check for system bootstrap processor
@@ -530,14 +535,6 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   if(!txt_launch_environment()) {
 	out_info("ERROR: Measured launch failed");
   }
-
-  init_heap();
-  ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
-  ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
-
-  // set bootloader name
-  m->flags |= (enum mbi_enum)MBI_FLAG_BOOT_LOADER_NAME;
-  m->boot_loader_name = (unsigned)version_string;
 
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
@@ -609,7 +606,6 @@ RESULT post_launch(struct mbi *m) {
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 
-#ifndef NDEBUG
     RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
     THROW(pcr17.exception);
     show_hash("PCR[17]: ", pcr17.value);
@@ -619,7 +615,6 @@ RESULT post_launch(struct mbi *m) {
     show_hash("PCR[19]: ", pcr19.value);
 
     wait(1000);
-#endif
 
     char config_str[2];
     out_string("Configure now? [y/n]: ");

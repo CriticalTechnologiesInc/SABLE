@@ -14,6 +14,7 @@
 
 #ifndef ISABELLE
 #include "alloc.h"
+#include "heap.h"
 #include "tis.h"
 #include "hmac.h"
 #include "tpm_struct.h"
@@ -231,7 +232,7 @@ RESULT TPM_OIAP(TPM_SESSION **session) {
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   TPM_ERROR(res);
-  TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
+  TPM_SESSION *s = *session = alloc(heap, sizeof(TPM_SESSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
   unmarshal_array(&s->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
   s->osap = NULL;
@@ -282,8 +283,8 @@ RESULT TPM_OSAP(TPM_ENTITY_TYPE entityType_in, UINT32 entityValue_in,
   unmarshal_UINT32(&paramSize_out, &uctx, NULL);
   unmarshal_UINT32(&res, &uctx, NULL);
   TPM_ERROR(res);
-  TPM_SESSION *s = *session = alloc(sizeof(TPM_SESSION));
-  s->osap = alloc(sizeof(TPM_OSAP_EXTENSION));
+  TPM_SESSION *s = *session = alloc(heap, sizeof(TPM_SESSION));
+  s->osap = alloc(heap, sizeof(TPM_OSAP_EXTENSION));
   unmarshal_UINT32(&s->authHandle, &uctx, NULL);
   unmarshal_array(&s->nonceEven, sizeof(TPM_NONCE), &uctx, NULL);
   unmarshal_array(&s->osap->nonceEvenOSAP, sizeof(TPM_NONCE), &uctx, NULL);
@@ -613,7 +614,12 @@ TPM_Unseal(TPM_STORED_DATA12 inData_in /* in */, TPM_KEY_HANDLE parentHandle_in,
 }
 
 RESULT_(TPM_STORED_DATA12)
-TPM_Sealx(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+#ifdef USE_TPM_SEALX
+TPM_Sealx
+#else
+TPM_Seal
+#endif
+(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
          TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
          UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret) {
   ASSERT(session);
@@ -632,7 +638,11 @@ TPM_Sealx(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
       sizeof(TPM_KEY_HANDLE) + sizeof(TPM_ENCAUTH) + sizeof(UINT32) +
       pcrInfoSize_in + sizeof(UINT32) + inDataSize_in + sizeof(TPM_AUTHHANDLE) +
       sizeof(TPM_NONCE) + sizeof(TSS_BOOL) + sizeof(TPM_AUTHDATA);
+#ifdef USE_TPM_SEALX
   TPM_COMMAND_CODE ordinal_in = TPM_ORD_Sealx;
+#else
+  TPM_COMMAND_CODE ordinal_in = TPM_ORD_Seal;
+#endif
   TPM_TAG tag_out;
   UINT32 paramSize_out;
   TPM_AUTHDATA resAuth_out;
