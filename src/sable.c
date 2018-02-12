@@ -52,6 +52,7 @@ void determine_loader_type(uint32_t magic);
 void determine_loader_type_context(void *addr, uint32_t magic);
 int txt_launch_environment();
 int copy_e820_map(loader_ctx *lctx);
+void print_mbi(struct mbi *mbi);
 
 // Result generators
 RESULT_GEN(TPM_NONCE);
@@ -441,6 +442,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   out_description("mbi adress : m", (unsigned int)m);
   out_description("conetext->addr", (unsigned int)g_ldr_ctx->addr);
 
+
   determine_loader_type(flags);
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
@@ -448,6 +450,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 	out_info("SKIPPING as context is already INITIALIZED");
   }
 
+  print_mbi(g_ldr_ctx->addr);
   /*
 
   // moved post launch in appropriate place

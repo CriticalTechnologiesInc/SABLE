@@ -125,6 +125,7 @@ elseif (${TARGET_ARCH} STREQUAL "Intel")
 
 # Bhushan : code change start
 # ToDo : Remove AMD specific files as required
+# remove keyboard.c from cleanup file list as added only for debbuging
 
   message (STATUS "BHUSHAN : Building for Intel")
 
@@ -134,6 +135,8 @@ elseif (${TARGET_ARCH} STREQUAL "Intel")
   ${PROJECT_SOURCE_DIR}/src/alloc.c
   ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.c
   ${PROJECT_SOURCE_DIR}/src/util.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/mbi_print.c
+  ${PROJECT_SOURCE_DIR}/src/keyboard.c
   )
 
 add_executable (sable-Intel
@@ -166,6 +169,7 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/arch-intel/mtrrs.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/post_launch.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/mutex.S
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/mbi_print.c
   )
 
 set_target_properties (cleanup-Intel
