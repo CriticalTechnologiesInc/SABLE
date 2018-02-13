@@ -114,6 +114,27 @@ FUNCTION _post_launch_entry
 	/* are they equal? */
 	// cmp %ebx, %eax
 	// je __start                /* yes, so continue with normal launch */
+
+	/* copied from amd post lauch */
+
+	/* Setup ESP to top of 64K */
+	leal SLB_STACK_TOP, %esp
+
+//	/* clear VM_CR to enable debugging */
+//	mov     $VM_CR_MSR, %ecx
+//	rdmsr
+//	and     $0xf8, %al
+//	wrmsr
+
+	/* init gdt and segment register */
+	lgdt    %cs:pgdt_desc
+	movw    $ds_sel, %ax
+	mov	%ax,   %ds
+	mov	%ax,   %es
+	mov	%ax,   %fs
+	mov	%ax,   %gs
+	mov	%ax,   %ss
+
 	jmp __start
 
 FUNCTION _txt_wakeup
