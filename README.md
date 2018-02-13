@@ -120,6 +120,11 @@ menuentry 'SABLE-Ubuntu' {
   module /boot/myinitrd
 }
 ```
+
+In ```multiboot``` line, ```<SEC-nv-index>``` equals to the value after ```-i```
+parameter in ```tpm_nvdefine``` command, and ```<SEC-nv-size>``` equals to the 
+value after ```-s``` parameter, which indicates the size of NVRAM size of this SEC.
+
 Then you may run
 ```
 # update-grub2
