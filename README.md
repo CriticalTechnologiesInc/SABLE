@@ -121,9 +121,10 @@ menuentry 'SABLE-Ubuntu' {
 }
 ```
 
-In ```multiboot``` line, ```<SEC-nv-index>``` equals to the value after ```-i```
-parameter in ```tpm_nvdefine``` command, and ```<SEC-nv-size>``` equals to the 
-value after ```-s``` parameter, which indicates the size of NVRAM size of this SEC.
+In the `multiboot` line, `<SEC-nv-index>` should equal the value after the `-i`
+parameter in the `tpm_nvdefine` command, and `<SEC-nv-size>` should equal the
+value after the `-s` parameter. The `-s` parameter indicates the size of this
+SEC's NVRAM region.
 
 Then you may run
 ```
