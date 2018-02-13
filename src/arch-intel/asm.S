@@ -76,10 +76,9 @@ FUNCTION _post_launch_entry
  * ebx contains the phys addr of the entry point
  * ecx contains the phy addr of the MLE page table
  */
-	/*
-	 cmp $_post_launch_entry, %ebx
+
+	cmp $_post_launch_entry, %ebx
 	jne layout_err
-	*/
 
 	/* verify last entry in MLE page table is the one we expected
 	 * this is sufficient because: 1) all addrs must be phys increasing
@@ -136,6 +135,9 @@ FUNCTION _post_launch_entry
 	mov	%ax,   %ss
 
 	jmp __start
+
+layout_err:
+	jmp sable_layout_error
 
 FUNCTION _txt_wakeup
 

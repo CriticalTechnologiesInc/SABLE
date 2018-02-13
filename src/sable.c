@@ -428,6 +428,12 @@ static RESULT prepare_tpm(void) {
 RESULT post_launch(struct mbi *m);
 int txt_is_launched(void);
 
+
+void sable_layout_error() {
+	out_info("Sable error occured");
+	while(1);
+}
+
 /**
  * This function runs before the late launch and has to enable SVM in the
  * processor and disable all localities.
