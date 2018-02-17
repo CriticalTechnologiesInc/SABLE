@@ -177,7 +177,8 @@ static RESULT_(TPM_STORED_DATA12)
 }
 
 static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
-                               TPM_STORED_DATA12 sealedData, UINT32 index, UINT32 size) {
+                               TPM_STORED_DATA12 sealedData, UINT32 index,
+                               UINT32 size) {
   RESULT ret = {.exception.error = NONE};
 
   RESULT oiap_ret = TPM_OIAP(&sessions[0]);
@@ -188,8 +189,7 @@ static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
   sessions[0]->continueAuthSession = FALSE;
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
-  return TPM_NV_WriteValueAuth(x.data, size, index, 0, nv_auth,
-                               &sessions[0]);
+  return TPM_NV_WriteValueAuth(x.data, size, index, 0, nv_auth, &sessions[0]);
 }
 
 RESULT configure(UINT32 index, UINT32 size) {

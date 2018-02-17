@@ -300,7 +300,7 @@ char *cmdlineArgVal(char *cmdline, char *cmdlineArg) {
   return val;
 }
 
-int aToI(char* str) {
+int aToI(char *str) {
   int ret = 0;
   while (str[0] != '\0' && str[0] != ' ') {
     out_char(str[0]);

@@ -3,7 +3,9 @@
 #include "hmac.h"
 #include "util.h"
 
-typedef struct HMAC_OPad { BYTE pad[HMAC_BLOCK_SIZE]; } HMAC_OPad;
+typedef struct HMAC_OPad {
+  BYTE pad[HMAC_BLOCK_SIZE];
+} HMAC_OPad;
 typedef HMAC_OPad HMAC_IPad;
 
 RESULT hmac_init(HMAC_Context *ctx, const BYTE *key, UINT32 keySize) {
