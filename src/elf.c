@@ -18,6 +18,7 @@
 
 #ifndef ISABELLE
 #include "mbi.h"
+#include <types.h>
 #include "elf.h"
 #include "alloc.h"
 #include "util.h"
@@ -161,4 +162,6 @@ RESULT start_module(struct mbi *mbi) {
   /* not reached */
   return ret;
 }
+
+
 #endif

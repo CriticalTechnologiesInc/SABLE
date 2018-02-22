@@ -34,15 +34,16 @@
 // *
 // */
 //
-//#include <config.h>
+#include <config.h>
 #include <types.h>
 //#include <stdbool.h>
 //#include <stdarg.h>
 //#include <compiler.h>
 //#include <string.h>
 //#include <printk.h>
-//#include <uuid.h>
-//#include <loader.h>
+#include <util.h>
+#include <uuid.h>
+#include <loader.h>
 //#include <processor.h>
 //#include <misc.h>
 //#include <page.h>
@@ -50,10 +51,9 @@
 //#include <atomic.h>
 //#include <io.h>
 //#include <mutex.h>
-//#include <e820.h>
 //#include <uuid.h>
 //#include <loader.h>
-//#include <hash.h>
+#include <hash.h>
 //#include <mle.h>
 //#include <tpm.h>
 //#include <tb_error.h>
@@ -71,10 +71,10 @@
 //#include <cmdline.h>
 //#include <tpm_20.h>
 
-#include <util.h>
+#include <txt.h>
 #include <exception.h>
 #include <mbi.h>
-#include <loader.h>
+#include <e820.h>
 
 extern loader_ctx *g_ldr_ctx;
 RESULT post_launch(struct mbi *m);
@@ -83,11 +83,21 @@ RESULT post_launch(struct mbi *m);
 extern int save_vtd_dmar_table(void);
 extern void print_e820_map(void);
 
+#define PAGE_SHIFT       12                 /* LOG2(PAGE_SIZE) */
+#define PAGE_SIZE        (1 << PAGE_SHIFT)  /* bytes/page */
+/* PAGE_MASK is used to pass bits 12 and above. */
+#define PAGE_MASK        (~(PAGE_SIZE-1))
+#define PAGE_UP(p)   (((unsigned long)(p) + PAGE_SIZE- 1) & PAGE_MASK)
+unsigned long get_tboot_mem_end(void)
+{
+    return PAGE_UP((unsigned long)&_end);
+}
+
 /* Bhushan : comment scope end */
 
 //extern void _prot_to_real(uint32_t dist_addr);
 //extern bool set_policy(void);
-//extern void verify_all_modules(loader_ctx *lctx);
+extern void verify_all_modules(loader_ctx *lctx);
 //extern void verify_all_nvindices(void);
 //extern void apply_policy(tb_error_t error);
 //extern void verify_IA32_se_svn_status(const acm_hdr_t *acm_hdr);
@@ -166,13 +176,18 @@ extern void print_e820_map(void);
 //           s3_wakeup_end - s3_wakeup_16);
 //}
 //
-
+/*
+ * verify modules against Verified Launch policy and save hash
+ * if pol_entry is NULL, assume it is for module 0, which gets extended
+ * to PCR 18
+ */
 extern void txt_post_launch(void);
 
 void intel_post_launch(void)
 {
 	out_info("WE are in post launch processing");
-//    uint64_t base, size;
+	wait(4000);
+	uint64_t base, size;
 //    tb_error_t err;
 //    extern tboot_log_t *g_log;
 //    extern void shutdown_entry(void);
@@ -201,56 +216,79 @@ void intel_post_launch(void)
 //         s3_launch();
 //
 //    /* remove all TXT sinit acm modules before verifying modules */
-//    remove_txt_modules(g_ldr_ctx);
+      remove_txt_modules(g_ldr_ctx);
 //
 	/*
 	 * verify e820 table and adjust it to protect our memory regions
 	 */
 
 	/* marked mem regions used by TXT (heap, SINIT, etc.) as E820_RESERVED */
-//	err = txt_protect_mem_regions();
+      int err = txt_protect_mem_regions();
+      if(err)
+      {
+        out_info("Error: txt_protect_mem_regions failed!\n");
+      }else{
+        out_info("txt_protect_mem_regions succeeded!\n");
+      }
+      wait(4000);
 //    apply_policy(err);
 //
 //    /* ensure all modules are in RAM */
-//    if ( !verify_modules(g_ldr_ctx) )     apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
-//
-//    /* verify that tboot is in valid RAM (i.e. E820_RAM) */
-//    base = (uint64_t)TBOOT_BASE_ADDR;
-//    size = (uint64_t)((unsigned long)&_end - base);
-//    printk(TBOOT_INFO"verifying tboot and its page table (%Lx - %Lx) in e820 table\n\t",  base, (base + size - 1));
-//    if ( e820_check_region(base, size) != E820_RAM ) {
-//        printk(TBOOT_ERR": failed.\n");
-//        apply_policy(TB_ERR_FATAL);
-//    }
-//    else
-//        printk(TBOOT_INFO": succeeded.\n");
-//
-//    /* protect ourselves, MLE page table, and MLE/kernel shared page */
-//    base = (uint64_t)TBOOT_BASE_ADDR;
-//    size = (uint64_t)get_tboot_mem_end() - base;
-//    uint32_t mem_type = is_kernel_linux() ? E820_RESERVED : E820_UNUSABLE;
-//    printk(TBOOT_INFO"protecting tboot (%Lx - %Lx) in e820 table\n", base,      (base + size - 1));
-//    if ( !e820_protect_region(base, size, mem_type) )      
-//        apply_policy(TB_ERR_FATAL);
-//
-//    /* if using memory logging, reserve log area */
+      if ( !verify_modules(g_ldr_ctx) )//     apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
+      {
+        out_info("Error: verify_modules failed!\n");
+      }else{
+        out_info("verify_modules succeeded!\n");
+      }
+      wait(4000);
+
+    /* verify that tboot is in valid RAM (i.e. E820_RAM) */
+    base = (uint64_t)TBOOT_BASE_ADDR;
+    size = (uint64_t)((unsigned long)&_end - base);
+    out_info("verifying tboot and its page table in e820 table\n\t");
+    if ( e820_check_region(base, size) != E820_RAM ) {
+        out_info(": failed.\n");
+    }
+    else
+        out_info(": succeeded.\n");
+    wait(4000);
+
+    /* protect ourselves, MLE page table, and MLE/kernel shared page */
+    base = (uint64_t)TBOOT_BASE_ADDR;
+    size = (uint64_t)get_tboot_mem_end() - base;
+    uint32_t mem_type = is_kernel_linux() ? E820_RESERVED : E820_UNUSABLE;
+    out_info("protecting tboot in e820 table\n");
+    if ( !e820_protect_region(base, size, mem_type) )      
+    {
+      out_info("Error: e820_protect_region failed!\n");
+    }else{
+      out_info("e820_protect_region succeeded!\n");
+    }
+    wait(4000);
+
+    /* if using memory logging, reserve log area */
 //    if ( g_log_targets & TBOOT_LOG_TARGET_MEMORY ) {
 //        base = TBOOT_SERIAL_LOG_ADDR;
 //        size = TBOOT_SERIAL_LOG_SIZE;
-//        printk(TBOOT_INFO"reserving tboot memory log (%Lx - %Lx) in e820 table\n", base, (base + size - 1));
+//        out_info("reserving tboot memory log in e820 table\n");
 //        if ( !e820_protect_region(base, size, E820_RESERVED) )         
-//            apply_policy(TB_ERR_FATAL);
+//          out_info("Error: e820_protect_region2 failed!\n");
+//        else
+//          out_info("e820_protect_region2 succeeded!\n");
+//    }else{
+//      out_info("Not using memory logging\n");
 //    }
-//
+//    wait(4000);
+
 	/* replace map in loader context with copy */
 	replace_e820_map(g_ldr_ctx);
 
 	out_info("adjusted e820 map:");
 	print_e820_map();
 	wait(1000);
-//    /*
-//     * verify modules against policy
-//     */
+    /*
+     * verify modules against policy
+     */
 //    verify_all_modules(g_ldr_ctx);
 
 //    /*

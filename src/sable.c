@@ -35,6 +35,7 @@
 #include "types.h"
 #include "msr.h"
 #include "processor.h"
+#include "uuid.h"
 #include "loader.h"
 
 #define KB 1024

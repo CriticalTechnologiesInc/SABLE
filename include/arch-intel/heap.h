@@ -315,18 +315,17 @@ typedef struct __attribute__ ((packed)) {
 ///*
 // * SINIT to MLE structure
 // */
-//#define MDR_MEMTYPE_GOOD                0x00
-//#define MDR_MEMTYPE_SMM_OVERLAY         0x01
-//#define MDR_MEMTYPE_SMM_NONOVERLAY      0x02
-//#define MDR_MEMTYPE_PCIE_CONFIG_SPACE   0x03
-//#define MDR_MEMTYPE_PROTECTED           0x04
-//
-//typedef struct __packed {
-//    uint64_t  base;
-//    uint64_t  length;
-//    uint8_t   mem_type;
-//    uint8_t   reserved[7];
-//} sinit_mdr_t;
+#define MDR_MEMTYPE_GOOD                0x00
+#define MDR_MEMTYPE_SMM_OVERLAY         0x01
+#define MDR_MEMTYPE_SMM_NONOVERLAY      0x02
+#define MDR_MEMTYPE_PCIE_CONFIG_SPACE   0x03
+#define MDR_MEMTYPE_PROTECTED           0x04
+typedef struct __packed {
+    uint64_t  base;
+    uint64_t  length;
+    uint8_t   mem_type;
+    uint8_t   reserved[7];
+} sinit_mdr_t;
 
 typedef struct __packed {
 	uint32_t     version;		/* currently 6-9 */

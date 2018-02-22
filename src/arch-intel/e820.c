@@ -39,19 +39,16 @@
 //#include <printk.h>
 //#include <cmdline.h>
 //#include <string.h>
-//#include <uuid.h>
 //#include <loader.h>
 //#include <stdarg.h>
 //#include <misc.h>
 //#include <pci_cfgreg.h>
-//#include <e820.h>
 //#include <txt/config_regs.h>
-#include "loader.h"
 #include "util.h"
-
-
-#define E820_RAM		1
-#define E820_RESERVED		2
+#include <uuid.h>
+#include <multiboot.h>
+#include "loader.h"
+#include <e820.h>
 
 /* minimum size of RAM (type 1) region that cannot be marked as reserved even
  * if it comes after a reserved region; 0 for no minimum (i.e. current
@@ -231,35 +228,35 @@ static bool protect_region(memory_map_t *e820map, unsigned int *nr_map, uint64_t
 	return 1;
 }
 
-///*
-// * is_overlapped
-// *
-// * Detect whether two ranges are overlapped.
-// *
-// * return: true = overlapped
-// */
-//static bool is_overlapped(uint64_t base, uint64_t end, uint64_t e820_base,
-//                          uint64_t e820_end)
-//{
-//    uint64_t length = end - base, e820_length = e820_end - e820_base;
-//    uint64_t min, max;
-//
-//    min = (base < e820_base)?base:e820_base;
-//    max = (end > e820_end)?end:e820_end;
-//
-//    /* overlapping */
-//    if ( (max - min) < (length + e820_length) )
-//        return true;
-//
-//    if ( (max - min) == (length + e820_length)
-//         && ( ((length == 0) && (base > e820_base) && (base < e820_end))
-//              || ((e820_length == 0) && (e820_base > base) &&
-//                  (e820_base < end)) ) )
-//        return true;
-//
-//    return false;
-//}
-//
+/*
+ * is_overlapped
+ *
+ * Detect whether two ranges are overlapped.
+ *
+ * return: true = overlapped
+ */
+static bool is_overlapped(uint64_t base, uint64_t end, uint64_t e820_base,
+                          uint64_t e820_end)
+{
+    uint64_t length = end - base, e820_length = e820_end - e820_base;
+    uint64_t min, max;
+
+    min = (base < e820_base)?base:e820_base;
+    max = (end > e820_end)?end:e820_end;
+
+    /* overlapping */
+    if ( (max - min) < (length + e820_length) )
+        return true;
+
+    if ( (max - min) == (length + e820_length)
+         && ( ((length == 0) && (base > e820_base) && (base < e820_end))
+              || ((e820_length == 0) && (e820_base > base) &&
+                  (e820_base < end)) ) )
+        return true;
+
+    return false;
+}
+
 
 /* helper funcs for loader.c */
 memory_map_t *get_e820_copy()
@@ -281,7 +278,7 @@ unsigned int get_nr_map()
  * return:  false = error (no table or table too big for new space)
  */
 
-int copy_e820_map(loader_ctx *lctx)
+bool copy_e820_map(loader_ctx *lctx)
 {
 //    get_tboot_min_ram();
 
@@ -304,7 +301,7 @@ int copy_e820_map(loader_ctx *lctx)
 			/* it handles these cases */
 
 			if (!protect_region(g_copy_e820_map, &g_nr_map, e820_base_64(entry), e820_length_64(entry), entry->type))
-				return 0;
+				return false;
 
 			if (lctx->type == 1)
 				entry_offset += entry->size + sizeof(entry->size);
@@ -319,7 +316,7 @@ int copy_e820_map(loader_ctx *lctx)
 		}
 		if (g_nr_map == MAX_E820_ENTRIES) {
 			out_info("Too many e820 entries");
-			return 0;
+			return false;
 		}
 	}
 	else if ( have_loader_memlimits(lctx) ) {
@@ -348,120 +345,119 @@ int copy_e820_map(loader_ctx *lctx)
 //        g_nr_map = 2;
 	} else {
 		out_info("ERROR: no e820 map nor memory limits provided");
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
-//bool e820_protect_region(uint64_t addr, uint64_t size, uint32_t type)
-//{
-//    return protect_region(g_copy_e820_map, &g_nr_map, addr, size, type);
-//}
-//
-///*
-// * e820_check_region
-// *
-// * Given a range, check which kind of range it covers
-// *
-// * return: E820_GAP, it covers gap in e820 map;
-// *         E820_MIXED, it covers at least two different kinds of ranges;
-// *         E820_XXX, it covers E820_XXX range only;
-// *         it will not return 0.
-// */
-//uint32_t e820_check_region(uint64_t base, uint64_t length)
-//{
-//    memory_map_t* e820_entry;
-//    uint64_t end = base + length, e820_base, e820_end, e820_length;
-//    uint32_t type;
-//    uint32_t ret = 0;
-//    bool gap = true; /* suppose there is always a virtual gap at first */
-//
-//    e820_base = 0;
-//    e820_length = 0;
-//
-//    for ( unsigned int i = 0; i < g_nr_map; i = gap ? i : i+1, gap = !gap ) {
-//        e820_entry = &g_copy_e820_map[i];
-//        if ( gap ) {
-//            /* deal with the gap in e820 map */
-//            e820_base = e820_base + e820_length;
-//            e820_length = e820_base_64(e820_entry) - e820_base;
-//            type = E820_GAP;
-//        }
-//        else {
-//            /* deal with the normal item in e820 map */
-//            e820_base = e820_base_64(e820_entry);
-//            e820_length = e820_length_64(e820_entry);
-//            type = e820_entry->type;
-//        }
-//
-//        if ( e820_length == 0 )
-//            continue; /* if the range is zero, then skip */
-//
-//        e820_end = e820_base + e820_length;
-//
-//        if ( !is_overlapped(base, end, e820_base, e820_end) )
-//            continue; /* if no overlapping, then skip */
-//
-//        /* if the value of ret is not assigned before,
-//           then set ret to type directly */
-//        if ( ret == 0 ) {
-//            ret = type;
-//            continue;
-//        }
-//
-//        /* if the value of ret is assigned before but ret is equal to type,
-//           then no need to do anything */
-//        if ( ret == type )
-//            continue;
-//
-//        /* if the value of ret is assigned before but it is GAP,
-//           then no need to do anything since any type merged with GAP is GAP */
-//        if ( ret == E820_GAP )
-//            continue;
-//
-//        /* if the value of ret is assigned before but it is not GAP and type
-//           is GAP now this time, then set ret to GAP since any type merged
-//           with GAP is GAP. */
-//        if ( type == E820_GAP ) {
-//            ret = E820_GAP;
-//            continue;
-//        }
-//
-//        /* if the value of ret is assigned before but both ret and type are
-//           not GAP and their values are not equal, then set ret to MIXED
-//           since any two non-GAP values are merged into MIXED if they are
-//           not equal. */
-//        ret = E820_MIXED;
-//    }
-//
-//    /* deal with the last gap */
-//    if ( is_overlapped(base, end, e820_base + e820_length, (uint64_t)-1) )
-//        ret = E820_GAP;
-//
-//    /* print the result */
-//    printk(TBOOT_DETA" (range from %016Lx to %016Lx is in ", base, base + length);
-//    switch (ret) {
-//        case E820_RAM:
-//            printk(TBOOT_INFO"E820_RAM)\n"); break;
-//        case E820_RESERVED:
-//            printk(TBOOT_INFO"E820_RESERVED)\n"); break;
-//        case E820_ACPI:
-//            printk(TBOOT_INFO"E820_ACPI)\n"); break;
-//        case E820_NVS:
-//            printk(TBOOT_INFO"E820_NVS)\n"); break;
-//        case E820_UNUSABLE:
-//            printk(TBOOT_INFO"E820_UNUSABLE)\n"); break;
-//        case E820_GAP:
-//            printk(TBOOT_INFO"E820_GAP)\n"); break;
-//        case E820_MIXED:
-//            printk(TBOOT_INFO"E820_MIXED)\n"); break;
-//        default:
-//            printk(TBOOT_INFO"UNKNOWN)\n");
-//    }
-//
-//    return ret;
-//}
+bool e820_protect_region(uint64_t addr, uint64_t size, uint32_t type)
+{
+    return protect_region(g_copy_e820_map, &g_nr_map, addr, size, type);
+}
+
+/*
+ * e820_check_region
+ *
+ * Given a range, check which kind of range it covers
+ *
+ * return: E820_GAP, it covers gap in e820 map;
+ *         E820_MIXED, it covers at least two different kinds of ranges;
+ *         E820_XXX, it covers E820_XXX range only;
+ *         it will not return 0.
+ */
+uint32_t e820_check_region(uint64_t base, uint64_t length)
+{
+    memory_map_t* e820_entry;
+    uint64_t end = base + length, e820_base, e820_end, e820_length;
+    uint32_t type;
+    uint32_t ret = 0;
+    bool gap = true; /* suppose there is always a virtual gap at first */
+
+    e820_base = 0;
+    e820_length = 0;
+
+    for ( unsigned int i = 0; i < g_nr_map; i = gap ? i : i+1, gap = !gap ) {
+        e820_entry = &g_copy_e820_map[i];
+        if ( gap ) {
+            /* deal with the gap in e820 map */
+            e820_base = e820_base + e820_length;
+            e820_length = e820_base_64(e820_entry) - e820_base;
+            type = E820_GAP;
+        }
+        else {
+            /* deal with the normal item in e820 map */
+            e820_base = e820_base_64(e820_entry);
+            e820_length = e820_length_64(e820_entry);
+            type = e820_entry->type;
+        }
+
+        if ( e820_length == 0 )
+            continue; /* if the range is zero, then skip */
+
+        e820_end = e820_base + e820_length;
+
+        if ( !is_overlapped(base, end, e820_base, e820_end) )
+            continue; /* if no overlapping, then skip */
+
+        /* if the value of ret is not assigned before,
+           then set ret to type directly */
+        if ( ret == 0 ) {
+            ret = type;
+            continue;
+        }
+
+        /* if the value of ret is assigned before but ret is equal to type,
+           then no need to do anything */
+        if ( ret == type )
+            continue;
+
+        /* if the value of ret is assigned before but it is GAP,
+           then no need to do anything since any type merged with GAP is GAP */
+        if ( ret == E820_GAP )
+            continue;
+
+        /* if the value of ret is assigned before but it is not GAP and type
+           is GAP now this time, then set ret to GAP since any type merged
+           with GAP is GAP. */
+        if ( type == E820_GAP ) {
+            ret = E820_GAP;
+            continue;
+        }
+
+        /* if the value of ret is assigned before but both ret and type are
+           not GAP and their values are not equal, then set ret to MIXED
+           since any two non-GAP values are merged into MIXED if they are
+           not equal. */
+        ret = E820_MIXED;
+    }
+
+    /* deal with the last gap */
+    if ( is_overlapped(base, end, e820_base + e820_length, (uint64_t)-1) )
+        ret = E820_GAP;
+
+    /* print the result */
+    switch (ret) {
+        case E820_RAM:
+            out_info("E820_RAM)\n"); break;
+        case E820_RESERVED:
+            out_info("E820_RESERVED)\n"); break;
+        case E820_ACPI:
+            out_info("E820_ACPI)\n"); break;
+        case E820_NVS:
+            out_info("E820_NVS)\n"); break;
+        case E820_UNUSABLE:
+            out_info("E820_UNUSABLE)\n"); break;
+        case E820_GAP:
+            out_info("E820_GAP)\n"); break;
+        case E820_MIXED:
+            out_info("E820_MIXED)\n"); break;
+        default:
+            out_info("UNKNOWN)\n");
+    }
+
+    return ret;
+}
 
 /*
  * e820_reserve_ram
@@ -471,14 +467,14 @@ int copy_e820_map(loader_ctx *lctx)
  * return:  false = error
  */
 
-int e820_reserve_ram(uint64_t base, uint64_t length)
+bool e820_reserve_ram(uint64_t base, uint64_t length)
 {
 	memory_map_t* e820_entry;
 	uint64_t e820_base, e820_length, e820_end;
 	uint64_t end;
 
 	if (length == 0)
-		return 1;
+		return true;
 
 	end = base + length;
 
@@ -509,7 +505,7 @@ int e820_reserve_ram(uint64_t base, uint64_t length)
 
 			/* split the current ram map */
 			if (!insert_after_region(g_copy_e820_map, &g_nr_map, i-1, e820_base, (end - e820_base), E820_RESERVED) )
-				return 0;
+				return false;
 			/* fixup the current ram map */
 			i++;
 			split64b(end, &(g_copy_e820_map[i].base_addr_low), &(g_copy_e820_map[i].base_addr_high));
@@ -524,7 +520,7 @@ int e820_reserve_ram(uint64_t base, uint64_t length)
 			split64b((base - e820_base), &(g_copy_e820_map[i].length_low), &(g_copy_e820_map[i].length_high));
 			/* split the current ram map */
 			if (!insert_after_region(g_copy_e820_map, &g_nr_map, i, base, (e820_end - base), E820_RESERVED))
-				return 0;
+				return false;
 			i++;
 		}
 		/* case 4: the range is within the current ram range: e820_base, base, end, e820_end */
@@ -533,21 +529,21 @@ int e820_reserve_ram(uint64_t base, uint64_t length)
 			split64b((base - e820_base), &(g_copy_e820_map[i].length_low), &(g_copy_e820_map[i].length_high));
 			/* split the current ram map */
 			if (!insert_after_region(g_copy_e820_map, &g_nr_map, i, base, length, E820_RESERVED))
-				return 0;
+				return false;
 			i++;
 			/* fixup the rest of the current ram map */
 			if (!insert_after_region(g_copy_e820_map, &g_nr_map, i, end, (e820_end - end), e820_entry->type))
-				return 0;
+				return false;
 			i++;
 			/* no need to check more */
 			break;
 		} else {
 			out_info("ERROR : we should never get here");
-			return 0;
+			return false;
 		}
 	}
 
-	return 1;
+	return true;
 }
 
 void print_e820_map(void)
@@ -556,10 +552,10 @@ void print_e820_map(void)
 }
 
 
-int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram)
+bool get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram)
 {
 	if ( min_lo_ram == NULL || max_lo_ram == NULL || min_hi_ram == NULL || max_hi_ram == NULL )
-		return 0;
+	return false;
 
 	*min_lo_ram = *min_hi_ram = ~0ULL;
 	*max_lo_ram = *max_hi_ram = 0;
@@ -599,7 +595,7 @@ int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_
 			/* if range straddles 4GB boundary, that is an error */
 			if (base < 0x100000000ULL && limit > 0x100000000ULL) {
 				out_info("ERROR : e820 memory range straddles 4GB boundary");
-				return 0;
+				return false;
 			}
 
 			/*
@@ -621,7 +617,7 @@ int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_
 					out_description("base", base);
 					out_description("limit", limit);
 					if (!e820_reserve_ram(base, limit - base))
-						return 0;
+						return false;
 				}
 			}
 
@@ -641,13 +637,13 @@ int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_
 	/* no low RAM found */
 	if (*min_lo_ram >= *max_lo_ram) {
 		out_info("no low ram in e820 map");
-		return 0;
+		return false;
 	}
 	/* no high RAM found */
 	if ( *min_hi_ram >= *max_hi_ram )
 		*min_hi_ram = *max_hi_ram = 0;
 
-	return 1;
+	return true;
 }
 
 ///* find highest (< <limit>) RAM region of at least <size> bytes */

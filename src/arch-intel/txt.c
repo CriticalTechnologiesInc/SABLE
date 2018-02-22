@@ -17,6 +17,10 @@
 #include "atomic.h"
 #include "keyboard.h"
 #include "mutex.h"
+#include <multiboot.h>
+#include <loader.h>
+#include <verify.h>
+#include <e820.h>
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -31,8 +35,6 @@
 #define DEF_SENTER_CTRLS                0x00
  
 extern acm_hdr_t *g_sinit;
-
-extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
 
 int get_parameters(getsec_parameters_t *params)
 {
@@ -1197,7 +1199,7 @@ static int verify_saved_mtrrs(txt_heap_t *txt_heap)
 }   
 
 
-int e820_reserve_ram(uint64_t base, uint64_t length);
+//int e820_reserve_ram(uint64_t base, uint64_t length);
 
 static int reserve_vtd_delta_mem(uint64_t min_lo_ram, uint64_t max_lo_ram, uint64_t min_hi_ram, uint64_t max_hi_ram)
 {
@@ -1474,59 +1476,56 @@ void txt_cpu_wakeup(void)
 //	WAIT_FOR_INPUT();
 }
 
-//tb_error_t txt_protect_mem_regions(void)
-//{
-//    uint64_t base, size;
-//
-//    /*
-//     * TXT has 2 regions of RAM that need to be reserved for use by only the
-//     * hypervisor; not even dom0 should have access:
-//     *   TXT heap, SINIT AC module
-//     */
-//
-//    /* TXT heap */
-//    base = read_pub_config_reg(TXTCR_HEAP_BASE);
-//    size = read_pub_config_reg(TXTCR_HEAP_SIZE);
-//    printk(TBOOT_INFO"protecting TXT heap (%Lx - %Lx) in e820 table\n", base,
-//           (base + size - 1));
-//    if ( !e820_protect_region(base, size, E820_RESERVED) )
-//        return TB_ERR_FATAL;
-//
-//    /* SINIT */
-//    base = read_pub_config_reg(TXTCR_SINIT_BASE);
-//    size = read_pub_config_reg(TXTCR_SINIT_SIZE);
-//    printk(TBOOT_INFO"protecting SINIT (%Lx - %Lx) in e820 table\n", base,
-//           (base + size - 1));
-//    if ( !e820_protect_region(base, size, E820_RESERVED) )
-//        return TB_ERR_FATAL;
-//
-//    /* TXT private space */
-//    base = TXT_PRIV_CONFIG_REGS_BASE;
-//    size = TXT_CONFIG_REGS_SIZE;
-//    printk(TBOOT_INFO
-//           "protecting TXT Private Space (%Lx - %Lx) in e820 table\n",
-//           base, (base + size - 1));
-//    if ( !e820_protect_region(base, size, E820_RESERVED) )
-//        return TB_ERR_FATAL;
-//
-//    /* ensure that memory not marked as good RAM by the MDRs is RESERVED in
-//       the e820 table */
-//    txt_heap_t* txt_heap = get_txt_heap();
-//    sinit_mle_data_t *sinit_mle_data = get_sinit_mle_data_start(txt_heap);
-//    uint32_t num_mdrs = sinit_mle_data->num_mdrs;
-//    sinit_mdr_t *mdrs_base = (sinit_mdr_t *)(((void *)sinit_mle_data
-//                                              - sizeof(uint64_t)) +
-//                                             sinit_mle_data->mdrs_off);
-//    printk(TBOOT_INFO"verifying e820 table against SINIT MDRs: ");
-//    if ( !verify_e820_map(mdrs_base, num_mdrs) ) {
-//        printk(TBOOT_ERR"verification failed.\n");
-//        return TB_ERR_POST_LAUNCH_VERIFICATION;
-//    }
-//    printk(TBOOT_INFO"verification succeeded.\n");
-//
-//    return TB_ERR_NONE;
-//}
-//
+int txt_protect_mem_regions(void)
+{
+    uint64_t base, size;
+
+    /*
+     * TXT has 2 regions of RAM that need to be reserved for use by only the
+     * hypervisor; not even dom0 should have access:
+     *   TXT heap, SINIT AC module
+     */
+
+    /* TXT heap */
+    base = read_pub_config_reg(TXTCR_HEAP_BASE);
+    size = read_pub_config_reg(TXTCR_HEAP_SIZE);
+    out_info("protecting TXT heap in e820 table\n");
+    if ( !e820_protect_region(base, size, E820_RESERVED) )
+        return -1;
+
+    /* SINIT */
+    base = read_pub_config_reg(TXTCR_SINIT_BASE);
+    size = read_pub_config_reg(TXTCR_SINIT_SIZE);
+    out_info("protecting SINIT in e820 table\n");
+    if ( !e820_protect_region(base, size, E820_RESERVED) )
+        return -1;
+
+    /* TXT private space */
+    base = TXT_PRIV_CONFIG_REGS_BASE;
+    size = TXT_CONFIG_REGS_SIZE;
+    out_info(
+           "protecting TXT Private Space in e820 table\n");
+    if ( !e820_protect_region(base, size, E820_RESERVED) )
+        return -1;
+
+    /* ensure that memory not marked as good RAM by the MDRs is RESERVED in
+       the e820 table */
+    txt_heap_t* txt_heap = get_txt_heap();
+    sinit_mle_data_t *sinit_mle_data = get_sinit_mle_data_start(txt_heap);
+    uint32_t num_mdrs = sinit_mle_data->num_mdrs;
+    sinit_mdr_t *mdrs_base = (sinit_mdr_t *)(((void *)sinit_mle_data
+                                              - sizeof(uint64_t)) +
+                                             sinit_mle_data->mdrs_off);
+    out_info("verifying e820 table against SINIT MDRs: ");
+    if ( !verify_e820_map(mdrs_base, num_mdrs) ) {
+        out_info("verification failed.\n");
+        return -2;
+    }
+    out_info("verification succeeded.\n");
+
+    return 0;
+}
+
 //void txt_shutdown(void)
 //{
 //    unsigned long apicbase;
