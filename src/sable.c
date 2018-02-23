@@ -438,6 +438,18 @@ void sable_layout_error() {
  * This function runs before the late launch and has to enable SVM in the
  * processor and disable all localities.
  */
+
+void hash_and_dump(unsigned int start, unsigned int endlen) {
+	SHA1_Context sctx;
+	sha1_init(&sctx);
+	sha1(&sctx, (BYTE *)start, endlen);
+	sha1_finish(&sctx);
+
+	out_description("start", start);
+	out_description("endlen", endlen);
+	show_hash("Hash", sctx.hash);
+}
+
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
@@ -448,7 +460,12 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   out_description("mbi adress : m", (unsigned int)m);
   out_description("conetext->addr", (unsigned int)g_ldr_ctx->addr);
 
-
+  WAIT_FOR_INPUT()
+  out_info("HEX DUMP");
+  hex_dump((unsigned char *)0x7c00, 256);
+  WAIT_FOR_INPUT()
+  hash_and_dump(0x7c00, 521);
+  WAIT_FOR_INPUT()
   determine_loader_type(flags);
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
@@ -637,6 +654,15 @@ RESULT post_launch(struct mbi *m) {
       wait(5000);
       reboot();
     } else if (config_str[0] == 'b') {                  // BHUSHAN : REMOVE later
+
+WAIT_FOR_INPUT()
+out_info("HEX DUMP");
+hex_dump((unsigned char *)0x7c00, 256);
+WAIT_FOR_INPUT()
+hash_and_dump(0x7c00, 521);
+WAIT_FOR_INPUT()
+
+
       start_module(m);        				// BHUSHAN : REMOVE later
     } else {
       RESULT trusted_boot_ret = trusted_boot(nvIndex);
