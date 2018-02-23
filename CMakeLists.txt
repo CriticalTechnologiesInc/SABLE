@@ -175,7 +175,7 @@ add_executable (sable-Intel
 set_target_properties (cleanup-Intel
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
@@ -201,7 +201,7 @@ set_target_properties (cleanup-Intel
 set_target_properties (sable-Intel
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
