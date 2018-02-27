@@ -479,14 +479,19 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   // moved post launch in appropriate place
 
   wait(5000);
-
+  */
   if (txt_is_launched()) {
      out_info("We are in measured launch .. Post_launch started ...");
-     wait(5000);
-     post_launch(g_ldr_ctx->addr);
+ //    wait(5000);
+  //   post_launch(g_ldr_ctx->addr);
   }
 
-  */
+   char config_str[2];
+   out_string("Do you want to jump to next module? [y/n]:");
+   get_string(config_str, sizeof(config_str) - 1, true);
+   if (config_str[0] == 'y') {
+       start_module(g_ldr_ctx->addr);
+   }
 
   init_heap(heap, sizeof(heap_array));
 
