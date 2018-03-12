@@ -450,6 +450,8 @@ void hash_and_dump(unsigned int start, unsigned int endlen) {
 	show_hash("Hash", sctx.hash);
 }
 
+extern void print_cpu_state();
+
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
@@ -473,6 +475,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 	out_info("SKIPPING as context is already INITIALIZED");
   }
 
+  print_cpu_state();
   print_mbi(g_ldr_ctx->addr);
   /*
 
@@ -490,6 +493,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
    out_string("Do you want to jump to next module? [y/n]:");
    get_string(config_str, sizeof(config_str) - 1, true);
    if (config_str[0] == 'y') {
+	print_cpu_state();
        start_module(g_ldr_ctx->addr);
    }
 
