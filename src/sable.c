@@ -476,6 +476,13 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   }
 
   print_cpu_state();
+	out_info("Checking endianness by enabling and disabling DIF (bit 11th)");
+	out_info("Enabling DF flag bit 11 (mask : 0x0400)");
+	__asm__ __volatile__ ("std");
+  print_cpu_state();
+	out_info("disabling DF flag bit 11 (mask : 0x0400)");
+	__asm__ __volatile__ ("cld");
+  print_cpu_state();
   print_mbi(g_ldr_ctx->addr);
   /*
 
