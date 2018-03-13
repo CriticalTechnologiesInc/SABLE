@@ -451,6 +451,7 @@ void hash_and_dump(unsigned int start, unsigned int endlen) {
 }
 
 extern void print_cpu_state();
+extern void save_cpu_state();
 
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
@@ -483,6 +484,10 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 	out_info("disabling DF flag bit 11 (mask : 0x0400)");
 	__asm__ __volatile__ ("cld");
   print_cpu_state();
+
+
+  save_cpu_state();
+
   print_mbi(g_ldr_ctx->addr);
   /*
 

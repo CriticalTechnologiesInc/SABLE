@@ -34,6 +34,143 @@ extern acm_hdr_t *g_sinit;
 
 extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
 
+
+struct cpu_state {
+	unsigned long eax, ebx, ecx, edx, edi, esi;
+	uint16_t cs, ds, es, fs, gs, ss;
+	unsigned long efer, eflags, esp, ebp;
+ 	unsigned long cr0, cr2, cr3, cr4;
+ 
+ 	/* idt, gdt actually 48 bits each */
+ 	uint16_t gdt_pad;
+ 	uint16_t gdt_limit;
+ 	unsigned long gdt_base;
+ 	uint16_t idt_pad;
+ 	uint16_t idt_limit;
+ 	unsigned long idt_base;
+ 	uint16_t ldt;
+ 	uint16_t tss;
+ 	unsigned long tr;
+ 	unsigned long safety;
+ 	unsigned long return_address;
+ 	/* used for storing timing information across PAL invocations */
+ 	unsigned long startl, starth, endl, endh;
+ 	/* add this to physical base addr to get same addr in kernel virt space */
+ 	unsigned long p2v_offset;
+} __attribute__((packed));
+  
+typedef struct cpu_state cpu_t;
+
+
+/* InSecure Kernel state; system state to be restored post-flicker
+ * session. */
+static cpu_t isk_state;
+
+//#define rdmsrl(msr, val) (val) = __readmsr(msr)^M
+//#define EFER_MSR          (0xc0000080)
+
+/**
+ * Dump saved processor state to debug output
+ */
+
+void dump_state(cpu_t *s) {
+	if(s == NULL) { return; }
+
+	out_description("eax", s->eax);
+	out_description("ebx", s->ebx);
+	out_description("ecx", s->ecx);
+	out_description("edx", s->edx);
+	out_description("edi", s->edi);
+	out_description("esi", s->esi);
+
+	out_description("cs", s->cs);
+	out_description("ds", s->ds);
+	out_description("es", s->es);
+	out_description("fs", s->fs);
+	out_description("gs", s->gs);
+	out_description("ss", s->ss);
+
+
+	out_description("eflags", s->eflags);
+	out_description("efer", s->efer);
+	out_description("esp", s->esp);
+	out_description("ebp", s->ebp);
+
+
+	out_description("cr0", s->cr0);
+	out_description("cr2", s->cr2);
+	out_description("cr3", s->cr3);
+	out_description("cr4", s->cr4);
+ 
+	out_description("gdt base", s->gdt_base);
+	out_description("gdt limit", s->gdt_limit);
+	out_description("idt base", s->idt_base);
+	out_description("idt limit", s->idt_limit);
+ 
+	out_description("ldt", s->ldt);
+	out_description("tss", s->tss);
+	out_description("tr", s->tr);
+	out_description("safety", s->safety);
+	out_description("return add", s->return_address);
+
+	out_description("return add", s->ebp);
+	out_description("return add", s->esp);
+}
+
+
+void save_cpu_state(void) {
+ 	/* EFER */
+// 	rdmsrl(EFER_MSR, isk_state.efer);
+ 
+ 	/* eflags */
+ 	asm volatile("pushfl");
+ 	asm volatile("popl %0" : "=m" (isk_state.eflags));
+ 
+ 	/* descriptor tables */
+ 	asm volatile ("sgdt %0" : "=m" (isk_state.gdt_limit));
+ 	asm volatile ("sidt %0" : "=m" (isk_state.idt_limit)); /* store 36bit */
+ 	asm volatile ("sldt %0" : "=m" (isk_state.ldt));
+ 	asm volatile ("str %0"  : "=m" (isk_state.tr));
+ 
+ 	/* segment registers */
+ 	asm volatile ("movw %%cs, %0" : "=r" (isk_state.cs));
+ 	asm volatile ("movw %%ds, %0" : "=r" (isk_state.ds));
+ 	asm volatile ("movw %%es, %0" : "=r" (isk_state.es));
+ 	asm volatile ("movw %%fs, %0" : "=r" (isk_state.fs));
+ 	asm volatile ("movw %%gs, %0" : "=r" (isk_state.gs));
+ 	asm volatile ("movw %%ss, %0" : "=r" (isk_state.ss));
+ 
+ 	/* control registers */
+ 	asm volatile ("movl %%cr0, %0" : "=r" (isk_state.cr0));
+ 	asm volatile ("movl %%cr2, %0" : "=r" (isk_state.cr2));
+ 	asm volatile ("movl %%cr3, %0" : "=r" (isk_state.cr3));
+ 	asm volatile ("movl %%cr4, %0" : "=r" (isk_state.cr4));
+ 
+	/* Stack registers are saved at the last minute, later */
+
+	/* return address */
+//	isk_state.return_address = (get_cpu_vendor() == CPU_VENDOR_INTEL) ?
+//		(uint32_t)intel_kernel_reenter : (uint32_t)amd_kernel_reenter;
+
+	/* We want to set isk_state.p2v_offset such that _adding_ it to the
+	 * PAL's physical address will result in the correct OS virtual
+	 * address. Even though there is overflow if the virtual address is
+	 * less than the physical address, we still get the right answer.*/
+
+//	isk_state.p2v_offset = (uint32_t)&(g_pal->reload) - (uint32_t)virt_to_phys(&(g_pal->reload));
+
+	/* Copy saved state to well-known area in PAL input buffer.
+	 * Note that assembly code in the PAL will reference the
+	 * reload region to restore CPU state when resumuing kernel. */
+//	memcpy(&(g_pal->reload), &isk_state, sizeof(cpu_t));
+
+//	out_description("size", sizeof(g_pal->reload));
+//	out_description("vrtl add", (uint32_t)&(g_pal->reload));
+//	out_Description("pysical add", (uint32_t)virt_to_phys(&(g_pal->reload)));
+	dump_state(&isk_state);
+	WAIT_FOR_INPUT();
+}
+
 void print_cpu_state() {
 	out_description("EFlags", read_eflags());
 	out_description64("EFlags", read_eflags());
