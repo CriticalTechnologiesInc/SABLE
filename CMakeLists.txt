@@ -179,11 +179,13 @@ add_executable (sable-Intel
 set_target_properties (cleanup-Intel
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
     -T ${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
+  LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/cleanup/cleanup.ld"
   COMPILE_FLAGS
     "-D__ARCH_INTEL__ \
     -Wno-main \
@@ -205,11 +207,13 @@ set_target_properties (cleanup-Intel
 set_target_properties (sable-Intel
   PROPERTIES
   LINK_FLAGS
-    "-gc-sections \
+    "-Wl,-gc-sections \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
     -T ${PROJECT_SOURCE_DIR}/src/arch-intel/sable.ld"
+  LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/src/arch-intel/sable.ld"
   COMPILE_FLAGS
     "-D__ARCH_INTEL__ \
     -Wno-main \

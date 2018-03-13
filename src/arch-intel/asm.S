@@ -76,7 +76,11 @@ ENTRY(start)
 ENTRY(_start)
 	jmp __start
 FUNCTION __start
-	leal    STACK_TOP,%esp
+//	leal    STACK_TOP,%esp
+	leal	bsp_stack,%esp
+
+/* Bhushan : we also need to clear bss stack section to avoid any suprises */
+
 	xchg    %eax,%edx
 	xchg    %ebx,%eax
 	pushl	%eax
@@ -135,7 +139,7 @@ FUNCTION _post_launch_entry
 	/* copied from amd post lauch */
 
 	/* Setup ESP to top of 64K */
-	leal SLB_STACK_TOP, %esp
+//	leal SLB_STACK_TOP, %esp   we handle stack in __start
 
 //	/* clear VM_CR to enable debugging */
 //	mov     $VM_CR_MSR, %ecx
@@ -306,11 +310,38 @@ _gdt_cs:
     .quad 0x00cf9b000000ffff
 _gdt_ds:
     .quad 0x00cf93000000ffff
+
+/* Bhushan : Added according to Tboot */
+
+ tss_descr:      /* tss */
+	.word   0xffff		/* limit = 4GB */
+	.word   0x00		/* base = 0 */
+	.word   0x8900		/* system segment, 32b available TSS */
+	.word   0x008f		/* granularity = 4096 */
+cs16_desc:      /* cs16 */
+	.word   0xffff		/* limit = 4GB */
+	.word   0x0000		/* base = 0 */
+	.word   0x9b00		/* read + exec + accessed */
+	.word   0x008f		/* granularity = 4096, D = 0 */
+ds16_desc:  /* ds16 */
+	.word   0xffff		/* limit = 4GB */
+	.word   0x0000		/* base = 0 */
+	.word   0x9300		/* read + exec + accessed */
+	.word   0x008f		/* granularity = 4096, D = 0 */
+				/* end (unused) */
+	.quad   0x0000000000000000
+
 FUNCTION end_gdt
 /* end_gdt: */
 /* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 
 
 /* stacks for APs */
+
+.section ".bss.stack_aligned","w"
+
+bsp_stack_end:
+	.fill BSP_STACK_SIZE, 1, 0
+bsp_stack:
 
 ap_stacks_end:
 	.fill AP_STACK_SIZE * NR_CPUS, 1, 0

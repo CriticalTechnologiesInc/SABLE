@@ -617,7 +617,7 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 
 
 int prepare_sinit_acm(struct mbi *m) {
-	void *base2;
+	void *base2=NULL;
 
 	out_description("Bhushan: prepare_sinit", m->mods_count);
 	out_description("Bhushan: prepare_sinit tboot", ((multiboot_info_t *) m)->mods_count);

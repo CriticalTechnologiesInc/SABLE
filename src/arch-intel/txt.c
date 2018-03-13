@@ -36,6 +36,17 @@
  
 extern acm_hdr_t *g_sinit;
 
+extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
+
+void print_cpu_state() {
+	out_description("EFlags", read_eflags());
+	out_description64("EFlags", read_eflags());
+	out_description64("ECX", read_ecx());
+	out_description64("CR0", read_cr0());
+	out_description64("CR4", read_cr4());
+	out_description64("CR3", read_cr3());
+	WAIT_FOR_INPUT();
+}
 int get_parameters(getsec_parameters_t *params)
 {
 	unsigned long cr4;
@@ -1007,6 +1018,7 @@ int txt_launch_environment()
 	out_description("SINIT SIZE :", (unsigned int) (g_sinit->size)*4);
 
 	wait(4000);
+	print_cpu_state();
 	__getsec_senter((uint32_t)g_sinit, (g_sinit->size)*4);
 	out_info("ERROR--we should not get here!\n");
 	return 0;

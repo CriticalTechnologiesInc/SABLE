@@ -439,6 +439,20 @@ void sable_layout_error() {
  * This function runs before the late launch and has to enable SVM in the
  * processor and disable all localities.
  */
+
+void hash_and_dump(unsigned int start, unsigned int endlen) {
+	SHA1_Context sctx;
+	sha1_init(&sctx);
+	sha1(&sctx, (BYTE *)start, endlen);
+	sha1_finish(&sctx);
+
+	out_description("start", start);
+	out_description("endlen", endlen);
+	show_hash("Hash", sctx.hash);
+}
+
+extern void print_cpu_state();
+
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   //start_module(m);
 
@@ -451,7 +465,12 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   out_description("mbi adress : m", (unsigned int)m);
   out_description("conetext->addr", (unsigned int)g_ldr_ctx->addr);
 
-
+  WAIT_FOR_INPUT()
+  out_info("HEX DUMP");
+  hex_dump((unsigned char *)0x7c00, 256);
+  WAIT_FOR_INPUT()
+  hash_and_dump(0x7c00, 521);
+  WAIT_FOR_INPUT()
   determine_loader_type(flags);
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
@@ -459,20 +478,34 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 	out_info("SKIPPING as context is already INITIALIZED");
   }
 
+  print_cpu_state();
+	out_info("Checking endianness by enabling and disabling DIF (bit 11th)");
+	out_info("Enabling DF flag bit 11 (mask : 0x0400)");
+	__asm__ __volatile__ ("std");
+  print_cpu_state();
+	out_info("disabling DF flag bit 11 (mask : 0x0400)");
+	__asm__ __volatile__ ("cld");
+  print_cpu_state();
   print_mbi(g_ldr_ctx->addr);
   /*
 
   // moved post launch in appropriate place
 
   wait(5000);
-
+  */
   if (txt_is_launched()) {
      out_info("We are in measured launch .. Post_launch started ...");
-     wait(5000);
-     post_launch(g_ldr_ctx->addr);
+ //    wait(5000);
+  //   post_launch(g_ldr_ctx->addr);
   }
 
-  */
+   char config_str[2];
+   out_string("Do you want to jump to next module? [y/n]:");
+   get_string(config_str, sizeof(config_str) - 1, true);
+   if (config_str[0] == 'y') {
+	print_cpu_state();
+       start_module(g_ldr_ctx->addr);
+   }
 
   init_heap(heap, sizeof(heap_array));
 
@@ -642,6 +675,15 @@ RESULT post_launch(struct mbi *m) {
       wait(5000);
       reboot();
     } else if (config_str[0] == 'b') {                  // BHUSHAN : REMOVE later
+
+WAIT_FOR_INPUT()
+out_info("HEX DUMP");
+hex_dump((unsigned char *)0x7c00, 256);
+WAIT_FOR_INPUT()
+hash_and_dump(0x7c00, 521);
+WAIT_FOR_INPUT()
+
+
       start_module(m);        				// BHUSHAN : REMOVE later
     } else {
       RESULT trusted_boot_ret = trusted_boot(nvIndex);
