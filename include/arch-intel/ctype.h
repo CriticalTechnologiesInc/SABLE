@@ -1,7 +1,5 @@
 /*
- * verify.h: support functions for platform Intel(r) TXT verification
- *
- * Copyright (c) 2003-2008, Intel Corporation
+ * Copyright (c) 2010, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,18 +31,62 @@
  *
  */
 
-#ifndef __TXT_VERIFY_H__
-#define __TXT_VERIFY_H__
+#ifndef __CTYPE_H__
+#define __CTYPE_H__
 
-//extern void set_vtd_pmrs(os_sinit_data_t *os_sinit_data,
-//                         uint64_t min_lo_ram, uint64_t max_lo_ram,
-//                         uint64_t min_hi_ram, uint64_t max_hi_ram);
-extern bool verify_e820_map(sinit_mdr_t* mdrs_base, uint32_t num_mdrs);
-//extern bool verify_stm(unsigned int cpuid);
-extern bool use_mwait(void);
+//#include <stdbool.h>
+//#include <types.h>
+//#include <compiler.h>
 
-#endif   /* __TXT_VERIFY_H__ */
+/* from:
+ * http://fxr.watson.org/fxr/source/dist/acpica/acutils.h?v=NETBSD5
+*/
 
+extern const uint8_t _ctype[];
+
+#define _XA     0x00    /* extra alphabetic - not supported */
+#define _XS     0x40    /* extra space */
+#define _BB     0x00    /* BEL, BS, etc. - not supported */
+#define _CN     0x20    /* CR, FF, HT, NL, VT */
+#define _DI     0x04    /* ''-'9' */
+#define _LO     0x02    /* 'a'-'z' */
+#define _PU     0x10    /* punctuation */
+#define _SP     0x08    /* space */
+#define _UP     0x01    /* 'A'-'Z' */
+#define _XD     0x80    /* ''-'9', 'A'-'F', 'a'-'f' */
+
+static always_inline bool isdigit(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_DI));
+}
+static always_inline bool isspace(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_SP));
+}
+static always_inline bool isxdigit(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_XD));
+}
+static always_inline bool isupper(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_UP));
+}
+static always_inline bool islower(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_LO));
+}
+static always_inline bool isprint(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_LO | _UP | _DI |
+                                          _SP | _PU));
+}
+static always_inline bool isalpha(int c)
+{
+    return (_ctype[(unsigned char)(c)] & (_LO | _UP));
+}
+
+
+#endif /* __CTYPE_H__ */
 
 /*
  * Local variables:

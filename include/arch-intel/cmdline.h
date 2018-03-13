@@ -1,7 +1,7 @@
 /*
- * verify.h: support functions for platform Intel(r) TXT verification
+ * cmdline.h: support functions for command line parsing
  *
- * Copyright (c) 2003-2008, Intel Corporation
+ * Copyright (c) 2006-2010, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,17 +33,37 @@
  *
  */
 
-#ifndef __TXT_VERIFY_H__
-#define __TXT_VERIFY_H__
+#ifndef __CMDLINE_H__
+#define __CMDLINE_H__
 
-//extern void set_vtd_pmrs(os_sinit_data_t *os_sinit_data,
-//                         uint64_t min_lo_ram, uint64_t max_lo_ram,
-//                         uint64_t min_hi_ram, uint64_t max_hi_ram);
-extern bool verify_e820_map(sinit_mdr_t* mdrs_base, uint32_t num_mdrs);
-//extern bool verify_stm(unsigned int cpuid);
-extern bool use_mwait(void);
+#define CMDLINE_SIZE   512
+extern char g_cmdline[CMDLINE_SIZE];
 
-#endif   /* __TXT_VERIFY_H__ */
+
+extern void tboot_parse_cmdline(void);
+extern void get_tboot_loglvl(void);
+extern void get_tboot_log_targets(void);
+extern bool get_tboot_serial(void);
+extern void get_tboot_baud(void);
+extern void get_tboot_fmt(void);
+extern void get_tboot_vga_delay(void);
+extern bool get_tboot_mwait(void);
+extern bool get_tboot_prefer_da(void);
+extern void get_tboot_min_ram(void);
+extern bool get_tboot_call_racm(void);
+extern bool get_tboot_call_racm_check(void);
+extern bool get_tboot_ignore_prev_err(void);
+extern bool get_tboot_measure_nv(void);
+extern void get_tboot_extpol(void);
+
+/* for parse cmdline of linux kernel, say vga and mem */
+extern void linux_parse_cmdline(const char *cmdline);
+extern bool get_linux_vga(int *vid_mode);
+extern bool get_linux_mem(uint64_t *initrd_max_mem);
+
+extern uint8_t get_loglvl_prefix(char **pbuf, int *len);
+
+#endif    /* __CMDLINE_H__ */
 
 
 /*

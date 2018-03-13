@@ -48,7 +48,6 @@
 //#include <misc.h>
 //#include <page.h>
 //#include <msr.h>
-//#include <atomic.h>
 //#include <io.h>
 //#include <mutex.h>
 //#include <uuid.h>
@@ -63,9 +62,7 @@
 //#include <txt/mtrrs.h>
 //#include <txt/config_regs.h>
 //#include <txt/heap.h>
-//#include <txt/verify.h>
 //#include <tb_policy.h>
-//#include <tboot.h>
 //#include <acpi.h>
 //#include <integrity.h>
 //#include <cmdline.h>
@@ -75,10 +72,21 @@
 #include <exception.h>
 #include <mbi.h>
 #include <e820.h>
+#include <tboot.h>
+#include <misc.h>
+#include <atomic.h>
+typedef struct __packed {
+    uint64_t  base;
+    uint64_t  length;
+    uint8_t   mem_type;
+    uint8_t   reserved[7];
+} sinit_mdr_t;
+#include <verify.h>
+#include <printk.h>
 
 extern loader_ctx *g_ldr_ctx;
 RESULT post_launch(struct mbi *m);
-
+extern tboot_shared_t _tboot_shared;
 /* Bhushan : present in acpi.h : just littile hack to be removed latter */
 extern int save_vtd_dmar_table(void);
 extern void print_e820_map(void);
@@ -112,7 +120,7 @@ extern void verify_all_modules(loader_ctx *lctx);
 //extern char s3_wakeup_16[];
 //extern char s3_wakeup_end[];
 //
-//extern atomic_t ap_wfs_count;
+extern atomic_t ap_wfs_count;
 //
 //extern struct mutex ap_lock;
 //
@@ -189,8 +197,8 @@ void intel_post_launch(void)
 	wait(4000);
 	uint64_t base, size;
 //    tb_error_t err;
-//    extern tboot_log_t *g_log;
-//    extern void shutdown_entry(void);
+    tboot_log_t *g_log;
+    extern void shutdown_entry(void);
 //
 	out_info("measured launch succeeded");
 //
@@ -268,17 +276,17 @@ void intel_post_launch(void)
 
     /* if using memory logging, reserve log area */
 //    if ( g_log_targets & TBOOT_LOG_TARGET_MEMORY ) {
-//        base = TBOOT_SERIAL_LOG_ADDR;
-//        size = TBOOT_SERIAL_LOG_SIZE;
-//        out_info("reserving tboot memory log in e820 table\n");
-//        if ( !e820_protect_region(base, size, E820_RESERVED) )         
-//          out_info("Error: e820_protect_region2 failed!\n");
-//        else
-//          out_info("e820_protect_region2 succeeded!\n");
+        base = TBOOT_SERIAL_LOG_ADDR;
+        size = TBOOT_SERIAL_LOG_SIZE;
+        out_info("reserving tboot memory log in e820 table\n");
+        if ( !e820_protect_region(base, size, E820_RESERVED) )         
+          out_info("Error: e820_protect_region2 failed!\n");
+        else
+          out_info("e820_protect_region2 succeeded!\n");
 //    }else{
 //      out_info("Not using memory logging\n");
 //    }
-//    wait(4000);
+    wait(4000);
 
 	/* replace map in loader context with copy */
 	replace_e820_map(g_ldr_ctx);
@@ -311,30 +319,54 @@ void intel_post_launch(void)
 	/*
 	 * init MLE/kernel shared data page
 	 */
-//    memset(&_tboot_shared, 0, PAGE_SIZE);
-//    _tboot_shared.uuid = (uuid_t)TBOOT_SHARED_UUID;
-//    _tboot_shared.version = 6;
-//    _tboot_shared.log_addr = (uint32_t)g_log;
-//    _tboot_shared.shutdown_entry = (uint32_t)shutdown_entry;
-//    _tboot_shared.tboot_base = (uint32_t)&_start;
-//    _tboot_shared.tboot_size = (uint32_t)&_end - (uint32_t)&_start;
-//    uint32_t key_size = sizeof(_tboot_shared.s3_key);
-//    if ( !g_tpm->get_random(g_tpm, 2, _tboot_shared.s3_key, &key_size) || key_size != sizeof(_tboot_shared.s3_key) )
-//        apply_policy(TB_ERR_S3_INTEGRITY);
-//    _tboot_shared.num_in_wfs = atomic_read(&ap_wfs_count);
-//    if ( use_mwait() ) {
-//        _tboot_shared.flags |= TB_FLAG_AP_WAKE_SUPPORT;
-//        _tboot_shared.ap_wake_trigger = AP_WAKE_TRIGGER_DEF;
-//    }
-//    else if ( get_tboot_mwait() ) {
-//        printk(TBOOT_ERR"ap_wake_mwait specified but the CPU doesn't support it.\n");
-//    }
+    g_log = (tboot_log_t *)TBOOT_SERIAL_LOG_ADDR;
+    g_log->uuid = (uuid_t)TBOOT_LOG_UUID;
+    g_log->curr_pos = 0;
+    g_log->zip_count = 0;
+    for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_pos[i] = 0;
+    for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_size[i] = 0;
+
+    /* initialize these post-launch as well, since bad/malicious values */
+    /* could compromise environment */
+    g_log = (tboot_log_t *)TBOOT_SERIAL_LOG_ADDR;
+    g_log->max_size = TBOOT_SERIAL_LOG_SIZE - sizeof(*g_log);
+
+    /* if we're calling this post-launch, verify that curr_pos is valid */
+    if ( g_log->zip_pos[g_log->zip_count] > g_log->max_size ){
+        g_log->curr_pos = 0;
+        g_log->zip_count = 0;
+        for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_pos[i] = 0;
+        for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_size[i] = 0;
+    }
+    if ( g_log->curr_pos > g_log->max_size )
+        g_log->curr_pos = g_log->zip_pos[g_log->zip_count];
+    memset(&_tboot_shared, 0, PAGE_SIZE);
+    _tboot_shared.uuid = (uuid_t)TBOOT_SHARED_UUID;
+    _tboot_shared.version = 6;
+    _tboot_shared.log_addr = (uint32_t)g_log;
+    _tboot_shared.shutdown_entry = 0;//(uint32_t)shutdown_entry;
+    _tboot_shared.tboot_base = (uint32_t)&_start;
+    _tboot_shared.tboot_size = (uint32_t)&_end - (uint32_t)&_start;
+    //uint32_t key_size = sizeof(_tboot_shared.s3_key);
+    //if ( !g_tpm->get_random(g_tpm, 2, _tboot_shared.s3_key, &key_size) || key_size != sizeof(_tboot_shared.s3_key) )
+    //    apply_policy(TB_ERR_S3_INTEGRITY);
+    _tboot_shared.num_in_wfs = atomic_read(&ap_wfs_count);
+    //if ( use_mwait() ) {
+    //    _tboot_shared.flags |= TB_FLAG_AP_WAKE_SUPPORT;
+    //    _tboot_shared.ap_wake_trigger = AP_WAKE_TRIGGER_DEF;
+    //}
+    //else if ( get_tboot_mwait() ) {
+    //    out_info("ap_wake_mwait specified but the CPU doesn't support it.\n");
+    //}
 //
 //    print_tboot_shared(&_tboot_shared);
 //
 //    launch_kernel(true);
 //    apply_policy(TB_ERR_FATAL);
-	post_launch(g_ldr_ctx->addr);
+
+
+	//post_launch(g_ldr_ctx->addr); // Temp commented out
+	launch_kernel(true);
 }
 //
 //void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec)

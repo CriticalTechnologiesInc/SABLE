@@ -57,6 +57,24 @@
 	.long   0x00000003              /* feature flags */
 	.long   0 - (MBI_MAGIC1 + 0x3)
 
+/*
+ * shared data page with kernel (i.e. Xen)
+ * (put at end so that not split e820 region for tboot)
+ */
+.section ".tboot_shared","w"
+        .align PAGE_SIZE, 0
+
+#define ENTRY(name)                             \
+  .globl name;                                  \
+  .align 16,0x90;                               \
+  name:
+
+ENTRY(_tboot_shared)
+	.fill  PAGE_SIZE,1,0
+        .align PAGE_SIZE, 0
+ENTRY(start)
+ENTRY(_start)
+	jmp __start
 FUNCTION __start
 	leal    STACK_TOP,%esp
 	xchg    %eax,%edx
@@ -298,3 +316,4 @@ ap_stacks_end:
 	.fill AP_STACK_SIZE * NR_CPUS, 1, 0
 ap_stacks: 
 
+ENTRY(_end)

@@ -1,8 +1,7 @@
 /*
- * verify.h: support functions for platform Intel(r) TXT verification
+ * printk.h: printk to serial for very early boot stages
  *
- * Copyright (c) 2003-2008, Intel Corporation
- * All rights reserved.
+ * Copyright (c) 2006-2010, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,25 +32,36 @@
  *
  */
 
-#ifndef __TXT_VERIFY_H__
-#define __TXT_VERIFY_H__
+#ifndef __PRINTK_H__
+#define __PRINTK_H__
 
-//extern void set_vtd_pmrs(os_sinit_data_t *os_sinit_data,
-//                         uint64_t min_lo_ram, uint64_t max_lo_ram,
-//                         uint64_t min_hi_ram, uint64_t max_hi_ram);
-extern bool verify_e820_map(sinit_mdr_t* mdrs_base, uint32_t num_mdrs);
-//extern bool verify_stm(unsigned int cpuid);
-extern bool use_mwait(void);
+#include <com.h>
+//#include <vga.h>
 
-#endif   /* __TXT_VERIFY_H__ */
+#define TBOOT_LOG_LEVEL_NONE    0x00
+#define TBOOT_LOG_LEVEL_ERR     0x01
+#define TBOOT_LOG_LEVEL_WARN    0x02
+#define TBOOT_LOG_LEVEL_INFO    0x04
+#define TBOOT_LOG_LEVEL_DETA    0x08
+#define TBOOT_LOG_LEVEL_ALL     0xFF
 
+#define TBOOT_LOG_TARGET_NONE   0x00
+#define TBOOT_LOG_TARGET_VGA    0x01
+#define TBOOT_LOG_TARGET_SERIAL 0x02
+#define TBOOT_LOG_TARGET_MEMORY 0x04
 
-/*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
- */
+extern uint8_t g_log_level;
+extern uint8_t g_log_targets;
+extern uint8_t g_vga_delay;
+extern serial_port_t g_com_port;
+
+//#define serial_init()         comc_init()
+//#define serial_write(s, n)    comc_puts(s, n)
+
+//#define vga_write(s,n)        vga_puts(s, n)
+
+//extern void printk_init(void);
+//extern void printk(const char *fmt, ...)
+//                         __attribute__ ((format (printf, 1, 2)));
+
+#endif
