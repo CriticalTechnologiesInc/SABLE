@@ -146,7 +146,11 @@ void save_cpu_state(void) {
  	asm volatile ("movl %%cr3, %0" : "=r" (isk_state.cr3));
  	asm volatile ("movl %%cr4, %0" : "=r" (isk_state.cr4));
  
-	/* Stack registers are saved at the last minute, later */
+	/* Stack regisers should be saved later only when required.but also saving there just
+	   for display function */
+
+	asm volatile ("movl %%ebp, %0" : "=m" (isk_state.ebp));
+	asm volatile ("movl %%esp, %0" : "=m" (isk_state.esp));
 
 	/* return address */
 //	isk_state.return_address = (get_cpu_vendor() == CPU_VENDOR_INTEL) ?
