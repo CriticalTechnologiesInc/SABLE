@@ -75,6 +75,8 @@
 #include <tboot.h>
 #include <misc.h>
 #include <atomic.h>
+#include <keyboard.h>
+
 typedef struct __packed {
     uint64_t  base;
     uint64_t  length;
@@ -103,7 +105,7 @@ unsigned long get_tboot_mem_end(void)
 
 /* Bhushan : comment scope end */
 
-//extern void _prot_to_real(uint32_t dist_addr);
+extern void _prot_to_real(uint32_t dist_addr);
 //extern bool set_policy(void);
 extern void verify_all_modules(loader_ctx *lctx);
 //extern void verify_all_nvindices(void);
@@ -365,18 +367,23 @@ void intel_post_launch(void)
 //    apply_policy(TB_ERR_FATAL);
 
 
-	//post_launch(g_ldr_ctx->addr); // Temp commented out
-	launch_kernel(true);
+        char config_str[2];
+        out_string("Launch Linux Kernel now? [y/n]:");
+        get_string(config_str, sizeof(config_str) - 1, true);
+        if (config_str[0] == 'y')
+		launch_kernel(true);
+	else
+		post_launch(g_ldr_ctx->addr);
 }
-//
-//void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec)
-//{
-//    printk(TBOOT_INFO"cpu %u waking up, SIPI vector=%x\n", cpuid, sipi_vec);
-//
-//    /* change to real mode and then jump to SIPI vector */
-//    _prot_to_real(sipi_vec);
-//}
-//
+
+void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec)
+{
+    out_description("cpu waking up \n", cpuid);
+
+    /* change to real mode and then jump to SIPI vector */
+    _prot_to_real(sipi_vec);
+}
+
 //#define ICR_LOW 0x300
 //
 //void startup_rlps(void)

@@ -36,7 +36,7 @@
  
 extern acm_hdr_t *g_sinit;
 
-extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
+//extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
 
 void print_cpu_state() {
 	out_description("EFlags", read_eflags());
@@ -179,7 +179,7 @@ int get_parameters(getsec_parameters_t *params)
 //#include <uuid.h>
 //#include <loader.h>
 //#include <e820.h>
-//#include <tboot.h>
+#include <tboot.h>
 //#include <mle.h>
 //#include <hash.h>
 //#include <cmdline.h>
@@ -221,12 +221,12 @@ extern char g_cmdline[CMDLINE_SIZE];
 
 //extern long s3_flag;
 //
-//extern struct mutex ap_lock;
+extern struct mutex ap_lock;
 //
 ///* MLE/kernel shared data page (in boot.S) */
-//extern tboot_shared_t _tboot_shared;
+extern tboot_shared_t _tboot_shared;
 //extern void apply_policy(tb_error_t error);
-//extern void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec);
+extern void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec);
 //extern void print_event(const tpm12_pcr_event_t *evt);
 //extern void print_event_2(void *evt, uint16_t alg);
 //
@@ -867,23 +867,23 @@ static void txt_wakeup_cpus(void)
 	__getsec_smctrl();
 
 
-	return;			/// BHSUHAN TESTING REMOVE
+//	return;			/// BHSUHAN TESTING REMOVE
 
 
 	atomic_set(&ap_wfs_count, 0);
 
 	/* RLPs will use our GDT and CS */
-	extern char gdt[], end_gdt[];
+	extern char gdt_table[], gdt_table_end[];
 	__asm__ __volatile__ ("mov %%cs, %0\n" : "=r"(cs));
 
 	mle_join.entry_point = (uint32_t)(unsigned long)&_txt_wakeup;
 	mle_join.seg_sel = cs;
 
-//	mle_join.gdt_base = (uint32_t)gdt_table; // extra
-//	mle_join.gdt_limit = gdt_table_end - gdt_table - 1; // extra
+	mle_join.gdt_base = (uint32_t)gdt_table; // extra
+	mle_join.gdt_limit = gdt_table_end - gdt_table - 1; // extra
 
-	mle_join.gdt_base = (uint32_t) gdt;
-	mle_join.gdt_limit = end_gdt - gdt - 1;
+//	mle_join.gdt_base = (uint32_t) gdt;
+//	mle_join.gdt_limit = end_gdt - gdt - 1;
 
 //	WAIT_FOR_INPUT();
 	WAIT_FOR_INPUT();
@@ -1363,6 +1363,8 @@ void txt_post_launch(void)
 
 	/* bring RLPs into environment (do this before restoring MTRRs to ensure */
 	/* SINIT area is mapped WB for MONITOR-based RLP wakeup) */
+	out_info("Wakeup CPUs\n");
+	WAIT_FOR_INPUT();
 	txt_wakeup_cpus();
 
 	/* restore pre-SENTER IA32_MISC_ENABLE_MSR (no verification needed)
@@ -1395,39 +1397,39 @@ void txt_post_launch(void)
 	out_info("opened TPM locality 1\n");
 }
 
-//void ap_wait(unsigned int cpuid)
-//{
-//    if ( cpuid >= NR_CPUS ) {
-//        printk(TBOOT_ERR"cpuid (%u) exceeds # supported CPUs\n", cpuid);
+void ap_wait(unsigned int cpuid)
+{
+    if ( cpuid >= NR_CPUS ) {
+        out_description("cpuid exceeds # supported CPUs", cpuid);
 //        apply_policy(TB_ERR_FATAL);
-//        mtx_leave(&ap_lock);
-//        return;
-//    }
-//
-//    /* ensure MONITOR/MWAIT support is set */
-//    uint64_t misc;
-//    misc = rdmsr(MSR_IA32_MISC_ENABLE);
-//    misc |= MSR_IA32_MISC_ENABLE_MONITOR_FSM;
-//    wrmsr(MSR_IA32_MISC_ENABLE, misc);
-//
-//    /* this is close enough to entering monitor/mwait loop, so inc counter */
-//    atomic_inc((atomic_t *)&_tboot_shared.num_in_wfs);
-//    mtx_leave(&ap_lock);
-//
-//    printk(TBOOT_INFO"cpu %u mwait'ing\n", cpuid);
-//    while ( _tboot_shared.ap_wake_trigger != cpuid ) {
-//        cpu_monitor(&_tboot_shared.ap_wake_trigger, 0, 0);
-//        mb();
-//        if ( _tboot_shared.ap_wake_trigger == cpuid )
-//            break;
-//        cpu_mwait(0, 0);
-//    }
-//
-//    uint32_t sipi_vec = (uint32_t)_tboot_shared.ap_wake_addr;
-//    atomic_dec(&ap_wfs_count);
-//    atomic_dec((atomic_t *)&_tboot_shared.num_in_wfs);
-//    cpu_wakeup(cpuid, sipi_vec);
-//}
+        mtx_leave(&ap_lock);
+        return;
+    }
+
+    /* ensure MONITOR/MWAIT support is set */
+    uint64_t misc;
+    misc = rdmsr(MSR_IA32_MISC_ENABLE);
+    misc |= MSR_IA32_MISC_ENABLE_MONITOR_FSM;
+    wrmsr(MSR_IA32_MISC_ENABLE, misc);
+
+    /* this is close enough to entering monitor/mwait loop, so inc counter */
+    atomic_inc((atomic_t *)&_tboot_shared.num_in_wfs);
+    mtx_leave(&ap_lock);
+
+    out_description("cpu mwait'ing", cpuid);
+    while ( _tboot_shared.ap_wake_trigger != cpuid ) {
+        cpu_monitor(&_tboot_shared.ap_wake_trigger, 0, 0);
+        mb();
+        if ( _tboot_shared.ap_wake_trigger == cpuid )
+            break;
+        cpu_mwait(0, 0);
+    }
+
+    uint32_t sipi_vec = (uint32_t)_tboot_shared.ap_wake_addr;
+    atomic_dec(&ap_wfs_count);
+    atomic_dec((atomic_t *)&_tboot_shared.num_in_wfs);
+    cpu_wakeup(cpuid, sipi_vec);
+}
 
 void txt_cpu_wakeup(void)
 {
@@ -1477,15 +1479,19 @@ void txt_cpu_wakeup(void)
 	__getsec_smctrl();
 	
 	atomic_inc(&ap_wfs_count);
-//    if ( use_mwait() )
-//        ap_wait(cpuid);
-//    else
-//        handle_init_sipi_sipi(cpuid);
+        if ( use_mwait() )
+	{
+            out_info("AP wait\n");
+            ap_wait(cpuid);
+        }else{
+            out_info("Handle\n");
+//            handle_init_sipi_sipi(cpuid);
+	}
 	
 	//* BHUSHAN THIS IS JUST FOR TESING */
-	mtx_leave(&ap_lock);
+//	mtx_leave(&ap_lock);
 	//* TESTING LINE END */
-//	WAIT_FOR_INPUT();
+	WAIT_FOR_INPUT();
 }
 
 int txt_protect_mem_regions(void)

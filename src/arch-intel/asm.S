@@ -20,13 +20,23 @@
 #define MBI_MAGIC1 0x1BADB002
 #define MBI_MAGIC2 0x2BADB002
 
+/* opcode prefixes for 16bit data and addressing */
+#define DATA16      .byte 0x66
+#define ADDR16      .byte 0x67
+
 #define STACK_TOP 0x180000
 #define SLB_STACK_TOP 0x180000
 #define ALIGN_4K 0xfffff000
+#define BSP_STACK_SIZE		0x2000
 
 #define cs_sel                1<<3 /* 0x08 */
 #define ds_sel                2<<3 /* 0x10 */
+#define cs16_sel    4<<3
+#define ds16_sel    5<<3
 
+
+#define TBOOT_START 0x0804000
+#define CR4_MCE 0x00000040
 
 /* OsSinitData field offsets */
 #define TXT_PRIV_CONFIG_REGS_BASE	0xfed20000
@@ -72,20 +82,104 @@
 ENTRY(_tboot_shared)
 	.fill  PAGE_SIZE,1,0
         .align PAGE_SIZE, 0
+
 ENTRY(start)
 ENTRY(_start)
 	jmp __start
+
 FUNCTION __start
-//	leal    STACK_TOP,%esp
-	leal	bsp_stack,%esp
+        /* Set up a few descriptors: on entry only CS is guaranteed good. */
+        lgdt    %cs:pgdt_desc
+        mov     $(ds_sel),%ecx
+        mov     %ecx,%ds
+        mov     %ecx,%es
+        mov     %ecx,%fs
+        mov     %ecx,%gs
+        mov     %ecx,%ss
+        ljmp    $(cs_sel),$(1f)
+1:	leal	STACK_TOP,%esp
 
-/* Bhushan : we also need to clear bss stack section to avoid any suprises */
+        /* Reset EFLAGS (subsumes CLI and CLD). */
+        pushl   $0
+        popf
 
-	xchg    %eax,%edx
-	xchg    %ebx,%eax
-	pushl	%eax
-	pushl   $exit
-	jmp     _pre_launch
+        /* preserve EAX to be a param to begin_launch--it should
+         *  contain either MULTIBOOT_MAGIC or MULTIBOOT2_MAGIC--we'll need
+         * to figure out which */
+        mov     %eax,%edx
+
+        /* Initialize BSS (no nasty surprises!) */
+        mov     $__bss_start,%edi
+        mov     $_end,%ecx
+        sub     %edi,%ecx
+        xor     %eax,%eax
+        rep     stosb
+
+        /* Load IDT */
+        lidt    idt_descr
+
+        /* enable MCE */
+        mov     %cr4,%eax
+        or      $CR4_MCE,%eax
+        mov     %eax,%cr4
+
+        /* pass multiboot info struct, magic and call measured launch code */
+        push    %edx // magic? param 2
+        push    %ebx // mbi? param 1
+
+//	xchg %eax,%edx
+	xchg %ebx,%eax
+//	pushl %eax
+//	pushl $exit
+
+        call    _pre_launch
+        ud2
+
+
+/*
+ * entry point for GETSEC[WAKEUP]
+ */
+FUNCTION _txt_wakeup
+	# prepare this thread for C code
+        /* Set up a few descriptors: on entry only CS is guaranteed good. */
+        lgdt    %cs:pgdt_desc
+        mov     $0x10, %ecx
+        mov     %ecx, %ds
+        mov     %ecx, %es
+        mov     %ecx, %fs
+        mov     %ecx, %gs
+        mov     %ecx, %ss
+        ljmp    $(cs_sel), $(1f)
+
+        /* Load IDT */
+1:	lidt    idt_descr
+
+        /* enable MCE */
+        mov     %cr4,%eax
+        or      $CR4_MCE,%eax
+        mov     %eax,%cr4
+
+	# get initial 32-bit local APIC ID for this processor
+	mov	$0x0b, %eax
+	xor	%edx, %edx
+	cpuid
+
+	# set stack as id-based offset from AP stack base
+	# spin hlt if we exceed, since C code can't handle shared stack
+	cmp	$NR_CPUS, %edx
+	jl      3f
+	# TBD: increment global counter so BSP can tell we exceeded NR_CPUS
+2:	cli
+	hlt
+	jmp     2b
+3:	mov     $AP_STACK_SIZE, %eax
+	mul	%edx
+	mov	$ap_stacks, %ecx
+	sub	%eax, %ecx
+	mov	%ecx, %esp
+
+	call	txt_cpu_wakeup
+
 
 /* Bhushan _post_launch_entry is just place holder. we have to provide implementation when required */
 
@@ -133,89 +227,11 @@ FUNCTION _post_launch_entry
 	mov $(_mle_end - 1), %ebx /* addr of last byte of MLE... */
 	and $PAGE_MASK, %ebx      /* ...rounded to page start */
 	/* are they equal? */
-	// cmp %ebx, %eax
-	// je __start                /* yes, so continue with normal launch */
-
-	/* copied from amd post lauch */
-
-	/* Setup ESP to top of 64K */
-//	leal SLB_STACK_TOP, %esp   we handle stack in __start
-
-//	/* clear VM_CR to enable debugging */
-//	mov     $VM_CR_MSR, %ecx
-//	rdmsr
-//	and     $0xf8, %al
-//	wrmsr
-
-	/* init gdt and segment register */
-	lgdt    %cs:pgdt_desc
-	movw    $ds_sel, %ax
-	mov	%ax,   %ds
-	mov	%ax,   %es
-	mov	%ax,   %fs
-	mov	%ax,   %gs
-	mov	%ax,   %ss
-
-	jmp __start
+	cmp %ebx, %eax
+	je __start                /* yes, so continue with normal launch */
 
 layout_err:
 	jmp sable_layout_error
-
-FUNCTION _txt_wakeup
-
-	/*
-	 * entry point for GETSEC[WAKEUP]
-	 */
-
-
-//	leal    STACK_TOP,%esp
-//	xchg    %eax,%edx
-//	xchg    %ebx,%eax
-//	pushl	%eax
-//	pushl   $exit
-//	jmp     _pre_launch
-
-
-
-	# prepare this thread for C code
-	/* Set up a few descriptors: on entry only CS is guaranteed good. */
-	lgdt    %cs:pgdt_desc
-	mov     $0x10, %ecx
-	mov     %ecx, %ds
-	mov     %ecx, %es
-	mov     %ecx, %fs
-	mov     %ecx, %gs
-	mov     %ecx, %ss
-//	ljmp    $(cs_sel), $(1f)
-	
-	/* Load IDT */
-//1:	lidt    idt_descr
-
-	/* enable MCE Machine-check exception */
-//	mov     %cr4,%eax
-//	or      $CR4_MCE,%eax
-//	mov     %eax,%cr4
-
-	# get initial 32-bit local APIC ID for this processor
-	mov     $0x0b, %eax
-	xor     %edx, %edx
-	cpuid
-
-	# set stack as id-based offset from AP stack base
-	# spin hlt if we exceed, since C code can't handle shared stack
-	cmp     $NR_CPUS, %edx
-	jl      3f
-	# TBD: increment global counter so BSP can tell we exceeded NR_CPUS
-2:	cli
-	hlt
-	jmp     2b
-3:	mov     $AP_STACK_SIZE, %eax
-	mul     %edx
-	mov     $ap_stacks, %ecx
-	sub     %eax, %ecx
-	mov     %ecx, %esp
-
-	call    txt_cpu_wakeup
 
 FUNCTION smp_init_start
 	.code16
@@ -242,6 +258,7 @@ FUNCTION smp_init_start
 	lmsw	%ax
 	cli
 	stgi
+
 
 	// halt CPU
 	hlt
@@ -270,70 +287,85 @@ FUNCTION jmp_multiboot
 	jmp *%edx
 
 
-FUNCTION _skinit
-    /* Setup ESP to top of 64K */
-    leal SLB_STACK_TOP, %esp
+/*
+ * interrupt handler
+ */
 
-	/* clear VM_CR to enable debugging */
- 	mov     $VM_CR_MSR, %ecx
-	rdmsr
-	and     $0xf8, %al
-	wrmsr
+int_handler:
+	call handle_exception
+	ud2
 
-	/* init gdt and segment register */
-	lgdt    %cs:pgdt_desc
-	movw    $ds_sel, %ax
-	mov	%ax,   %ds
-	mov	%ax,   %es
-	mov	%ax,   %fs
-	mov	%ax,   %gs
-	mov	%ax,   %ss
+/*
+ * descriptors and descriptor tables
+ */
 
-    /* restore stack and MBI header */
-	leal    STACK_TOP,%esp
-	movl	-4(%esp), %eax
-
-	/* jmp to main */
-	jmp     _post_launch
-
-
-/* the gdt to load after skinit */
+/* GDT */
 .align(8)
-FUNCTION gdt
-	.global pgdt_desc
-	.align(8)
 pgdt_desc:
-	.word end_gdt - gdt - 1
-	.long gdt
-	.word 0
-_gdt_cs:
-    .quad 0x00cf9b000000ffff
-_gdt_ds:
-    .quad 0x00cf93000000ffff
+	.word	gdt_table_end - gdt_table - 1
+	.long	gdt_table
 
-/* Bhushan : Added according to Tboot */
+        .align PAGE_SIZE, 0
 
- tss_descr:      /* tss */
-	.word   0xffff		/* limit = 4GB */
-	.word   0x00		/* base = 0 */
-	.word   0x8900		/* system segment, 32b available TSS */
-	.word   0x008f		/* granularity = 4096 */
-cs16_desc:      /* cs16 */
-	.word   0xffff		/* limit = 4GB */
-	.word   0x0000		/* base = 0 */
-	.word   0x9b00		/* read + exec + accessed */
-	.word   0x008f		/* granularity = 4096, D = 0 */
+ENTRY(gdt_table)
+		/* unused */
+        .quad	0x0000000000000000
+cs_descr:	/* cs */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x9b00		/* read + exec + accessed */
+	.word	0x00cf		/* granularity = 4096 */
+ds_descr:	/* ds */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x9300		/* read + write + accessed */
+	.word	0x00cf		/* granularity = 4096 */
+tss_descr:	/* tss */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x8900		/* system segment, 32b available TSS */
+	.word	0x008f		/* granularity = 4096 */
+cs16_desc:	/* cs16 */
+	.word	0xffff		/* limit = 4GB */
+	.word   0x0000      /* base = 0 */
+	.word   0x9b00      /* read + exec + accessed */
+	.word	0x008f      /* granularity = 4096, D = 0 */
 ds16_desc:  /* ds16 */
-	.word   0xffff		/* limit = 4GB */
-	.word   0x0000		/* base = 0 */
-	.word   0x9300		/* read + exec + accessed */
-	.word   0x008f		/* granularity = 4096, D = 0 */
-				/* end (unused) */
+	.word   0xffff      /* limit = 4GB */
+	.word   0x0000      /* base = 0 */
+	.word   0x9300      /* read + exec + accessed */
+	.word   0x008f      /* granularity = 4096, D = 0 */
+		/* end (unused) */
 	.quad   0x0000000000000000
+ENTRY(gdt_table_end)
 
-FUNCTION end_gdt
-/* end_gdt: */
 /* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 
+/* IDT */
+idt_descr:
+	.word	idt_table_end - idt_table - 1
+	.long	idt_table
+
+	.align	8
+
+idt_table:
+	.rept 18
+		.word	int_handler - _start
+		.word	cs_sel
+		.word	0x8e00   /* present, DPL=0, 32b, interrupt */
+		.word	(int_handler - _start + TBOOT_START) >> 16
+	.endr
+	/* for machine-check exception */
+		.word	int_handler - _start
+		.word	cs_sel
+		.word	0x8f00   /* present, DPL=0, 32b, trap */
+		.word	(int_handler - _start + TBOOT_START) >> 16
+	.rept 237
+		.word	int_handler - _start
+		.word	cs_sel
+		.word	0x8e00   /* present, DPL=0, 32b, interrupt */
+		.word	(int_handler - _start + TBOOT_START) >> 16
+	.endr
+idt_table_end:
 
 /* stacks for APs */
 
@@ -346,5 +378,45 @@ bsp_stack:
 ap_stacks_end:
 	.fill AP_STACK_SIZE * NR_CPUS, 1, 0
 ap_stacks: 
+
+ENTRY(_prot_to_real)
+	/* disable interrupts */
+	cli
+	mov     0x4(%esp), %ebx
+
+	/* deal with parameter, real mode program entry point */
+	mov     %ebx, %eax
+	and     $0xffff0, %eax
+	shr     $4, %eax
+	mov     %ax, _real_mode_entry_point + 4
+	and     $0xfff0000f, %ebx
+	mov     %ebx, _real_mode_entry_point
+
+	/* load proper segments for real mode */
+	mov     $(ds16_sel), %ax
+	mov     %ax, %ds
+	mov     %ax, %es
+	mov     %ax, %fs
+	mov     %ax, %gs
+	mov     %ax, %ss
+	lidt    real_idt_desc
+	xor     %eax, %eax
+	ljmp    $(cs16_sel), $(1f)
+
+	.code16
+1:	mov     %eax, %cr0
+	mov     $0x0, %ax
+	mov     %ax, %ds
+	mov     %ax, %es
+	mov     %ax, %fs
+	mov     %ax, %gs
+	mov     %ax, %ss
+
+	.code32
+
+	DATA16
+	ADDR16
+	ljmp    *_real_mode_entry_point
+
 
 ENTRY(_end)

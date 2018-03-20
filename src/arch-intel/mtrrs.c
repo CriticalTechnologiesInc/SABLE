@@ -445,8 +445,8 @@ int validate_mtrrs(const mtrr_state_t *saved_state)
 void restore_mtrrs(const mtrr_state_t *saved_state)
 {
 	/* called by apply_policy() so use saved ptr */
-//    if ( saved_state == NULL )
-//        saved_state = g_saved_mtrrs;
+        if ( saved_state == NULL )
+            saved_state = g_saved_mtrrs;
 
 	/* haven't saved them yet, so return */
 	if (saved_state == NULL) {

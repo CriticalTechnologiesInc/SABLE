@@ -40,7 +40,6 @@
 //#include <compiler.h>
 //#include <string.h>
 //#include <misc.h>
-//#include <processor.h>
 //#include <page.h>
 //#include <printk.h>
 //#include <loader.h>
@@ -51,7 +50,6 @@
 //#include <mle.h>
 //#include <hash.h>
 //#include <integrity.h>
-//#include <cmdline.h>
 //#include <txt/txt.h>
 //#include <txt/smx.h>
 //#include <txt/mtrrs.h>
@@ -73,13 +71,15 @@ typedef struct __packed {
 #include <multiboot.h>
 #include <loader.h>
 #include <e820.h>
+#include <cmdline.h>
+#include <processor.h>
 
 //extern long s3_flag;
 //
 ///*
 // * CPUID extended feature info
 // */
-//static unsigned int g_cpuid_ext_feat_info;
+static unsigned int g_cpuid_ext_feat_info;
 //
 ///*
 // * IA32_FEATURE_CONTROL_MSR
@@ -195,11 +195,11 @@ typedef struct __packed {
 //    return true;
 //}
 //
-//bool use_mwait(void)
-//{
-//    return get_tboot_mwait() && (g_cpuid_ext_feat_info & CPUID_X86_FEATURE_XMM3);
-//}
-//
+bool use_mwait(void)
+{
+    return get_tboot_mwait() && (g_cpuid_ext_feat_info & CPUID_X86_FEATURE_XMM3);
+}
+
 //tb_error_t supports_txt(void)
 //{
 //    capabilities_t cap;
