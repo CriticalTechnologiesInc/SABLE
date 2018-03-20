@@ -74,18 +74,13 @@
 .section ".tboot_shared","w"
         .align PAGE_SIZE, 0
 
-#define ENTRY(name)                             \
-  .globl name;                                  \
-  .align 16,0x90;                               \
-  name:
-
-ENTRY(_tboot_shared)
+FUNCTION _tboot_shared
 	.fill  PAGE_SIZE,1,0
         .align PAGE_SIZE, 0
 
-ENTRY(start)
-ENTRY(_start)
-	jmp __start
+FUNCTION start
+FUNCTION _start
+        jmp __start
 
 FUNCTION __start
         /* Set up a few descriptors: on entry only CS is guaranteed good. */
@@ -307,7 +302,7 @@ pgdt_desc:
 
         .align PAGE_SIZE, 0
 
-ENTRY(gdt_table)
+FUNCTION gdt_table
 		/* unused */
         .quad	0x0000000000000000
 cs_descr:	/* cs */
@@ -337,7 +332,7 @@ ds16_desc:  /* ds16 */
 	.word   0x008f      /* granularity = 4096, D = 0 */
 		/* end (unused) */
 	.quad   0x0000000000000000
-ENTRY(gdt_table_end)
+FUNCTION gdt_table_end
 
 /* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 
 /* IDT */
@@ -367,7 +362,21 @@ idt_table:
 	.endr
 idt_table_end:
 
+/* Real Mode IDT */
+real_idt_desc:
+	.word   0x03ff
+	.long   0
+
+
 /* stacks for APs */
+/*
+ * misc. bss data
+ */
+.section ".bss"
+
+_real_mode_entry_point:
+	.long   0
+	.word   0
 
 .section ".bss.stack_aligned","w"
 
@@ -379,7 +388,7 @@ ap_stacks_end:
 	.fill AP_STACK_SIZE * NR_CPUS, 1, 0
 ap_stacks: 
 
-ENTRY(_prot_to_real)
+FUNCTION _prot_to_real
 	/* disable interrupts */
 	cli
 	mov     0x4(%esp), %ebx
@@ -419,4 +428,4 @@ ENTRY(_prot_to_real)
 	ljmp    *_real_mode_entry_point
 
 
-ENTRY(_end)
+FUNCTION _end

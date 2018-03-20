@@ -1008,7 +1008,7 @@ static void txt_wakeup_cpus(void)
 	__getsec_smctrl();
 
 
-//	return;			/// BHSUHAN TESTING REMOVE
+	return;			/// BHSUHAN TESTING REMOVE
 
 
 	atomic_set(&ap_wfs_count, 0);
@@ -1683,6 +1683,11 @@ int txt_protect_mem_regions(void)
     out_info("verification succeeded.\n");
 
     return 0;
+}
+
+void handle_exception(void)
+{
+    out_info("received exception; shutting down...\n");
 }
 
 //void txt_shutdown(void)
