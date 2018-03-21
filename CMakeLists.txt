@@ -174,6 +174,7 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/arch-intel/linux.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/cmdline.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/misc.c
+  ${PROJECT_SOURCE_DIR}/src/arch-intel/vmcs.c
   )
 
 set_target_properties (cleanup-Intel

@@ -21,6 +21,7 @@
 #include <loader.h>
 #include <verify.h>
 #include <e820.h>
+#include <vmcs.h>
 
 #define ACM_MEM_TYPE_UC                 0x0100
 #define ACM_MEM_TYPE_WC                 0x0200
@@ -988,8 +989,6 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 }
 
 /* lock that protects APs against race conditions on wakeup and shutdown */
-struct mutex ap_lock;
-
 static void txt_wakeup_cpus(void)
 {
 	uint16_t cs;
@@ -1008,27 +1007,25 @@ static void txt_wakeup_cpus(void)
 	__getsec_smctrl();
 
 
-	return;			/// BHSUHAN TESTING REMOVE
+	//return;			/// BHSUHAN TESTING REMOVE
 
 
 	atomic_set(&ap_wfs_count, 0);
 
 	/* RLPs will use our GDT and CS */
-	extern char gdt_table[], gdt_table_end[];
+//	extern char gdt_table[], gdt_table_end[];
+	extern char gdt[], end_gdt[];
 	__asm__ __volatile__ ("mov %%cs, %0\n" : "=r"(cs));
 
 	mle_join.entry_point = (uint32_t)(unsigned long)&_txt_wakeup;
 	mle_join.seg_sel = cs;
 
-	mle_join.gdt_base = (uint32_t)gdt_table; // extra
-	mle_join.gdt_limit = gdt_table_end - gdt_table - 1; // extra
+//	mle_join.gdt_base = (uint32_t)gdt_table; // extra
+//	mle_join.gdt_limit = gdt_table_end - gdt_table - 1; // extra
 
-//	mle_join.gdt_base = (uint32_t) gdt;
-//	mle_join.gdt_limit = end_gdt - gdt - 1;
+	mle_join.gdt_base = (uint32_t) gdt;
+	mle_join.gdt_limit = end_gdt - gdt - 1;
 
-//	WAIT_FOR_INPUT();
-	WAIT_FOR_INPUT();
-	
 	out_description("mle_join.entry_point ", (unsigned int)mle_join.entry_point);
 	out_description("mle_join.seg_sel ", mle_join.seg_sel);
 	out_description("mle_join.gdt_base ", mle_join.gdt_base);
@@ -1036,25 +1033,20 @@ static void txt_wakeup_cpus(void)
 
 	write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
 	
-	WAIT_FOR_INPUT();
-
 	mtx_init(&ap_lock);
 
 	txt_heap_t *txt_heap = get_txt_heap();
 	sinit_mle_data_t *sinit_mle_data = get_sinit_mle_data_start(txt_heap);
 	os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
 
-	/* choose wakeup mechanism based on capabilities used */
+      /* choose wakeup mechanism based on capabilities used */
 	if (os_sinit_data->capabilities.rlp_wake_monitor) {
 		out_info("joining RLPs to MLE with MONITOR wakeup");
-		WAIT_FOR_INPUT();
 		out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
-		WAIT_FOR_INPUT();
 		*((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
 	}
 	else {
 		out_info("joining RLPs to MLE with GETSEC[WAKEUP]");
-		WAIT_FOR_INPUT();
 		__getsec_wakeup();
 		out_info("GETSEC[WAKEUP] completed");
 	}
@@ -1073,15 +1065,20 @@ static void txt_wakeup_cpus(void)
 
 	out_description("waiting for all APs to enter wait-for-sipi... count : ", ap_wakeup_count);
 	/* wait for all APs that woke up to have entered wait-for-sipi */
-//	WAIT_FOR_INPUT();
 	uint32_t timeout = AP_WFS_TIMEOUT;
+	out_description("Timeout = ", timeout);
+	WAIT_FOR_INPUT();
 	do {
 		if (timeout % 0x8000 == 0)
 			out_info(".");
 		else
 			cpu_relax();
 		if (timeout % 0x200000 == 0)
+		{
+			out_description("ap_wfs_count = ",atomic_read(&ap_wfs_count));
+			out_description("timeout = ",timeout);
 			out_info("\n");
+		}
 		timeout--;
 	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
 	out_info("\n");
@@ -1587,7 +1584,6 @@ void txt_cpu_wakeup(void)
 	mtx_enter(&ap_lock);
 
 	out_description("cpu waking up from TXT sleep :", cpuid);
-	//WAIT_FOR_INPUT();
 
 	/* restore LAPIC base address for AP */
 	madt_apicbase = (uint64_t)get_madt_apic_base();
@@ -1626,13 +1622,13 @@ void txt_cpu_wakeup(void)
             ap_wait(cpuid);
         }else{
             out_info("Handle\n");
-//            handle_init_sipi_sipi(cpuid);
+            handle_init_sipi_sipi(cpuid);
 	}
 	
 	//* BHUSHAN THIS IS JUST FOR TESING */
-//	mtx_leave(&ap_lock);
+	//mtx_leave(&ap_lock);
 	//* TESTING LINE END */
-	WAIT_FOR_INPUT();
+	//WAIT_FOR_INPUT();
 }
 
 int txt_protect_mem_regions(void)

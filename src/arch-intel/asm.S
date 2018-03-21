@@ -50,7 +50,8 @@
 #define PAGE_MASK        (~(PAGE_SIZE-1))
 
 
-#define NR_CPUS		512
+//#define NR_CPUS	512
+#define NR_CPUS		16
 #define AP_STACK_SIZE	0x0800
 
 #define VM_CR_MSR 0xc0010114
@@ -130,6 +131,20 @@ FUNCTION __start
         call    _pre_launch
         ud2
 
+/*
+ * vmexit handler
+ */
+FUNCTION vmx_asm_vmexit_handler
+        call vmx_vmexit_handler
+	/* fall through to loop if callee returns (shouldn't happen) */
+
+FUNCTION _mini_guest
+1:	pause
+	cmp $0, (aps_exit_guest)
+	je 1b
+	/* VMCALL out of guest */
+	.byte 0x0f,0x01,0xc1
+	jmp 1b
 
 /*
  * entry point for GETSEC[WAKEUP]
@@ -144,15 +159,15 @@ FUNCTION _txt_wakeup
         mov     %ecx, %fs
         mov     %ecx, %gs
         mov     %ecx, %ss
-        ljmp    $(cs_sel), $(1f)
+//      ljmp    $(cs_sel), $(1f)
 
-        /* Load IDT */
-1:	lidt    idt_descr
+       /* Load IDT */
+//1:	lidt    idt_descr
 
         /* enable MCE */
-        mov     %cr4,%eax
-        or      $CR4_MCE,%eax
-        mov     %eax,%cr4
+//        mov     %cr4,%eax
+//        or      $CR4_MCE,%eax
+//        mov     %eax,%cr4
 
 	# get initial 32-bit local APIC ID for this processor
 	mov	$0x0b, %eax
@@ -163,7 +178,7 @@ FUNCTION _txt_wakeup
 	# spin hlt if we exceed, since C code can't handle shared stack
 	cmp	$NR_CPUS, %edx
 	jl      3f
-	# TBD: increment global counter so BSP can tell we exceeded NR_CPUS
+      # TBD: increment global counter so BSP can tell we exceeded NR_CPUS
 2:	cli
 	hlt
 	jmp     2b
@@ -295,44 +310,58 @@ int_handler:
  */
 
 /* GDT */
+//.align(8)
+//pgdt_desc:
+//	.word	gdt_table_end - gdt_table - 1
+//	.long	gdt_table
+//
+//        .align PAGE_SIZE, 0
+//
+//FUNCTION gdt_table
+//		/* unused */
+//        .quad	0x0000000000000000
+//cs_descr:	/* cs */
+//	.word	0xffff		/* limit = 4GB */
+//	.word	0x00		/* base = 0 */
+//	.word	0x9b00		/* read + exec + accessed */
+//	.word	0x00cf		/* granularity = 4096 */
+//ds_descr:	/* ds */
+//	.word	0xffff		/* limit = 4GB */
+//	.word	0x00		/* base = 0 */
+//	.word	0x9300		/* read + write + accessed */
+//	.word	0x00cf		/* granularity = 4096 */
+//tss_descr:	/* tss */
+//	.word	0xffff		/* limit = 4GB */
+//	.word	0x00		/* base = 0 */
+//	.word	0x8900		/* system segment, 32b available TSS */
+//	.word	0x008f		/* granularity = 4096 */
+//cs16_desc:	/* cs16 */
+//	.word	0xffff		/* limit = 4GB */
+//	.word   0x0000      /* base = 0 */
+//	.word   0x9b00      /* read + exec + accessed */
+//	.word	0x008f      /* granularity = 4096, D = 0 */
+//ds16_desc:  /* ds16 */
+//	.word   0xffff      /* limit = 4GB */
+//	.word   0x0000      /* base = 0 */
+//	.word   0x9300      /* read + exec + accessed */
+//	.word   0x008f      /* granularity = 4096, D = 0 */
+//		/* end (unused) */
+//	.quad   0x0000000000000000
+//FUNCTION gdt_table_end
+
 .align(8)
+FUNCTION gdt
+        .global pgdt_desc
+        .align(8)
 pgdt_desc:
-	.word	gdt_table_end - gdt_table - 1
-	.long	gdt_table
-
-        .align PAGE_SIZE, 0
-
-FUNCTION gdt_table
-		/* unused */
-        .quad	0x0000000000000000
-cs_descr:	/* cs */
-	.word	0xffff		/* limit = 4GB */
-	.word	0x00		/* base = 0 */
-	.word	0x9b00		/* read + exec + accessed */
-	.word	0x00cf		/* granularity = 4096 */
-ds_descr:	/* ds */
-	.word	0xffff		/* limit = 4GB */
-	.word	0x00		/* base = 0 */
-	.word	0x9300		/* read + write + accessed */
-	.word	0x00cf		/* granularity = 4096 */
-tss_descr:	/* tss */
-	.word	0xffff		/* limit = 4GB */
-	.word	0x00		/* base = 0 */
-	.word	0x8900		/* system segment, 32b available TSS */
-	.word	0x008f		/* granularity = 4096 */
-cs16_desc:	/* cs16 */
-	.word	0xffff		/* limit = 4GB */
-	.word   0x0000      /* base = 0 */
-	.word   0x9b00      /* read + exec + accessed */
-	.word	0x008f      /* granularity = 4096, D = 0 */
-ds16_desc:  /* ds16 */
-	.word   0xffff      /* limit = 4GB */
-	.word   0x0000      /* base = 0 */
-	.word   0x9300      /* read + exec + accessed */
-	.word   0x008f      /* granularity = 4096, D = 0 */
-		/* end (unused) */
-	.quad   0x0000000000000000
-FUNCTION gdt_table_end
+        .word end_gdt - gdt - 1
+        .long gdt
+        .word 0
+_gdt_cs:
+    .quad 0x00cf9b000000ffff
+_gdt_ds:
+    .quad 0x00cf93000000ffff
+FUNCTION end_gdt
 
 /* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 
 /* IDT */
@@ -387,6 +416,25 @@ bsp_stack:
 ap_stacks_end:
 	.fill AP_STACK_SIZE * NR_CPUS, 1, 0
 ap_stacks: 
+
+/*
+ * page table and VMCS data for AP bringup
+ */
+
+        .align PAGE_SIZE, 0
+.section ".bss.page_aligned","w"
+FUNCTION idle_pg_table
+        .fill 1*PAGE_SIZE,1,0
+
+        .align PAGE_SIZE, 0
+FUNCTION host_vmcs
+        .fill 1*PAGE_SIZE,1,0
+
+        .align PAGE_SIZE, 0
+/* the input info when os/vmm kerneltrap into tboot */
+FUNCTION ap_vmcs
+        .fill NR_CPUS * PAGE_SIZE, 1, 0
+
 
 FUNCTION _prot_to_real
 	/* disable interrupts */

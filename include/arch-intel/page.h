@@ -45,11 +45,11 @@
 #define PAGE_MASK        (~(PAGE_SIZE-1))
 
 
-///* This is used to address the L2's 4MB pages */
-///* From figure 4-3 of IA64/IA32 Arch SDM vol 3A */
-//#define FOURMB_PAGE_SHIFT 22
-//
-///* macros to rounds things up/down to a page */
+/* This is used to address the L2's 4MB pages */
+/* From figure 4-3 of IA64/IA32 Arch SDM vol 3A */
+#define FOURMB_PAGE_SHIFT 22
+
+/* macros to rounds things up/down to a page */
 
 #define PAGE_UP(p)   (((unsigned long)(p) + PAGE_SIZE- 1) & PAGE_MASK)
 #define PAGE_DOWN(p) ((unsigned long)(p) & PAGE_MASK)
