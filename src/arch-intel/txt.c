@@ -1080,8 +1080,7 @@ static void txt_wakeup_cpus(void)
 			out_info("\n");
 		}
 		timeout--;
-	//} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0); // BRING BACK
-	} while ((atomic_read(&ap_wfs_count) < 1) && timeout > 0);
+	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
 	out_info("\n");
 	if (timeout == 0)
 		out_info("wait-for-sipi loop timed-out");
@@ -1581,11 +1580,8 @@ void txt_cpu_wakeup(void)
 	//	out_description("cpuid exceeds # supported CPUs. id", cpuid);
 	//	return;
 	//}
-	if (cpuid != 1) {
-		while(1)
-	           wait(500);
-	}
-
+	while(cpuid-1 != atomic_read(&ap_wfs_count))
+	   wait(500);
 
 	//mtx_enter(&ap_lock);
 
