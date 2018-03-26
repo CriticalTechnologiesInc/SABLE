@@ -62,22 +62,17 @@
 	\name:
 .endm
 
+#define ENTRY(name)                             \
+  .globl name;                                  \
+  .align 16,0x90;                               \
+  name:
+
 .section ".tboot_multiboot_header","w"
 	.align  4, 0x90
 	.long   MBI_MAGIC1              /* magic */
 	.long   0x00000003              /* feature flags */
 	.long   0 - (MBI_MAGIC1 + 0x3)
 
-/*
- * shared data page with kernel (i.e. Xen)
- * (put at end so that not split e820 region for tboot)
- */
-.section ".tboot_shared","w"
-        .align PAGE_SIZE, 0
-
-FUNCTION _tboot_shared
-	.fill  PAGE_SIZE,1,0
-        .align PAGE_SIZE, 0
 
 FUNCTION start
 FUNCTION _start
@@ -134,11 +129,11 @@ FUNCTION __start
 /*
  * vmexit handler
  */
-FUNCTION vmx_asm_vmexit_handler
+ENTRY(vmx_asm_vmexit_handler)
         call vmx_vmexit_handler
 	/* fall through to loop if callee returns (shouldn't happen) */
 
-FUNCTION _mini_guest
+ENTRY(_mini_guest)
 1:	pause
 	cmp $0, (aps_exit_guest)
 	je 1b
@@ -149,7 +144,7 @@ FUNCTION _mini_guest
 /*
  * entry point for GETSEC[WAKEUP]
  */
-FUNCTION _txt_wakeup
+ENTRY(_txt_wakeup)
 	# prepare this thread for C code
         /* Set up a few descriptors: on entry only CS is guaranteed good. */
         lgdt    %cs:pgdt_desc
@@ -159,15 +154,15 @@ FUNCTION _txt_wakeup
         mov     %ecx, %fs
         mov     %ecx, %gs
         mov     %ecx, %ss
-//      ljmp    $(cs_sel), $(1f)
+        ljmp    $(cs_sel), $(1f)
 
        /* Load IDT */
-//1:	lidt    idt_descr
+1:	lidt    idt_descr
 
         /* enable MCE */
-//        mov     %cr4,%eax
-//        or      $CR4_MCE,%eax
-//        mov     %eax,%cr4
+        mov     %cr4,%eax
+        or      $CR4_MCE,%eax
+        mov     %eax,%cr4
 
 	# get initial 32-bit local APIC ID for this processor
 	mov	$0x0b, %eax
@@ -190,6 +185,49 @@ FUNCTION _txt_wakeup
 
 	call	txt_cpu_wakeup
 
+
+/*
+ * entry point for switch to real mode and jump
+ * entry point in %ebx
+ */
+ENTRY(_prot_to_real)
+	/* disable interrupts */
+	cli
+	mov     0x4(%esp), %ebx
+
+	/* deal with parameter, real mode program entry point */
+	mov     %ebx, %eax
+	and     $0xffff0, %eax
+	shr     $4, %eax
+	mov     %ax, _real_mode_entry_point + 4
+	and     $0xfff0000f, %ebx
+	mov     %ebx, _real_mode_entry_point
+
+	/* load proper segments for real mode */
+	mov     $(ds16_sel), %ax
+	mov     %ax, %ds
+	mov     %ax, %es
+	mov     %ax, %fs
+	mov     %ax, %gs
+	mov     %ax, %ss
+	lidt    real_idt_desc
+	xor     %eax, %eax
+	ljmp    $(cs16_sel), $(1f)
+
+	.code16
+1:	mov     %eax, %cr0
+	mov     $0x0, %ax
+	mov     %ax, %ds
+	mov     %ax, %es
+	mov     %ax, %fs
+	mov     %ax, %gs
+	mov     %ax, %ss
+
+	.code32
+
+	DATA16
+	ADDR16
+	ljmp    *_real_mode_entry_point
 
 /* Bhushan _post_launch_entry is just place holder. we have to provide implementation when required */
 
@@ -309,27 +347,60 @@ int_handler:
  * descriptors and descriptor tables
  */
 
+	.align 8
+
+/* GDT */
+pgdt_desc:
+	.word	end_gdt - gdt - 1
+	.long	gdt
+
+        .align PAGE_SIZE, 0
+
+ENTRY(gdt)
+		/* unused */
+        .quad	0x0000000000000000
+cs_descr:	/* cs */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x9b00		/* read + exec + accessed */
+	.word	0x00cf		/* granularity = 4096 */
+ds_descr:	/* ds */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x9300		/* read + write + accessed */
+	.word	0x00cf		/* granularity = 4096 */
+tss_descr:	/* tss */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x8900		/* system segment, 32b available TSS */
+	.word	0x008f		/* granularity = 4096 */
+cs16_desc:	/* cs16 */
+	.word	0xffff		/* limit = 4GB */
+	.word   0x0000      /* base = 0 */
+	.word   0x9b00      /* read + exec + accessed */
+	.word	0x008f      /* granularity = 4096, D = 0 */
+ds16_desc:  /* ds16 */
+	.word   0xffff      /* limit = 4GB */
+	.word   0x0000      /* base = 0 */
+	.word   0x9300      /* read + exec + accessed */
+	.word   0x008f      /* granularity = 4096, D = 0 */
+		/* end (unused) */
+	.quad   0x0000000000000000
+ENTRY(end_gdt)
+
 /* GDT */
 //.align(8)
+//FUNCTION gdt
+//        .global pgdt_desc
+//        .align(8)
 //pgdt_desc:
-//	.word	gdt_table_end - gdt_table - 1
-//	.long	gdt_table
-//
-//        .align PAGE_SIZE, 0
-//
-//FUNCTION gdt_table
-//		/* unused */
-//        .quad	0x0000000000000000
-//cs_descr:	/* cs */
-//	.word	0xffff		/* limit = 4GB */
-//	.word	0x00		/* base = 0 */
-//	.word	0x9b00		/* read + exec + accessed */
-//	.word	0x00cf		/* granularity = 4096 */
-//ds_descr:	/* ds */
-//	.word	0xffff		/* limit = 4GB */
-//	.word	0x00		/* base = 0 */
-//	.word	0x9300		/* read + write + accessed */
-//	.word	0x00cf		/* granularity = 4096 */
+//        .word end_gdt - gdt - 1
+//        .long gdt
+//        .word 0
+//_gdt_cs:
+//    .quad 0x00cf9b000000ffff
+//_gdt_ds:
+//    .quad 0x00cf93000000ffff
 //tss_descr:	/* tss */
 //	.word	0xffff		/* limit = 4GB */
 //	.word	0x00		/* base = 0 */
@@ -347,21 +418,7 @@ int_handler:
 //	.word   0x008f      /* granularity = 4096, D = 0 */
 //		/* end (unused) */
 //	.quad   0x0000000000000000
-//FUNCTION gdt_table_end
-
-.align(8)
-FUNCTION gdt
-        .global pgdt_desc
-        .align(8)
-pgdt_desc:
-        .word end_gdt - gdt - 1
-        .long gdt
-        .word 0
-_gdt_cs:
-    .quad 0x00cf9b000000ffff
-_gdt_ds:
-    .quad 0x00cf93000000ffff
-FUNCTION end_gdt
+//FUNCTION end_gdt
 
 /* Bhushan : I have change end_gdt: -> FUNTION edg_gdt */ 
 /* IDT */
@@ -397,15 +454,9 @@ real_idt_desc:
 	.long   0
 
 
-/* stacks for APs */
 /*
- * misc. bss data
+ * stacks 
  */
-.section ".bss"
-
-_real_mode_entry_point:
-	.long   0
-	.word   0
 
 .section ".bss.stack_aligned","w"
 
@@ -423,57 +474,42 @@ ap_stacks:
 
         .align PAGE_SIZE, 0
 .section ".bss.page_aligned","w"
-FUNCTION idle_pg_table
+ENTRY(idle_pg_table)
         .fill 1*PAGE_SIZE,1,0
 
         .align PAGE_SIZE, 0
-FUNCTION host_vmcs
+ENTRY(host_vmcs)
         .fill 1*PAGE_SIZE,1,0
 
         .align PAGE_SIZE, 0
 /* the input info when os/vmm kerneltrap into tboot */
-FUNCTION ap_vmcs
+ENTRY(ap_vmcs)
         .fill NR_CPUS * PAGE_SIZE, 1, 0
 
 
-FUNCTION _prot_to_real
-	/* disable interrupts */
-	cli
-	mov     0x4(%esp), %ebx
+/*
+ * misc. bss data
+ */
+.section ".bss"
 
-	/* deal with parameter, real mode program entry point */
-	mov     %ebx, %eax
-	and     $0xffff0, %eax
-	shr     $4, %eax
-	mov     %ax, _real_mode_entry_point + 4
-	and     $0xfff0000f, %ebx
-	mov     %ebx, _real_mode_entry_point
+_real_mode_entry_point:
+	.long   0
+	.word   0
 
-	/* load proper segments for real mode */
-	mov     $(ds16_sel), %ax
-	mov     %ax, %ds
-	mov     %ax, %es
-	mov     %ax, %fs
-	mov     %ax, %gs
-	mov     %ax, %ss
-	lidt    real_idt_desc
-	xor     %eax, %eax
-	ljmp    $(cs16_sel), $(1f)
+.section ".data"
 
-	.code16
-1:	mov     %eax, %cr0
-	mov     $0x0, %ax
-	mov     %ax, %ds
-	mov     %ax, %es
-	mov     %ax, %fs
-	mov     %ax, %gs
-	mov     %ax, %ss
+ENTRY(s3_flag)
+	.long 0
 
-	.code32
+/*
+ * shared data page with kernel (i.e. Xen)
+ * (put at end so that not split e820 region for tboot)
+ */
+.section ".tboot_shared","w"
+        .align PAGE_SIZE, 0
 
-	DATA16
-	ADDR16
-	ljmp    *_real_mode_entry_point
+ENTRY(_tboot_shared)
+	.fill	PAGE_SIZE,1,0
+        .align PAGE_SIZE, 0
 
-
-FUNCTION _end
+ENTRY(_end)

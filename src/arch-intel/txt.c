@@ -1576,12 +1576,17 @@ void txt_cpu_wakeup(void)
 	uint64_t madt_apicbase, msr_apicbase;
 	unsigned int cpuid = get_apicid();
 
-	if (cpuid >= NR_CPUS) {
-		out_description("cpuid exceeds # supported CPUs. id", cpuid);
-		return;
+	//if (cpuid >= NR_CPUS) {
+	//	out_description("cpuid exceeds # supported CPUs. id", cpuid);
+	//	return;
+	//}
+	if (cpuid != 1) {
+		while(1)
+	           wait(500);
 	}
 
-	mtx_enter(&ap_lock);
+
+	//mtx_enter(&ap_lock);
 
 	out_description("cpu waking up from TXT sleep :", cpuid);
 

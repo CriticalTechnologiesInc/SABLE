@@ -175,7 +175,6 @@ static bool start_vmx(unsigned int cpuid)
     /* TBD: it would be good to check VMX config is same on all CPUs */
     /* only initialize this data the first time */
     if ( !init_done ) {
-        /*printk(TBOOT_INFO"one-time initializing VMX mini-guest\n");*/
         memset(vmcs, 0, PAGE_SIZE);
 
         init_vmcs_config();
@@ -187,17 +186,25 @@ static bool start_vmx(unsigned int cpuid)
         init_done = true;
     }
 
-    /*printk(TBOOT_INFO"per-cpu initializing VMX mini-guest on cpu %u\n", cpuid);*/
 
     /* enable paging using 1:1 page table [0, _end] */
     /* addrs outside of tboot (e.g. MMIO) are not mapped) */
+    out_info("write 1\n");
     write_cr3((unsigned long)idle_pg_table);
+    out_info("write 2\n");
     write_cr4(read_cr4() | CR4_PSE);
+    out_info("read 3\n");
+    read_cr0();
+    out_info("write 3\n");
     write_cr0(read_cr0() | CR0_PG);
 
+    out_info("__vmxon\n");
     if ( __vmxon((unsigned long)vmcs) ) {
+        out_info("write 1\n");
         write_cr4(read_cr4() & ~CR4_VMXE);
+        out_info("write 2\n");
         write_cr4(read_cr4() & ~CR4_PSE);
+        out_info("write 3\n");
         write_cr0(read_cr0() & ~CR0_PG);
         out_description("VMXON failed for cpu ", cpuid);
         return false;
