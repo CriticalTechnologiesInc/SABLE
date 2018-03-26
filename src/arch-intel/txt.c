@@ -1080,7 +1080,8 @@ static void txt_wakeup_cpus(void)
 			out_info("\n");
 		}
 		timeout--;
-	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
+	//} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0); // BRING BACK
+	} while ((atomic_read(&ap_wfs_count) < 1) && timeout > 0);
 	out_info("\n");
 	if (timeout == 0)
 		out_info("wait-for-sipi loop timed-out");
