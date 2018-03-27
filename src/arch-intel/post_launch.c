@@ -196,17 +196,17 @@ extern void txt_post_launch(void);
 void intel_post_launch(void)
 {
 	out_info("WE are in post launch processing");
-	wait(4000);
+	wait(1000);
 	uint64_t base, size;
 //    tb_error_t err;
     tboot_log_t *g_log;
     extern void shutdown_entry(void);
-//
+
 	out_info("measured launch succeeded");
-//
-//    /* init MLE/kernel shared data page early, .num_in_wfs used in ap wakeup*/
-//    _tboot_shared.num_in_wfs = 0;
-//
+
+    /* init MLE/kernel shared data page early, .num_in_wfs used in ap wakeup*/
+    _tboot_shared.num_in_wfs = 0;
+
 
 
 
@@ -240,7 +240,7 @@ void intel_post_launch(void)
       }else{
         out_info("txt_protect_mem_regions succeeded!\n");
       }
-      wait(4000);
+      wait(1000);
 //    apply_policy(err);
 //
 //    /* ensure all modules are in RAM */
@@ -250,7 +250,7 @@ void intel_post_launch(void)
       }else{
         out_info("verify_modules succeeded!\n");
       }
-      wait(4000);
+      wait(1000);
 
     /* verify that tboot is in valid RAM (i.e. E820_RAM) */
     base = (uint64_t)TBOOT_BASE_ADDR;
@@ -261,7 +261,7 @@ void intel_post_launch(void)
     }
     else
         out_info(": succeeded.\n");
-    wait(4000);
+    wait(1000);
 
     /* protect ourselves, MLE page table, and MLE/kernel shared page */
     base = (uint64_t)TBOOT_BASE_ADDR;
@@ -274,7 +274,7 @@ void intel_post_launch(void)
     }else{
       out_info("e820_protect_region succeeded!\n");
     }
-    wait(4000);
+    wait(1000);
 
     /* if using memory logging, reserve log area */
 //    if ( g_log_targets & TBOOT_LOG_TARGET_MEMORY ) {
@@ -288,7 +288,7 @@ void intel_post_launch(void)
 //    }else{
 //      out_info("Not using memory logging\n");
 //    }
-    wait(4000);
+    wait(1000);
 
 	/* replace map in loader context with copy */
 	replace_e820_map(g_ldr_ctx);

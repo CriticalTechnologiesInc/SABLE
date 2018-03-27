@@ -1584,9 +1584,15 @@ bool launch_kernel(bool is_measured_launch)
             initrd_size = m->mod_end - m->mod_start;
         }
 
-        expand_linux_image(kernel_image, kernel_size,
+        bool status = expand_linux_image(kernel_image, kernel_size,
                            initrd_image, initrd_size,
                            &kernel_entry_point, is_measured_launch);
+	if(!status)
+	{
+		out_info("expand_linux_image FAILED!");
+		while(1)
+			wait(10000);
+	}
         out_info("transfering control to kernel");
 	wait(4000);
         /* (optionally) pause when transferring to kernel */

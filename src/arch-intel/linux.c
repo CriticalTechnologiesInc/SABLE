@@ -95,29 +95,29 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
     /* Check param */
 
     if ( linux_image == NULL ) {
-        out_info("Error: Linux kernel image is zero.\n");
+        out_info("Error: Linux kernel image is zero.");
         return false;
     }
 
     if ( linux_size == 0 ) {
-        out_info("Error: Linux kernel size is zero.\n");
+        out_info("Error: Linux kernel size is zero.");
         return false;
     }
 
     if ( linux_size < sizeof(linux_kernel_header_t) ) {
-        out_info("Error: Linux kernel size is too small.\n");
+        out_info("Error: Linux kernel size is too small.");
         return false;
     }
 
     hdr = (linux_kernel_header_t *)(linux_image + KERNEL_HEADER_OFFSET);
 
     if ( hdr == NULL ) {
-        out_info("Error: Linux kernel header is zero.\n");
+        out_info("Error: Linux kernel header is zero.");
         return false;
     }
 
     if ( entry_point == NULL ) {
-        out_info("Error: Output pointer is zero.\n");
+        out_info("Error: Output pointer is zero.");
         return false;
     }
 
@@ -132,7 +132,7 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
     if ( hdr->setup_sects == 0 )
         hdr->setup_sects = DEFAULT_SECTOR_NUM;
     if ( hdr->setup_sects > MAX_SECTOR_NUM ) {
-        out_info("Error: Linux setup sectors exceed maximum limitation 64.\n");
+        out_info("Error: Linux setup sectors exceed maximum limitation 64.");
         return false;
     }
 
@@ -144,12 +144,12 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
     /* compare to the magic number */
     if ( hdr->header != HDRS_MAGIC ) {
         /* old kernel */
-        out_info("Error: Old kernel (< 2.6.20) is not supported by tboot.\n");
+        out_info("Error: Old kernel (< 2.6.20) is not supported by tboot.");
         return false;
     }
 
     if ( hdr->version < 0x0205 ) {
-        out_info("Error: Old kernel (<2.6.20) is not supported by tboot.\n");
+        out_info("Error: Old kernel (<2.6.20) is not supported by tboot.");
         return false;
     }
 
@@ -176,20 +176,20 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
         get_highest_sized_ram(initrd_size, mem_limit,
                               &max_ram_base, &max_ram_size);
         if ( max_ram_size == 0 ) {
-            out_info("not enough RAM for initrd\n");
+            out_info("not enough RAM for initrd");
             return false;
         }
         if ( initrd_size > max_ram_size ) {
-            out_info("initrd_size is too large\n");
+            out_info("initrd_size is too large");
             return false;
         }
         if ( max_ram_base > ((uint64_t)(uint32_t)(~0)) ) {
-            out_info("max_ram_base is too high\n");
+            out_info("max_ram_base is too high");
             return false;
         }
         if ( plus_overflow_u32((uint32_t)max_ram_base,
                  (uint32_t)(max_ram_size - initrd_size)) ) {
-            out_info("max_ram overflows\n");
+            out_info("max_ram overflows");
             return false;
         }
         initrd_base = (max_ram_base + max_ram_size - initrd_size) & PAGE_MASK;
@@ -197,7 +197,7 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
         /* should not exceed initrd_addr_max */
         if ( initrd_base + initrd_size > hdr->initrd_addr_max ) {
             if ( hdr->initrd_addr_max < initrd_size ) {
-                out_info("initrd_addr_max is too small\n");
+                out_info("initrd_addr_max is too small");
                 return false;
             }
             initrd_base = hdr->initrd_addr_max - initrd_size;
@@ -212,13 +212,13 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
             initrd_base = initrd_base & PAGE_MASK;
             /* make sure we're still in usable RAM and above tboot end address*/
             if( initrd_base < max_ram_base ){
-                out_info("no available memory for initrd\n");
+                out_info("no available memory for initrd");
                 return false;
             }
         }
 
         memcpy((void *)initrd_base, initrd_image, initrd_size);
-        //printk(TBOOT_DETA"Initrd from 0x%lx to 0x%lx\n",
+        //printk(TBOOT_DETA"Initrd from 0x%lx to 0x%lx",
         //       (unsigned long)initrd_base,
         //       (unsigned long)(initrd_base + initrd_size));
 
@@ -242,7 +242,7 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
 
     real_mode_size = (hdr->setup_sects + 1) * SECTOR_SIZE;
     if ( real_mode_size + sizeof(boot_params_t) > KERNEL_CMDLINE_OFFSET ) {
-        out_info("realmode data is too large\n");
+        out_info("realmode data is too large");
         return false;
     }
 
@@ -262,7 +262,7 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
         /* overflow? */
         if ( plus_overflow_u32(protected_mode_base,
                  hdr->kernel_alignment - 1) ) {
-            out_info("protected_mode_base overflows\n");
+            out_info("protected_mode_base overflows");
             return false;
         }
         /* round it up to kernel alignment */
@@ -275,7 +275,7 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
                 /* bzImage:0x100000 */
         /* overflow? */
         if ( plus_overflow_u32(protected_mode_base, protected_mode_size) ) {
-            out_info("protected_mode_base plus protected_mode_size overflows\n");
+            out_info("protected_mode_base plus protected_mode_size overflows");
             return false;
         }
         /* Check: protected mode part cannot exceed mem_upper */
@@ -283,13 +283,13 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
             uint32_t mem_upper = get_loader_mem_upper(g_ldr_ctx);
             if ( (protected_mode_base + protected_mode_size)
                     > ((mem_upper << 10) + 0x100000) ) {
-                out_info("Error: Linux protected mode part exceeds mem_upper.\n");
+                out_info("Error: Linux protected mode part exceeds mem_upper.");
                 return false;
             }
         }
     }
     else {
-        out_info("Error: Linux protected mode not loaded high\n");
+        out_info("Error: Linux protected mode not loaded high");
         return false;
     }
 
@@ -359,14 +359,14 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
                     efi->efi_systable_hi = 0;
                 }
             } else {
-                out_info("failed to get efi system table ptr\n");
+                out_info("failed to get efi system table ptr");
             }
         }
 
         efi_mmap_addr = find_efi_memmap(g_ldr_ctx, &descr_size,
                                         &descr_vers, &mmap_size);
         if (!efi_mmap_addr) {
-            out_info("failed to get EFI memory map\n");
+            out_info("failed to get EFI memory map");
             efi->efi_memdescr_size = 0x1; // Avoid div by 0 in kernel.
             efi->efi_memmap_size = 0;
             efi->efi_memmap = 0;
@@ -451,6 +451,7 @@ bool jump_linux_image(void *entry_point)
     gdt_desc.length = sizeof(gdt_table) - 1;
     gdt_desc.table = (uint32_t)&gdt_table;
 
+    out_info("load gdt\n");
     /* load gdt with CS = 0x10 and DS = 0x18 */
     __asm__ __volatile__ (
      " lgdtl %0;            "
@@ -467,6 +468,8 @@ bool jump_linux_image(void *entry_point)
      " xor %%ebx, %%ebx;    "
      :: "m"(gdt_desc), "i"(__BOOT_DS), "i"(__BOOT_CS));
 
+    wait(100);
+    out_info("jump linux\n");
     /* jump to protected-mode code */
     __asm__ __volatile__ (
      " cli;           "
