@@ -1,7 +1,7 @@
 /*
- * txt.h: Intel(r) TXT support functions
+ * wakeup.S: assembly S3 wakeup support
  *
- * Copyright (c) 2003-2008, Intel Corporation
+ * Copyright (c) 2006-2007, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,39 +33,57 @@
  *
  */
 
-#ifndef __TXT_TXT_H__
-#define __TXT_TXT_H__
-
-// #include <multiboot.h>
-
-extern bool txt_is_launched(void);
-//extern void txt_display_errors(void);
-//extern bool txt_has_error(void);
-//extern void txt_get_racm_error(void);
-//extern tb_error_t supports_txt(void);
-//extern tb_error_t txt_verify_platform(void);
-//extern bool txt_prepare_cpu(void);
-//extern tb_error_t txt_launch_environment(loader_ctx *lctx);
-//extern tb_error_t txt_launch_racm(loader_ctx *lctx);
-//extern void txt_post_launch(void);
-extern int txt_protect_mem_regions(void);
-//extern tb_error_t txt_post_launch_verify_platform(void);
-//extern bool txt_s3_launch_environment(void);
-extern void txt_shutdown(void);
-extern bool txt_is_powercycle_required(void);
-extern void ap_wait(unsigned int cpuid);
-
-//extern uint32_t g_using_da;
-#endif      /* __TXT_TXT_H__ */
-
+#define TBOOT_S3_WAKEUP_ADDR         0x8a000
 
 /*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
+ * s3 resume entry called from BIOS
  */
+        .code16
+        .align PAGE_SIZE, 0
 
+ENTRY(s3_wakeup_16)
+	cli
+	cld
+	mov     %cs, %ax
+	mov     %ax, %ds
+	lgdtl   real_gdt_desc - s3_wakeup_16
+	mov     $1, %eax
+	mov     %eax, %cr0
+	ljmpl   $(cs_sel), $(s3_wakeup_32)
+
+	.align 8
+/*
+ * descriptors and descriptor tables
+ */
+real_gdt_desc:
+	.word	real_gdt_table_end - real_gdt_table - 1
+	.long	TBOOT_S3_WAKEUP_ADDR + real_gdt_table - s3_wakeup_16
+
+        .align 8
+
+real_gdt_table:
+		/* unused */
+        .quad	0x0000000000000000
+real_cs_desc:	/* cs */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x9a00		/* read + exec */
+	.word	0x00cf		/* granularity = 4096 */
+real_ds_desc:	/* ds */
+	.word	0xffff		/* limit = 4GB */
+	.word	0x00		/* base = 0 */
+	.word	0x9200		/* read + write */
+	.word	0x00cf		/* granularity = 4096 */
+		/* end (unused) */
+        .quad	0x0000000000000000
+real_gdt_table_end:
+ENTRY(s3_wakeup_end)
+
+        .code32
+
+s3_wakeup_32:
+	mov     $(ds_sel), %ecx
+	mov     %ecx, %ds
+	mov     $1, %eax
+	mov     %eax, s3_flag
+	jmp     __start

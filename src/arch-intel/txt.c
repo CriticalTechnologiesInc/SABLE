@@ -13,6 +13,7 @@
 //#include "hash.h"
 #include "intel_tpm.h"
 #include "arch-intel/heap.h"
+#include "tboot.h"
 #include "acpi.h"
 #include "atomic.h"
 #include "keyboard.h"
@@ -321,7 +322,7 @@ int get_parameters(getsec_parameters_t *params)
 //#include <uuid.h>
 //#include <loader.h>
 //#include <e820.h>
-#include <tboot.h>
+//#include <tboot.h>
 //#include <mle.h>
 //#include <hash.h>
 //#include <cmdline.h>
@@ -1683,65 +1684,63 @@ int txt_protect_mem_regions(void)
     return 0;
 }
 
-void handle_exception(void)
+//void handle_exception(void)
+//{
+//    out_info("received exception; shutting down...\n");
+//}
+
+void txt_shutdown(void)
 {
-    out_info("received exception; shutting down...\n");
+    unsigned long apicbase;
+
+    /* shutdown shouldn't be called on APs, but if it is then just hlt */
+    apicbase = rdmsr(MSR_APICBASE);
+    if ( !(apicbase & APICBASE_BSP) ) {
+        out_info("calling txt_shutdown on AP\n");
+        while ( true )
+            halt();
+    }
+
+    /* set TXT.CMD.NO-SECRETS flag (i.e. clear SECRETS flag) */
+    write_priv_config_reg(TXTCR_CMD_NO_SECRETS, 0x01);
+    read_priv_config_reg(TXTCR_E2STS);   /* fence */
+    out_info("secrets flag cleared\n");
+
+    /* unlock memory configuration */
+    write_priv_config_reg(TXTCR_CMD_UNLOCK_MEM_CONFIG, 0x01);
+    read_pub_config_reg(TXTCR_E2STS);    /* fence */
+    out_info("memory configuration unlocked\n");
+
+    /* if some APs are still in wait-for-sipi then SEXIT will hang */
+    /* so TXT reset the platform instead, expect mwait case */
+    if ( (!use_mwait()) && atomic_read(&ap_wfs_count) > 0 ) {
+        out_info("exiting with some APs still in wait-for-sipi state");
+        write_priv_config_reg(TXTCR_CMD_RESET, 0x01);
+    }
+
+    /* close TXT private config space */
+    /* implicitly closes TPM localities 1 + 2 */
+    read_priv_config_reg(TXTCR_E2STS);   /* fence */
+    write_priv_config_reg(TXTCR_CMD_CLOSE_PRIVATE, 0x01);
+    read_pub_config_reg(TXTCR_E2STS);    /* fence */
+    out_info("private config space closed\n");
+
+    /* SMXE may not be enabled any more, so set it to make sure */
+    write_cr4(read_cr4() | CR4_SMXE);
+
+    /* call GETSEC[SEXIT] */
+    out_info("executing GETSEC[SEXIT]...\n");
+    __getsec_sexit();
+    out_info("measured environment torn down\n");
 }
 
-//void txt_shutdown(void)
-//{
-//    unsigned long apicbase;
-//
-//    /* shutdown shouldn't be called on APs, but if it is then just hlt */
-//    apicbase = rdmsr(MSR_APICBASE);
-//    if ( !(apicbase & APICBASE_BSP) ) {
-//        printk(TBOOT_INFO"calling txt_shutdown on AP\n");
-//        while ( true )
-//            halt();
-//    }
-//
-//    /* set TXT.CMD.NO-SECRETS flag (i.e. clear SECRETS flag) */
-//    write_priv_config_reg(TXTCR_CMD_NO_SECRETS, 0x01);
-//    read_priv_config_reg(TXTCR_E2STS);   /* fence */
-//    printk(TBOOT_INFO"secrets flag cleared\n");
-//
-//    /* unlock memory configuration */
-//    write_priv_config_reg(TXTCR_CMD_UNLOCK_MEM_CONFIG, 0x01);
-//    read_pub_config_reg(TXTCR_E2STS);    /* fence */
-//    printk(TBOOT_INFO"memory configuration unlocked\n");
-//
-//    /* if some APs are still in wait-for-sipi then SEXIT will hang */
-//    /* so TXT reset the platform instead, expect mwait case */
-//    if ( (!use_mwait()) && atomic_read(&ap_wfs_count) > 0 ) {
-//        printk(TBOOT_INFO
-//               "exiting with some APs still in wait-for-sipi state (%u)\n",
-//               atomic_read(&ap_wfs_count));
-//        write_priv_config_reg(TXTCR_CMD_RESET, 0x01);
-//    }
-//
-//    /* close TXT private config space */
-//    /* implicitly closes TPM localities 1 + 2 */
-//    read_priv_config_reg(TXTCR_E2STS);   /* fence */
-//    write_priv_config_reg(TXTCR_CMD_CLOSE_PRIVATE, 0x01);
-//    read_pub_config_reg(TXTCR_E2STS);    /* fence */
-//    printk(TBOOT_INFO"private config space closed\n");
-//
-//    /* SMXE may not be enabled any more, so set it to make sure */
-//    write_cr4(read_cr4() | CR4_SMXE);
-//
-//    /* call GETSEC[SEXIT] */
-//    printk(TBOOT_INFO"executing GETSEC[SEXIT]...\n");
-//    __getsec_sexit();
-//    printk(TBOOT_INFO"measured environment torn down\n");
-//}
-//
-//bool txt_is_powercycle_required(void)
-//{
-//    /* a powercycle is required to clear the TXT_RESET.STS flag */
-//    txt_ests_t ests = (txt_ests_t)read_pub_config_reg(TXTCR_ESTS);
-//    return ests.txt_reset_sts;
-//}
-//
+bool txt_is_powercycle_required(void)
+{
+    /* a powercycle is required to clear the TXT_RESET.STS flag */
+    txt_ests_t ests = (txt_ests_t)read_pub_config_reg(TXTCR_ESTS);
+    return ests.txt_reset_sts;
+}
+
 //#define ACM_MEM_TYPE_UC                 0x0100
 //#define ACM_MEM_TYPE_WC                 0x0200
 //#define ACM_MEM_TYPE_WT                 0x1000

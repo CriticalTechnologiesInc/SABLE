@@ -44,20 +44,20 @@
 #include <util.h>
 #include <uuid.h>
 #include <loader.h>
-//#include <processor.h>
+#include <processor.h>
 //#include <misc.h>
 //#include <page.h>
 //#include <msr.h>
-//#include <io.h>
-//#include <mutex.h>
+#include <io.h>
+#include <mutex.h>
 //#include <uuid.h>
 //#include <loader.h>
-#include <hash.h>
+//#include <hash.h>
 //#include <mle.h>
-//#include <tpm.h>
+#include <intel_tpm.h>
 //#include <tb_error.h>
 //#include <txt/txt.h>
-//#include <txt/vmcs.h>
+#include <vmcs.h>
 //#include <txt/smx.h>
 //#include <txt/mtrrs.h>
 //#include <txt/config_regs.h>
@@ -76,6 +76,8 @@
 #include <misc.h>
 #include <atomic.h>
 #include <keyboard.h>
+#include <acpi.h>
+#include <integrity.h>
 
 typedef struct __packed {
     uint64_t  base;
@@ -115,17 +117,17 @@ extern void verify_all_modules(loader_ctx *lctx);
 //extern __data u32 handle2048;
 //extern __data tpm_contextsave_out tpm2_context_saved;
 ///* counter timeout for waiting for all APs to exit guests */
-//#define AP_GUEST_EXIT_TIMEOUT     0x01000000
-//
-//extern long s3_flag;
-//
-//extern char s3_wakeup_16[];
-//extern char s3_wakeup_end[];
-//
+#define AP_GUEST_EXIT_TIMEOUT     0x01000000
+
+extern long s3_flag;
+
+extern char s3_wakeup_16[];
+extern char s3_wakeup_end[];
+
 extern atomic_t ap_wfs_count;
-//
-//extern struct mutex ap_lock;
-//
+
+extern struct mutex ap_lock;
+
 ///* loader context struct saved so that post_launch() can use it */
 //__data loader_ctx g_loader_ctx = { NULL, 0 };
 //__data loader_ctx *g_ldr_ctx = &g_loader_ctx;
@@ -135,12 +137,12 @@ extern atomic_t ap_wfs_count;
 ///* MLE/kernel shared data page (in boot.S) */
 //extern tboot_shared_t _tboot_shared;
 //
-///*
-// * caution: must make sure the total wakeup entry code length
-// * (s3_wakeup_end - s3_wakeup_16) can fit into one page.
-// */
-//static __data uint8_t g_saved_s3_wakeup_page[PAGE_SIZE];
-//
+/*
+ * caution: must make sure the total wakeup entry code length
+ * (s3_wakeup_end - s3_wakeup_16) can fit into one page.
+ */
+static __data uint8_t g_saved_s3_wakeup_page[PAGE_SIZE];
+
 //unsigned long get_tboot_mem_end(void)
 //{
 //    return PAGE_UP((unsigned long)&_end);
@@ -150,35 +152,35 @@ extern atomic_t ap_wfs_count;
 //{
 //    return txt_verify_platform();
 //}
-//
-//static bool is_launched(void)
-//{
-//    if ( supports_txt() == TB_ERR_NONE )
-//        return txt_is_launched();
-//    else return false;
-//}
-//
+
+static bool is_launched(void)
+{
+    //if ( supports_txt() == TB_ERR_NONE )
+        return txt_is_launched();
+    //else return false;
+}
+
 //static bool prepare_cpu(void)
 //{
 //    return txt_prepare_cpu();
 //}
 //
-//static void copy_s3_wakeup_entry(void)
-//{
-//    if ( s3_wakeup_end - s3_wakeup_16 > PAGE_SIZE ) {
-//        printk(TBOOT_ERR"S3 entry is too large to be copied into one page!\n");
-//        return;
-//    }
-//
-//    /* backup target address space first */
-//    memcpy(g_saved_s3_wakeup_page, (void *)TBOOT_S3_WAKEUP_ADDR,
-//           s3_wakeup_end - s3_wakeup_16);
-//
-//    /* copy s3 entry into target mem */
-//    memcpy((void *)TBOOT_S3_WAKEUP_ADDR, s3_wakeup_16,
-//           s3_wakeup_end - s3_wakeup_16);
-//}
-//
+static void copy_s3_wakeup_entry(void)
+{
+    if ( s3_wakeup_end - s3_wakeup_16 > PAGE_SIZE ) {
+        out_info("S3 entry is too large to be copied into one page!\n");
+        return;
+    }
+
+    /* backup target address space first */
+    memcpy(g_saved_s3_wakeup_page, (void *)TBOOT_S3_WAKEUP_ADDR,
+           s3_wakeup_end - s3_wakeup_16);
+
+    /* copy s3 entry into target mem */
+    memcpy((void *)TBOOT_S3_WAKEUP_ADDR, s3_wakeup_16,
+           s3_wakeup_end - s3_wakeup_16);
+}
+
 //static void restore_saved_s3_wakeup_page(void)
 //{
 //    /* restore saved page */
@@ -346,7 +348,7 @@ void intel_post_launch(void)
     _tboot_shared.uuid = (uuid_t)TBOOT_SHARED_UUID;
     _tboot_shared.version = 6;
     _tboot_shared.log_addr = (uint32_t)g_log;
-    _tboot_shared.shutdown_entry = 0;//(uint32_t)shutdown_entry;
+    _tboot_shared.shutdown_entry = (uint32_t)shutdown_entry;
     _tboot_shared.tboot_base = (uint32_t)&_start;
     _tboot_shared.tboot_size = (uint32_t)&_end - (uint32_t)&_start;
     //uint32_t key_size = sizeof(_tboot_shared.s3_key);
@@ -614,9 +616,9 @@ void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec)
 //
 //    _prot_to_real(g_post_k_s3_state.kernel_s3_resume_vector);
 //}
-//
-//static void shutdown_system(uint32_t shutdown_type)
-//{
+
+static void shutdown_system(uint32_t shutdown_type)
+{
 //    static const char *types[] = { "TB_SHUTDOWN_REBOOT", "TB_SHUTDOWN_S5",
 //                                   "TB_SHUTDOWN_S4", "TB_SHUTDOWN_S3",
 //                                   "TB_SHUTDOWN_HALT" };
@@ -626,172 +628,172 @@ void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec)
 //        snprintf(type, sizeof(type), "unknown: %u", shutdown_type);
 //    else
 //        strncpy(type, types[shutdown_type], sizeof(type));
-//    printk(TBOOT_INFO"shutdown_system() called for shutdown_type: %s\n", type);
-//
-//    switch( shutdown_type ) {
-//        case TB_SHUTDOWN_S3:
-//            copy_s3_wakeup_entry();
-//            /* write our S3 resume vector to ACPI resume addr */
-//            set_s3_resume_vector(&_tboot_shared.acpi_sinfo,  TBOOT_S3_WAKEUP_ADDR);
-//            /* fall through for rest of Sx handling */
-//        /* FALLTHROUGH */
-//        case TB_SHUTDOWN_S4:
-//        case TB_SHUTDOWN_S5:
-//            machine_sleep(&_tboot_shared.acpi_sinfo);
-//            /* if machine_sleep() fails, fall through to reset */
-//
-//        /* FALLTHROUGH */
-//        case TB_SHUTDOWN_REBOOT:
-//            if ( txt_is_powercycle_required() ) {
-//                /* powercycle by writing 0x0a+0x0e to port 0xcf9 */
-//                /* (supported by all TXT-capable chipsets) */
-//                outb(0xcf9, 0x0a);
-//                outb(0xcf9, 0x0e);
-//            }
-//            else {
-//                /* soft reset by writing 0xfe to keyboard reset vector 0x64 */
-//                /* BIOSes (that are not performing some special operation, */
-//                /* such as update) will turn this into a platform reset as */
-//                /* expected. */
-//                outb(0x64, 0xfe);
-//                /* fall back to soft reset by writing 0x06 to port 0xcf9 */
-//                /* (supported by all TXT-capable chipsets) */
-//                outb(0xcf9, 0x06);
-//            }
-//
-//        /* FALLTHROUGH */
-//        case TB_SHUTDOWN_HALT:
-//        default:
-//            while ( true )
-//                halt();
-//    }
-//}
-//
-//void shutdown(void)
-//{
-//    /* wait-for-sipi only invoked for APs, so skip all BSP shutdown code */
-//    if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_WFS ) {
-//        atomic_inc(&ap_wfs_count);
-//        _tboot_shared.ap_wake_trigger = 0;
-//        mtx_enter(&ap_lock);
-//        printk(TBOOT_INFO"shutdown(): TB_SHUTDOWN_WFS\n");
-//        if ( use_mwait() )
-//            ap_wait(get_apicid());
-//        else
-//            handle_init_sipi_sipi(get_apicid());
-//        apply_policy(TB_ERR_FATAL);
-//    }
-//
-//    printk(TBOOT_INFO"wait until all APs ready for txt shutdown\n");
-//    while( atomic_read(&_tboot_shared.num_in_wfs)
-//           < atomic_read(&ap_wfs_count) )
-//        cpu_relax();
-//
-//    /* ensure localities 0, 1 are inactive (in case kernel used them) */
-//    /* request TPM current locality to be active */
-//    if (g_tpm_family != TPM_IF_20_CRB ) {
-//        if (!release_locality(0))
-//            printk(TBOOT_ERR"Release TPM FIFO locality 0 failed \n");
-//        if (!release_locality(1))
-//            printk(TBOOT_ERR"Release TPM FIFO locality 1 failed \n");
-//        if (!tpm_wait_cmd_ready(g_tpm->cur_loc))
-//            printk(TBOOT_ERR"Request TPM FIFO locality %d failed \n", g_tpm->cur_loc);
-//    }
-//    else {
-//        if (!tpm_relinquish_locality_crb(0))
-//            printk(TBOOT_ERR"Release TPM CRB locality 0 failed \n");
-//        if (!tpm_relinquish_locality_crb(1))			 
-//            printk(TBOOT_ERR"Release TPM CRB locality 1 failed \n");
-//        if (!tpm_request_locality_crb(g_tpm->cur_loc))
-//            printk(TBOOT_ERR"Request TPM CRB locality %d failed \n", g_tpm->cur_loc);
-//    }
-//
-//    if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 ) {
-//        /* restore DMAR table if needed */
-//        restore_vtd_dmar_table();
-//	if ( g_tpm->major == TPM20_VER_MAJOR ) {
-//	    g_tpm->context_flush(g_tpm, g_tpm->cur_loc, handle2048);
-//	    g_tpm->context_load(g_tpm, g_tpm->cur_loc, &tpm2_context_saved, &handle2048);
-// 	}
-//
-//		
-//	/* save kernel/VMM resume vector for sealing */
-//        g_post_k_s3_state.kernel_s3_resume_vector =  _tboot_shared.acpi_sinfo.kernel_s3_resume_vector;
-//        
-//        /* create and seal memory integrity measurement */
-//        if ( !seal_post_k_state() )   
-//	    apply_policy(TB_ERR_S3_INTEGRITY);
-//            /* OK to leave key in memory on failure since if user cared they
-//               would have policy that doesn't continue for TB_ERR_S3_INTEGRITY
-//               error */
-//        else
-//            /* wipe S3 key from memory now that it is sealed */
-//            memset(_tboot_shared.s3_key, 0, sizeof(_tboot_shared.s3_key));
-//    }
-//
-//    /* cap dynamic PCRs extended as part of launch (17, 18, ...) */
-//    if ( is_launched() ) {
-//
-//        /* cap PCRs to ensure no follow-on code can access sealed data */
-//        g_tpm->cap_pcrs(g_tpm, g_tpm->cur_loc, -1);
-//
-//        /* have TPM save static PCRs (in case VMM/kernel didn't) */
-//        /* per TCG spec, TPM can invalidate saved state if any other TPM
-//           operation is performed afterwards--so do this last */
-//        if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 )
-//            g_tpm->save_state(g_tpm, g_tpm->cur_loc);
-//
-//        /* scrub any secrets by clearing their memory, then flush cache */
-//        /* we don't have any secrets to scrub, however */
-//        ;
-//
-//        /* in mwait "mode", APs will be in MONITOR/MWAIT and can be left there */
-//        if ( !use_mwait() ) {
-//            /* force APs to exit mini-guests if any are in and wait until */
-//            /* all are out before shutting down TXT */
-//            printk(TBOOT_INFO"waiting for APs (%u) to exit guests...\n", atomic_read(&ap_wfs_count));
-//            force_aps_exit();
-//            uint32_t timeout = AP_GUEST_EXIT_TIMEOUT;
-//            do {
-//                if ( timeout % 0x8000 == 0 )
-//                    printk(TBOOT_INFO".");
-//                else
-//                    cpu_relax();
-//                if ( timeout % 0x200000 == 0 )
-//                    printk(TBOOT_INFO"\n");
-//                timeout--;
-//            } while ( ( atomic_read(&ap_wfs_count) > 0 ) && timeout > 0 );
-//            printk(TBOOT_INFO"\n");
-//            if ( timeout == 0 )
-//                printk(TBOOT_INFO"AP guest exit loop timed-out\n");
-//            else
-//                printk(TBOOT_INFO"all APs exited guests\n");
-//        } else {
-//            /* reset ap_wfs_count to avoid tboot hash changing in S3 case */
-//            atomic_set(&ap_wfs_count, 0);
-//        }
-//
-//        /* turn off TXT (GETSEC[SEXIT]) */
-//        txt_shutdown();
-//    }
-//
-//    /* machine shutdown */
-//    shutdown_system(_tboot_shared.shutdown_type);
-//}
-//
-//void handle_exception(void)
-//{
-//    printk(TBOOT_INFO"received exception; shutting down...\n");
-//    _tboot_shared.shutdown_type = TB_SHUTDOWN_REBOOT;
-//    shutdown();
-//}
-//
-///*
-// * Local variables:
-// * mode: C
-// * c-set-style: "BSD"
-// * c-basic-offset: 4
-// * tab-width: 4
-// * indent-tabs-mode: nil
-// * End:
-// */
+//    out_info("shutdown_system() called for shutdown_type: %s\n", type);
+
+    switch( shutdown_type ) {
+        case TB_SHUTDOWN_S3:
+            copy_s3_wakeup_entry();
+            /* write our S3 resume vector to ACPI resume addr */
+            set_s3_resume_vector(&_tboot_shared.acpi_sinfo,  TBOOT_S3_WAKEUP_ADDR);
+            /* fall through for rest of Sx handling */
+        /* FALLTHROUGH */
+        case TB_SHUTDOWN_S4:
+        case TB_SHUTDOWN_S5:
+            machine_sleep(&_tboot_shared.acpi_sinfo);
+            /* if machine_sleep() fails, fall through to reset */
+
+        /* FALLTHROUGH */
+        case TB_SHUTDOWN_REBOOT:
+            if ( txt_is_powercycle_required() ) {
+                /* powercycle by writing 0x0a+0x0e to port 0xcf9 */
+                /* (supported by all TXT-capable chipsets) */
+                outb(0xcf9, 0x0a);
+                outb(0xcf9, 0x0e);
+            }
+            else {
+                /* soft reset by writing 0xfe to keyboard reset vector 0x64 */
+                /* BIOSes (that are not performing some special operation, */
+                /* such as update) will turn this into a platform reset as */
+                /* expected. */
+                outb(0x64, 0xfe);
+                /* fall back to soft reset by writing 0x06 to port 0xcf9 */
+                /* (supported by all TXT-capable chipsets) */
+                outb(0xcf9, 0x06);
+            }
+
+        /* FALLTHROUGH */
+        case TB_SHUTDOWN_HALT:
+        default:
+            while ( true )
+                halt();
+    }
+}
+
+void shutdown(void)
+{
+    /* wait-for-sipi only invoked for APs, so skip all BSP shutdown code */
+    if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_WFS ) {
+        atomic_inc(&ap_wfs_count);
+        _tboot_shared.ap_wake_trigger = 0;
+        //mtx_enter(&ap_lock);
+        out_info("shutdown(): TB_SHUTDOWN_WFS\n");
+        if ( use_mwait() )
+            ap_wait(get_apicid());
+        else
+            handle_init_sipi_sipi(get_apicid());
+        //apply_policy(TB_ERR_FATAL);
+    }
+
+    out_info("wait until all APs ready for txt shutdown\n");
+    while( atomic_read(&_tboot_shared.num_in_wfs)
+           < atomic_read(&ap_wfs_count) )
+        cpu_relax();
+
+    /* ensure localities 0, 1 are inactive (in case kernel used them) */
+    /* request TPM current locality to be active */
+    if (g_tpm_family != TPM_IF_20_CRB ) {
+        if (!release_locality(0))
+            out_info("Release TPM FIFO locality 0 failed");
+        if (!release_locality(1))
+            out_info("Release TPM FIFO locality 1 failed");
+        if (!tpm_wait_cmd_ready(g_tpm->cur_loc))
+            out_info("Request TPM FIFO locality failed");
+    }
+    else {
+        if (!tpm_relinquish_locality_crb(0))
+            out_info("Release TPM CRB locality 0 failed");
+        if (!tpm_relinquish_locality_crb(1))	              
+            out_info("Release TPM CRB locality 1 failed");
+        if (!tpm_request_locality_crb(g_tpm->cur_loc))
+            out_info("Request TPM CRB locality failed");
+    }
+
+    if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 ) {
+        /* restore DMAR table if needed */
+        restore_vtd_dmar_table();
+	//if ( g_tpm->major == TPM20_VER_MAJOR ) {
+	//    g_tpm->context_flush(g_tpm, g_tpm->cur_loc, handle2048);
+	//    g_tpm->context_load(g_tpm, g_tpm->cur_loc, &tpm2_context_saved, &handle2048);
+ 	//}
+
+		
+	/* save kernel/VMM resume vector for sealing */
+        g_post_k_s3_state.kernel_s3_resume_vector =  _tboot_shared.acpi_sinfo.kernel_s3_resume_vector;
+        
+        /* create and seal memory integrity measurement */
+        //if ( !seal_post_k_state() )   
+	    //apply_policy(TB_ERR_S3_INTEGRITY);
+            /* OK to leave key in memory on failure since if user cared they
+               would have policy that doesn't continue for TB_ERR_S3_INTEGRITY
+               error */
+        //else
+            /* wipe S3 key from memory now that it is sealed */
+            memset(_tboot_shared.s3_key, 0, sizeof(_tboot_shared.s3_key));
+    }
+
+    /* cap dynamic PCRs extended as part of launch (17, 18, ...) */
+    if ( is_launched() ) {
+
+        /* cap PCRs to ensure no follow-on code can access sealed data */
+        g_tpm->cap_pcrs(g_tpm, g_tpm->cur_loc, -1);
+
+        /* have TPM save static PCRs (in case VMM/kernel didn't) */
+        /* per TCG spec, TPM can invalidate saved state if any other TPM
+           operation is performed afterwards--so do this last */
+        if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 )
+            g_tpm->save_state(g_tpm, g_tpm->cur_loc);
+
+        /* scrub any secrets by clearing their memory, then flush cache */
+        /* we don't have any secrets to scrub, however */
+        ;
+
+        /* in mwait "mode", APs will be in MONITOR/MWAIT and can be left there */
+        if ( !use_mwait() ) {
+            /* force APs to exit mini-guests if any are in and wait until */
+            /* all are out before shutting down TXT */
+            out_info("waiting for APs to exit guests...\n");
+            force_aps_exit();
+            uint32_t timeout = AP_GUEST_EXIT_TIMEOUT;
+            do {
+                if ( timeout % 0x8000 == 0 )
+                    out_info(".");
+                else
+                    cpu_relax();
+                if ( timeout % 0x200000 == 0 )
+                    out_info("\n");
+                timeout--;
+            } while ( ( atomic_read(&ap_wfs_count) > 0 ) && timeout > 0 );
+            out_info("\n");
+            if ( timeout == 0 )
+                out_info("AP guest exit loop timed-out\n");
+            else
+                out_info("all APs exited guests\n");
+        } else {
+            /* reset ap_wfs_count to avoid tboot hash changing in S3 case */
+            atomic_set(&ap_wfs_count, 0);
+        }
+
+        /* turn off TXT (GETSEC[SEXIT]) */
+        txt_shutdown();
+    }
+
+    /* machine shutdown */
+    shutdown_system(_tboot_shared.shutdown_type);
+}
+
+void handle_exception(void)
+{
+    out_info("received exception; shutting down...\n");
+    _tboot_shared.shutdown_type = TB_SHUTDOWN_REBOOT;
+    shutdown();
+}
+
+/*
+ * Local variables:
+ * mode: C
+ * c-set-style: "BSD"
+ * c-basic-offset: 4
+ * tab-width: 4
+ * indent-tabs-mode: nil
+ * End:
+ */

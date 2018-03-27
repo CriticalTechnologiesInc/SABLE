@@ -43,13 +43,13 @@
 #include "msr.h"
 //#include <printk.h>
 //#include <misc.h>
+#include "uuid.h"
 #include "page.h"
-//#include <tboot.h>
+#include <tboot.h>
 //#include <loader.h>
 #include "acpi.h"
 //#include <mle.h>
 #include "config_regs.h"
-#include "uuid.h"
 #include "mle.h"
 #include "acmod.h"
 #include "mtrrs.h"

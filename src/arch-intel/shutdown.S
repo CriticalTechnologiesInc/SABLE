@@ -32,6 +32,13 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#define CR0_PG         0x80000000      /* PaGing enable */
+#define CR4_PCIDE      0x00020000      /* enable PCID */
+#define MSR_EFER       0xc0000080      /* extended features */
+#define _EFER_LME      8               /* Long mode enable */
+#define MSR_APICBASE   0x01b
+#define APICBASE_BSP   0x00000100
+
 #define ENTRY(name)                             \
   .globl name;                                  \
   .align 16,0x90;                               \
@@ -60,7 +67,7 @@ compat_mode_entry:
 
 shutdown_entry32:
 	/* restore tboot context */
-        lgdt    %cs:gdt_descr
+        lgdt    %cs:pgdt_desc
         mov     $(ds_sel),%ecx
         mov     %ecx,%ds
         mov     %ecx,%es
@@ -128,7 +135,7 @@ ENTRY(shutdown_entry)
 	bt      $_EFER_LME,%eax
 	jnc     shutdown_entry32
 
-	lgdt    gdt_descr(%rip)
+	lgdt    pgdt_desc(%rip)
         mov     $(ds_sel),%ecx
         mov     %ecx,%ds
         mov     %ecx,%es

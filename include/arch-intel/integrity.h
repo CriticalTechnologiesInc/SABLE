@@ -79,17 +79,18 @@ typedef struct {
  * state that must be saved across S3 and will be sealed for integrity
  * just before entering S3 (after kernel shuts down)
  */
-//typedef struct {
-//    uint64_t kernel_s3_resume_vector;
-//    vmac_t   kernel_integ;
-//} post_k_s3_state_t;
+typedef uint64_t  vmac_t;
+typedef struct {
+    uint64_t kernel_s3_resume_vector;
+    vmac_t   kernel_integ;
+} post_k_s3_state_t;
 
 
 extern pre_k_s3_state_t g_pre_k_s3_state;
-//extern post_k_s3_state_t g_post_k_s3_state;
+/*extern*/ post_k_s3_state_t g_post_k_s3_state;
 
 //extern bool seal_pre_k_state(void);
-//extern bool seal_post_k_state(void);
+extern bool seal_post_k_state(void);
 //extern bool verify_integrity(void);
 
 #endif /* _TBOOT_INTEGRITY_H_ */

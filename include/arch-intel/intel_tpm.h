@@ -266,42 +266,42 @@ typedef union {
 #define TPM_CRB_DATA_BUFFER 0x80
 #define TPMCRBBUF_LEN      0xF80     //3968 Bytes
 
-////#define CTRL_AREA_ADDR  (uint32_t) (TPM_CRB_BASE + 0x40) 
-////#define DATA_BUF_ADDR   (uint32_t) (TPM_CRB_BASE + 0x80)
-// 
-//typedef union {
-//    u8 _raw[4];                      /* 4-byte reg */
-//    struct __packed {
-//        u8 tpm_establishment   : 1;  
-//        u8 loc_assigned         : 1;  
-//        u8 active_locality     : 3;  
-//        u8 reserved              : 2; 
-//        u8 tpm_reg_valid_sts   : 1;  /* RO, 1=other bits are valid */
-//	u8 reserved1                   :8;
-//        u16 reserved2                :16;	
-//    };
-//} tpm_reg_loc_state_t;
-//
-//typedef union {
-//   uint8_t _raw[4];
-//   struct __packed {
-//   uint32_t  requestAccess:1;
-//   uint32_t  relinquish:1;
-//   uint32_t  seize:1;
-//   uint32_t  resetEstablishment:1;
-//   uint32_t  reserved1:28;
-//   };
-//} tpm_reg_loc_ctrl_t;
-//
-//typedef union {
-//	uint8_t _raw[4];
-//	struct __packed{
-//		uint32_t  Granted:1;
-//		uint32_t  BeenSeized:1;
-//		uint32_t  R:30;
-//	};
-//} tpm_reg_loc_sts_t;
-//
+#define CTRL_AREA_ADDR  (uint32_t) (TPM_CRB_BASE + 0x40) 
+#define DATA_BUF_ADDR   (uint32_t) (TPM_CRB_BASE + 0x80)
+ 
+typedef union {
+    u8 _raw[4];                      /* 4-byte reg */
+    struct __attribute__ ((packed)) {
+        u8 tpm_establishment   : 1;  
+        u8 loc_assigned         : 1;  
+        u8 active_locality     : 3;  
+        u8 reserved              : 2; 
+        u8 tpm_reg_valid_sts   : 1;  /* RO, 1=other bits are valid */
+	u8 reserved1                   :8;
+        u16 reserved2                :16;	
+    };
+} tpm_reg_loc_state_t;
+
+typedef union {
+   uint8_t _raw[4];
+   struct __attribute__ ((packed)) {
+   uint32_t  requestAccess:1;
+   uint32_t  relinquish:1;
+   uint32_t  seize:1;
+   uint32_t  resetEstablishment:1;
+   uint32_t  reserved1:28;
+   };
+} tpm_reg_loc_ctrl_t;
+
+typedef union {
+	uint8_t _raw[4];
+	struct __attribute__ ((packed)){
+		uint32_t  Granted:1;
+		uint32_t  BeenSeized:1;
+		uint32_t  R:30;
+	};
+} tpm_reg_loc_sts_t;
+
 typedef union {
 	uint8_t _raw[8];        // 8-byte reg
 	struct  __attribute__ ((packed)) {
@@ -532,15 +532,15 @@ extern uint8_t g_tpm_family;
 //
 extern int tpm_validate_locality(uint32_t locality);
 //extern bool tpm_validate_locality_crb(uint32_t locality);
-//extern bool release_locality(uint32_t locality);
+extern int release_locality(uint32_t locality);
 //extern bool prepare_tpm(void);
 //extern bool tpm_detect(void);
 //extern void tpm_print(struct tpm_if *ti);
 extern int tpm_submit_cmd(u32 locality, u8 *in, u32 in_size, u8 *out, u32 *out_size);
 //extern bool tpm_submit_cmd_crb(u32 locality, u8 *in, u32 in_size, u8 *out, u32 *out_size);
-//extern bool tpm_wait_cmd_ready(uint32_t locality);
-//extern bool tpm_request_locality_crb(uint32_t locality);
-//extern bool tpm_relinquish_locality_crb(uint32_t locality);
+extern int tpm_wait_cmd_ready(uint32_t locality);
+extern int tpm_request_locality_crb(uint32_t locality);
+extern int tpm_relinquish_locality_crb(uint32_t locality);
 //extern bool txt_is_launched(void);
 //extern bool tpm_workaround_crb(void);
 //

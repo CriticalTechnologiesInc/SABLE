@@ -11,6 +11,7 @@
 #include "acmod.h"
 #include "mtrrs.h"
 #include "arch-intel/heap.h"
+#include "tboot.h"
 #include "acpi.h"
 
 int tpm_detect(void);

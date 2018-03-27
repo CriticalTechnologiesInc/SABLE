@@ -313,30 +313,30 @@ int tpm_validate_locality(uint32_t locality)
 
 	return 0;
 }
-//
-//bool tpm_validate_locality_crb(uint32_t locality)
-//{
-//    uint32_t i;
-//    tpm_reg_loc_state_t reg_loc_state;
-//
-//    for ( i = TPM_VALIDATE_LOCALITY_TIME_OUT; i > 0; i-- ) {
-//        /*
-//         *  Platfrom Tpm  Profile for TPM 2.0 SPEC
-//         */
-//        read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
-// 	 if ( reg_loc_state.tpm_reg_valid_sts == 1 && reg_loc_state.loc_assigned == 1 && reg_loc_state.active_locality == locality) {
-//			 printk(TBOOT_INFO"TPM: reg_loc_state._raw[0]:  0x%x\n", reg_loc_state._raw[0]);
-//			 return true;
-//        	}
-//        cpu_relax(); 
-//    }
-//
-//    printk(TBOOT_ERR"TPM: tpm_validate_locality_crb timeout\n");
-//    printk(TBOOT_INFO"TPM: reg_loc_state._raw[0]: 0x%x\n", reg_loc_state._raw[0]);
-//    return false;
-//}
-//
-//
+
+bool tpm_validate_locality_crb(uint32_t locality)
+{
+    uint32_t i;
+    tpm_reg_loc_state_t reg_loc_state;
+
+    for ( i = TPM_VALIDATE_LOCALITY_TIME_OUT; i > 0; i-- ) {
+        /*
+         *  Platfrom Tpm  Profile for TPM 2.0 SPEC
+         */
+        read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
+ 	 if ( reg_loc_state.tpm_reg_valid_sts == 1 && reg_loc_state.loc_assigned == 1 && reg_loc_state.active_locality == locality) {
+			 //printk(TBOOT_INFO"TPM: reg_loc_state._raw[0]:  0x%x\n", reg_loc_state._raw[0]);
+			 return true;
+        	}
+        cpu_relax(); 
+    }
+
+    out_info("TPM: tpm_validate_locality_crb timeout");
+    //printk(TBOOT_INFO"TPM: reg_loc_state._raw[0]: 0x%x\n", reg_loc_state._raw[0]);
+    return false;
+}
+
+
 int  tpm_wait_cmd_ready(uint32_t locality)
 {
 	uint32_t		i;
@@ -759,39 +759,35 @@ int release_locality(uint32_t locality)
 	return 0;
 }
 
-//bool tpm_relinquish_locality_crb(uint32_t locality)
-//{
-//    uint32_t i;
-//    tpm_reg_loc_state_t reg_loc_state;
-//    tpm_reg_loc_ctrl_t reg_loc_ctrl;
-//	
-//#ifdef TPM_TRACE
-//    printk(TBOOT_DETA"TPM: releasing CRB_INF locality %u\n", locality);
-//#endif
-//
-//    if ( !tpm_validate_locality_crb(locality) )   return true;
-//    read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
-//    if ( reg_loc_state.loc_assigned == 0 )    return true;
-//
-//    /* make inactive by writing a 1 */
-//    memset(&reg_loc_ctrl,0,sizeof(reg_loc_ctrl));
-//    reg_loc_ctrl.relinquish = 1;
-//    write_tpm_reg(locality, TPM_REG_LOC_CTRL, &reg_loc_ctrl);
-//
-//    i = 0;
-//    do {
-//        read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
-//        if ( reg_loc_state.loc_assigned == 0 )    return true;
-//        else cpu_relax();
-//        i++;
-//    } while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT );
-//
-//    printk(TBOOT_INFO"TPM: CRB_INF release locality timeout\n");
-//    return false;
-//}
-//
-//
-//
+int tpm_relinquish_locality_crb(uint32_t locality)
+{
+    uint32_t i;
+    tpm_reg_loc_state_t reg_loc_state;
+    tpm_reg_loc_ctrl_t reg_loc_ctrl;
+	
+    if ( !tpm_validate_locality_crb(locality) )   return 1;
+    read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
+    if ( reg_loc_state.loc_assigned == 0 )    return 1;
+
+    /* make inactive by writing a 1 */
+    memset(&reg_loc_ctrl,0,sizeof(reg_loc_ctrl));
+    reg_loc_ctrl.relinquish = 1;
+    write_tpm_reg(locality, TPM_REG_LOC_CTRL, &reg_loc_ctrl);
+
+    i = 0;
+    do {
+        read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
+        if ( reg_loc_state.loc_assigned == 0 )    return 1;
+        else cpu_relax();
+        i++;
+    } while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT );
+
+    out_info("TPM: CRB_INF release locality timeout");
+    return 0;
+}
+
+
+
 int is_tpm_crb(void)
 {      
 	tpm_crb_interface_id_t crb_interface;
@@ -826,35 +822,35 @@ int prepare_tpm_intel(void)
 	}
 }
 //
-//bool tpm_request_locality_crb(uint32_t locality){
-//
-//    uint32_t            i;
-//    tpm_reg_loc_state_t  reg_loc_state;
-//    tpm_reg_loc_ctrl_t    reg_loc_ctrl;
-//    /* request access to the TPM from locality N */
-//    memset(&reg_loc_ctrl,0,sizeof(reg_loc_ctrl));
-//    reg_loc_ctrl.requestAccess = 1;
-//    write_tpm_reg(locality, TPM_REG_LOC_CTRL, &reg_loc_ctrl);
-//
-//    i = 0;
-//    do {
-//        read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
-//        if ( reg_loc_state.active_locality == locality && reg_loc_state.loc_assigned == 1)
-//            break;
-//        else
-//            cpu_relax();
-//        i++;
-//    } while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT);
-//
-//    if ( i > TPM_ACTIVE_LOCALITY_TIME_OUT ) {
-//        printk(TBOOT_ERR"TPM: access loc request use timeout\n");
-//        return false;
-//    }
-//
-//    return true;
-//
-//}
-//
+int tpm_request_locality_crb(uint32_t locality){
+
+    uint32_t            i;
+    tpm_reg_loc_state_t  reg_loc_state;
+    tpm_reg_loc_ctrl_t    reg_loc_ctrl;
+    /* request access to the TPM from locality N */
+    memset(&reg_loc_ctrl,0,sizeof(reg_loc_ctrl));
+    reg_loc_ctrl.requestAccess = 1;
+    write_tpm_reg(locality, TPM_REG_LOC_CTRL, &reg_loc_ctrl);
+
+    i = 0;
+    do {
+        read_tpm_reg(locality, TPM_REG_LOC_STATE, &reg_loc_state);
+        if ( reg_loc_state.active_locality == locality && reg_loc_state.loc_assigned == 1)
+            break;
+        else
+            cpu_relax();
+        i++;
+    } while ( i <= TPM_ACTIVE_LOCALITY_TIME_OUT);
+
+    if ( i > TPM_ACTIVE_LOCALITY_TIME_OUT ) {
+        out_info("TPM: access loc request use timeout");
+        return 0;
+    }
+
+    return 1;
+
+}
+
 //bool tpm_workaround_crb(void)
 //{
 //    tpm_reg_ctrl_cmdsize_t  CmdSize;

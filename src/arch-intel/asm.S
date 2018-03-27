@@ -141,6 +141,8 @@ ENTRY(_mini_guest)
 	.byte 0x0f,0x01,0xc1
 	jmp 1b
 
+#include "shutdown.S"
+
 /*
  * entry point for GETSEC[WAKEUP]
  */
@@ -452,6 +454,8 @@ idt_table_end:
 real_idt_desc:
 	.word   0x03ff
 	.long   0
+
+#include "wakeup.S"
 
 
 /*

@@ -32,18 +32,20 @@
 // * OF THE POSSIBILITY OF SUCH DAMAGE.
 // */
 
-#include "util.h"
+#include <config.h>
 #include "types.h"
+#include "util.h"
+#include <uuid.h>
 //#include <stdbool.h>
 //#include <compiler.h>
-//#include <processor.h>
-//#include <io.h>
+#include <processor.h>
+#include <io.h>
 //#include <string.h>
 //#include <printk.h>
-//#include <tboot.h>
+#include <tboot.h>
 //#include <loader.h>
 #include "acpi.h"
-//#include <misc.h>
+#include <misc.h>
 //#include <cmdline.h>
 //#include <pci_cfgreg.h>
 //
@@ -55,28 +57,28 @@
 //
 static struct acpi_rsdp *rsdp;
 static struct acpi_table_header *g_dmar_table;
-//static __data bool g_hide_dmar;
-//
-//static void dump_gas(const char *reg_name,
-//                     const tboot_acpi_generic_address_t *reg)
-//{
-//    const char *space_id[] = { "memory", "I/O", "PCI config space", "EC",
-//                               "SMBus" };
-//
-//    printk(TBOOT_DETA"%s GAS @ %p:\n", reg_name, reg);
-//    if ( reg == NULL )
-//        return;
-//
-//    if ( reg->space_id >= ARRAY_SIZE(space_id) )
-//        printk(TBOOT_DETA"\t space_id: unsupported (%u)\n", reg->space_id);
-//    else
-//        printk(TBOOT_DETA"\t space_id: %s\n", space_id[reg->space_id]);
-//    printk(TBOOT_DETA"\t bit_width: %u\n", reg->bit_width);
-//    printk(TBOOT_DETA"\t bit_offset: %u\n", reg->bit_offset);
-//    printk(TBOOT_DETA"\t access_width: %u\n", reg->access_width);
-//    printk(TBOOT_DETA"\t address: %Lx\n", reg->address);
-//}
-//
+static __data bool g_hide_dmar;
+
+static void dump_gas(const char *reg_name,
+                     const tboot_acpi_generic_address_t *reg)
+{
+    const char *space_id[] = { "memory", "I/O", "PCI config space", "EC",
+                               "SMBus" };
+
+    out_description("GAS @ ", (uint32_t)reg);
+    if ( reg == NULL )
+        return;
+
+    if ( reg->space_id >= ARRAY_SIZE(space_id) )
+        out_description("\t space_id: unsupported \n", reg->space_id);
+    else
+        out_description("\t space_id: ", (uint32_t)space_id[reg->space_id]);
+    out_description("\t bit_width: ", reg->bit_width);
+    out_description("\t bit_offset: ", reg->bit_offset);
+    out_description("\t access_width: ", reg->access_width);
+    out_description("\t address: ", (uint32_t)reg->address);
+}
+
 static inline struct acpi_rsdt *get_rsdt(void)
 {
 	return (struct acpi_rsdt *)rsdp->rsdp1.rsdt;
@@ -255,35 +257,35 @@ int save_vtd_dmar_table(void)
 	out_description("DMAR table saved @ : ", (unsigned int)g_dmar_table);
 	return 1;
 }
-//
-//bool restore_vtd_dmar_table(void)
-//{
-//    struct acpi_table_header *hdr;
-//
-//    g_hide_dmar = false;
-//
-//    /* find DMAR table first */
-//    hdr = (struct acpi_table_header *)get_vtd_dmar_table();
-//    if ( hdr != NULL ) {
-//        printk(TBOOT_DETA"DMAR table @ %p is still there, skip restore step.\n", hdr);
-//        return true;
-//    }
-//
-//    /* check saved DMAR table */
-//    if ( g_dmar_table == NULL ) {
-//        printk(TBOOT_ERR"No DMAR table saved, abort restore step.\n");
-//        return false;
-//    }
-//
-//    /* restore DMAR if needed */
-//    memcpy(g_dmar_table->signature, DMAR_SIG, sizeof(g_dmar_table->signature));
-//
-//    /* need to hide DMAR table while resume from S3 */
-//    g_hide_dmar = true;
-//    printk(TBOOT_DETA"DMAR table @ %p restored.\n", hdr);
-//    return true;
-//}
-//
+
+bool restore_vtd_dmar_table(void)
+{
+    struct acpi_table_header *hdr;
+
+    g_hide_dmar = false;
+
+    /* find DMAR table first */
+    hdr = (struct acpi_table_header *)get_vtd_dmar_table();
+    if ( hdr != NULL ) {
+        //printk(TBOOT_DETA"DMAR table @ %p is still there, skip restore step.\n", hdr);
+        return true;
+    }
+
+    /* check saved DMAR table */
+    if ( g_dmar_table == NULL ) {
+        out_info("No DMAR table saved, abort restore step.\n");
+        return false;
+    }
+
+    /* restore DMAR if needed */
+    memcpy(g_dmar_table->signature, DMAR_SIG, sizeof(g_dmar_table->signature));
+
+    /* need to hide DMAR table while resume from S3 */
+    g_hide_dmar = true;
+    //printk(TBOOT_DETA"DMAR table @ %p restored.\n", hdr);
+    return true;
+}
+
 //bool remove_vtd_dmar_table(void)
 //{
 //    struct acpi_table_header *hdr;
@@ -354,155 +356,155 @@ struct acpi_mcfg *get_acpi_mcfg_table(void)
 	return (struct acpi_mcfg *)find_table(MCFG_SIG);
 }
 
-//static bool write_to_reg(const tboot_acpi_generic_address_t *reg,
-//                         uint32_t val)
-//{
-//    if ( reg->address >= 100000000ULL ) {
-//        printk(TBOOT_ERR"GAS address >4GB (0x%Lx)\n", reg->address);
-//        return false;
-//    }
-//    uint32_t address = (uint32_t)reg->address;
-//
-//    if ( reg->space_id == GAS_SYSTEM_IOSPACE ) {
-//        switch ( reg->bit_width ) {
-//            case 8:
-//                outb(address, (uint8_t)val);
-//                return true;
-//            case 16:
-//                outw(address, (uint16_t)val);
-//                return true;
-//            case 32:
-//                outl(address, val);
-//                return true;
-//            default:
-//                printk(TBOOT_ERR"unsupported GAS bit width: %u\n", reg->bit_width);
-//                return false;
-//        }
-//    }
-//    else if ( reg->space_id == GAS_SYSTEM_MEMORY ) {
-//        switch ( reg->bit_width ) {
-//            case 8:
-//                writeb(address, (uint8_t)val);
-//                return true;
-//            case 16:
-//                writew(address, (uint16_t)val);
-//                return true;
-//            case 32:
-//                writel(address, val);
-//                return true;
-//            default:
-//                printk(TBOOT_ERR"unsupported GAS bit width: %u\n", reg->bit_width);
-//                return false;
-//        }
-//    }
-//
-//    printk(TBOOT_ERR"unsupported GAS addr space ID: %u\n", reg->space_id);
-//    return false;
-//}
-//
-//static bool read_from_reg(const tboot_acpi_generic_address_t *reg,
-//                          uint32_t *val)
-//{
-//    if ( reg->address >= 100000000ULL ) {
-//        printk(TBOOT_ERR"GAS address >4GB (0x%Lx)\n", reg->address);
-//        return false;
-//    }
-//    uint32_t address = (uint32_t)reg->address;
-//
-//    if ( reg->space_id == GAS_SYSTEM_IOSPACE ) {
-//        switch ( reg->bit_width ) {
-//            case 8:
-//                *val = inb(address);
-//                return true;
-//            case 16:
-//                *val = inw(address);
-//                return true;
-//            case 32:
-//                *val = inl(address);
-//                return true; default:
-//                printk(TBOOT_ERR"unsupported GAS bit width: %u\n", reg->bit_width);
-//                return false;
-//        }
-//    }
-//    else if ( reg->space_id == GAS_SYSTEM_MEMORY ) {
-//        switch ( reg->bit_width ) {
-//            case 8:
-//                *val = readb(address);
-//                return true;
-//            case 16:
-//                *val = readw(address);
-//                return true;
-//            case 32:
-//                *val = readl(address);
-//                return true;
-//            default:
-//                printk(TBOOT_ERR"unsupported GAS bit width: %u\n", reg->bit_width);
-//                return false;
-//        }
-//    }
-//
-//    printk(TBOOT_ERR"unsupported GAS addr space ID: %u\n", reg->space_id);
-//    return false;
-//}
-//
-//static void wait_to_sleep(const tboot_acpi_sleep_info_t *acpi_sinfo)
-//{
-//#define WAKE_STATUS    0x8000    /* the 15th bit */
-//    while ( true ) {
-//        uint32_t pm1a_value = 0, pm1b_value = 0;
-//
-//        if ( acpi_sinfo->pm1a_evt_blk.address ) {
-//            if ( read_from_reg(&acpi_sinfo->pm1a_evt_blk, &pm1a_value) &&
-//                 ( pm1a_value & WAKE_STATUS ) )
-//                return;
-//        }
-//
-//        if ( acpi_sinfo->pm1b_evt_blk.address ) {
-//            if ( read_from_reg(&acpi_sinfo->pm1b_evt_blk, &pm1b_value) &&
-//                 ( pm1b_value & WAKE_STATUS ) )
-//                return;
-//        }
-//    }
-//}
-//
-//bool machine_sleep(const tboot_acpi_sleep_info_t *acpi_sinfo)
-//{
-//    dump_gas("PM1A", &acpi_sinfo->pm1a_cnt_blk);
-//    dump_gas("PM1B", &acpi_sinfo->pm1b_cnt_blk);
-//
-//    wbinvd();
-//
-//    if ( acpi_sinfo->pm1a_cnt_blk.address ) {
-//        if ( !write_to_reg(&acpi_sinfo->pm1a_cnt_blk, acpi_sinfo->pm1a_cnt_val) )
-//            return false;;
-//    }
-//
-//    if ( acpi_sinfo->pm1b_cnt_blk.address ) {
-//        if ( !write_to_reg(&acpi_sinfo->pm1b_cnt_blk, acpi_sinfo->pm1b_cnt_val) )
-//            return false;
-//    }
-//
-//    /* just to wait, the machine may shutdown before here */
-//    wait_to_sleep(acpi_sinfo);
-//    return true; 
-//}
-//
-//void set_s3_resume_vector(const tboot_acpi_sleep_info_t *acpi_sinfo,
-//                          uint64_t resume_vector)
-//{
-//    if ( acpi_sinfo->vector_width <= 32 )
-//        *(uint32_t *)(unsigned long)(acpi_sinfo->wakeup_vector) =
-//                                    (uint32_t)resume_vector;
-//    else if ( acpi_sinfo->vector_width <= 64 )
-//        *(uint64_t *)(unsigned long)(acpi_sinfo->wakeup_vector) =
-//                                    resume_vector;
-//    else
-//        printk(TBOOT_WARN"vector_width error.\n");
-//
+static bool write_to_reg(const tboot_acpi_generic_address_t *reg,
+                         uint32_t val)
+{
+    if ( reg->address >= 100000000ULL ) {
+        out_info("GAS address >4GB");
+        return false;
+    }
+    uint32_t address = (uint32_t)reg->address;
+
+    if ( reg->space_id == GAS_SYSTEM_IOSPACE ) {
+        switch ( reg->bit_width ) {
+            case 8:
+                outb(address, (uint8_t)val);
+                return true;
+            case 16:
+                outw(address, (uint16_t)val);
+                return true;
+            case 32:
+                outl(address, val);
+                return true;
+            default:
+                out_description("unsupported GAS bit width: ", reg->bit_width);
+                return false;
+        }
+    }
+    else if ( reg->space_id == GAS_SYSTEM_MEMORY ) {
+        switch ( reg->bit_width ) {
+            case 8:
+                writeb(address, (uint8_t)val);
+                return true;
+            case 16:
+                writew(address, (uint16_t)val);
+                return true;
+            case 32:
+                writel(address, val);
+                return true;
+            default:
+                out_description("unsupported GAS bit width: ", reg->bit_width);
+                return false;
+        }
+    }
+
+    out_description("unsupported GAS addr space ID: ", reg->space_id);
+    return false;
+}
+
+static bool read_from_reg(const tboot_acpi_generic_address_t *reg,
+                          uint32_t *val)
+{
+    if ( reg->address >= 100000000ULL ) {
+        out_info("GAS address >4GB");
+        return false;
+    }
+    uint32_t address = (uint32_t)reg->address;
+
+    if ( reg->space_id == GAS_SYSTEM_IOSPACE ) {
+        switch ( reg->bit_width ) {
+            case 8:
+                *val = inb(address);
+                return true;
+            case 16:
+                *val = inw(address);
+                return true;
+            case 32:
+                *val = inl(address);
+                return true; default:
+                out_description("unsupported GAS bit width: ", reg->bit_width);
+                return false;
+        }
+    }
+    else if ( reg->space_id == GAS_SYSTEM_MEMORY ) {
+        switch ( reg->bit_width ) {
+            case 8:
+                *val = readb(address);
+                return true;
+            case 16:
+                *val = readw(address);
+                return true;
+            case 32:
+                *val = readl(address);
+                return true;
+            default:
+                out_description("unsupported GAS bit width: ", reg->bit_width);
+                return false;
+        }
+    }
+
+    out_description("unsupported GAS addr space ID: ", reg->space_id);
+    return false;
+}
+
+static void wait_to_sleep(const tboot_acpi_sleep_info_t *acpi_sinfo)
+{
+#define WAKE_STATUS    0x8000    /* the 15th bit */
+    while ( true ) {
+        uint32_t pm1a_value = 0, pm1b_value = 0;
+
+        if ( acpi_sinfo->pm1a_evt_blk.address ) {
+            if ( read_from_reg(&acpi_sinfo->pm1a_evt_blk, &pm1a_value) &&
+                 ( pm1a_value & WAKE_STATUS ) )
+                return;
+        }
+
+        if ( acpi_sinfo->pm1b_evt_blk.address ) {
+            if ( read_from_reg(&acpi_sinfo->pm1b_evt_blk, &pm1b_value) &&
+                 ( pm1b_value & WAKE_STATUS ) )
+                return;
+        }
+    }
+}
+
+bool machine_sleep(const tboot_acpi_sleep_info_t *acpi_sinfo)
+{
+    dump_gas("PM1A", &acpi_sinfo->pm1a_cnt_blk);
+    dump_gas("PM1B", &acpi_sinfo->pm1b_cnt_blk);
+
+    wbinvd();
+
+    if ( acpi_sinfo->pm1a_cnt_blk.address ) {
+        if ( !write_to_reg(&acpi_sinfo->pm1a_cnt_blk, acpi_sinfo->pm1a_cnt_val) )
+            return false;;
+    }
+
+    if ( acpi_sinfo->pm1b_cnt_blk.address ) {
+        if ( !write_to_reg(&acpi_sinfo->pm1b_cnt_blk, acpi_sinfo->pm1b_cnt_val) )
+            return false;
+    }
+
+    /* just to wait, the machine may shutdown before here */
+    wait_to_sleep(acpi_sinfo);
+    return true; 
+}
+
+void set_s3_resume_vector(const tboot_acpi_sleep_info_t *acpi_sinfo,
+                          uint64_t resume_vector)
+{
+    if ( acpi_sinfo->vector_width <= 32 )
+        *(uint32_t *)(unsigned long)(acpi_sinfo->wakeup_vector) =
+                                    (uint32_t)resume_vector;
+    else if ( acpi_sinfo->vector_width <= 64 )
+        *(uint64_t *)(unsigned long)(acpi_sinfo->wakeup_vector) =
+                                    resume_vector;
+    else
+        out_info("vector_width error.\n");
+
 //    acpi_printk(TBOOT_DETA"wakeup_vector_address = %llx\n", acpi_sinfo->wakeup_vector);
 //    acpi_printk(TBOOT_DETA"wakeup_vector_value = %llxx\n", resume_vector);
-//}
-//
+}
+
 ///*
 // * Local variables:
 // * mode: C

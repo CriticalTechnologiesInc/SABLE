@@ -87,131 +87,131 @@ struct acpi_xsdt {
 	u_int64_t			table_offsets[1];
 } __attribute__ ((packed));
 
-//
-//
-///* Generic Address Structure */
-//struct acpi_gas {
-//	u_int8_t	address_space_id;
-//#define GAS_SYSTEM_MEMORY		0
-//#define GAS_SYSTEM_IOSPACE		1
-//#define GAS_PCI_CFG_SPACE		2
-//#define GAS_EMBEDDED			3
-//#define GAS_SMBUS				4
-//#define GAS_FUNCTIONAL_FIXED	127
-//	u_int8_t	register_bit_width;
-//	u_int8_t	register_bit_offset;
-//	u_int8_t	access_size;
-//#define GAS_ACCESS_UNDEFINED	0
-//#define GAS_ACCESS_BYTE			1
-//#define GAS_ACCESS_WORD			2
-//#define GAS_ACCESS_DWORD		3
-//#define GAS_ACCESS_QWORD		4
-//	u_int64_t	address;
-//} __attribute__ ((packed));
-//
-///* Fixed ACPI Descriptiion Table */
-//struct acpi_fadt {
-//	struct acpi_table_header	hdr;
-//#define	FADT_SIG	"FACP"
-//
-//	u_int32_t	firmware_ctl;	/* phys addr FACS */
-//	u_int32_t	dsdt;			/* phys addr DSDT */
-//
-//  /* int_model is defined in ACPI 1.0, in ACPI 2.0, it should be zero */
-//	u_int8_t	int_model;		/* interrupt model (hdr_revision < 3) */
-//
-//#define	FADT_INT_DUAL_PIC	0
-//#define	FADT_INT_MULTI_APIC	1
-//	u_int8_t	pm_profile;		/* power mgmt profile */
-//#define	FADT_PM_UNSPEC		0
-//#define	FADT_PM_DESKTOP		1
-//#define	FADT_PM_MOBILE		2
-//#define	FADT_PM_WORKSTATION	3
-//#define	FADT_PM_ENT_SERVER	4
-//#define	FADT_PM_SOHO_SERVER	5
-//#define	FADT_PM_APPLIANCE	6
-//#define	FADT_PM_PERF_SERVER	7
-//	u_int16_t	sci_int;		/* SCI interrupt */
-//	u_int32_t	smi_cmd;		/* SMI command port */
-//	u_int8_t	acpi_enable;	/* value to enable */
-//	u_int8_t	acpi_disable;	/* value to disable */
-//	u_int8_t	s4bios_req;		/* value for S4 */
-//	u_int8_t	pstate_cnt;		/* value for performance (hdr_revision > 2) */
-//	u_int32_t	pm1a_evt_blk;	/* power management 1a */
-//	u_int32_t	pm1b_evt_blk;	/* power mangement 1b */
-//	u_int32_t	pm1a_cnt_blk;	/* pm control 1a */
-//	u_int32_t	pm1b_cnt_blk;	/* pm control 1b */
-//	u_int32_t	pm2_cnt_blk;	/* pm control 2 */
-//	u_int32_t	pm_tmr_blk;
-//	u_int32_t	gpe0_blk;
-//	u_int32_t	gpe1_blk;
-//	u_int8_t	pm1_evt_len;
-//	u_int8_t	pm1_cnt_len;
-//	u_int8_t	pm2_cnt_len;
-//	u_int8_t	pm_tmr_len;
-//	u_int8_t	gpe0_blk_len;
-//	u_int8_t	gpe1_blk_len;
-//	u_int8_t	gpe1_base;
-//	u_int8_t	cst_cnt;		/* (hdr_revision > 2) */
-//	u_int16_t	p_lvl2_lat;
-//	u_int16_t	p_lvl3_lat;
-//	u_int16_t	flush_size;
-//	u_int16_t	flush_stride;
-//	u_int8_t	duty_offset;
-//	u_int8_t	duty_width;
-//	u_int8_t	day_alrm;
-//	u_int8_t	mon_alrm;
-//	u_int8_t	century;
-//	u_int16_t	iapc_boot_arch;	/* (hdr_revision > 2) */
-//#define	FADT_LEGACY_DEVICES		0x0001	/* Legacy devices supported */
-//#define	FADT_i8042				0x0002	/* Keyboard controller present */
-//#define	FADT_NO_VGA				0x0004	/* Do not probe VGA */
-//	u_int8_t	reserved1;
-//	u_int32_t	flags;
-//#define	FADT_WBINVD						0x00000001
-//#define	FADT_WBINVD_FLUSH				0x00000002
-//#define	FADT_PROC_C1					0x00000004
-//#define	FADT_P_LVL2_UP					0x00000008
-//#define	FADT_PWR_BUTTON					0x00000010
-//#define	FADT_SLP_BUTTON					0x00000020
-//#define	FADT_FIX_RTC					0x00000040
-//#define	FADT_RTC_S4						0x00000080
-//#define	FADT_TMR_VAL_EXT				0x00000100
-//#define	FADT_DCK_CAP					0x00000200
-//#define	FADT_RESET_REG_SUP				0x00000400
-//#define	FADT_SEALED_CASE				0x00000800
-//#define	FADT_HEADLESS					0x00001000
-//#define	FADT_CPU_SW_SLP					0x00002000
-//#define	FADT_PCI_EXP_WAK				0x00004000
-//#define	FADT_USE_PLATFORM_CLOCK			0x00008000
-//#define	FADT_S4_RTC_STS_VALID			0x00010000
-//#define	FADT_REMOTE_POWER_ON_CAPABLE	0x00020000
-//#define	FADT_FORCE_APIC_CLUSTER_MODEL	0x00040000
-//#define	FADT_FORCE_APIC_PHYS_DEST_MODE	0x00080000
-//	/*
-//	 * Following values only exist when rev > 1
-//	 * If the extended addresses exists, they
-//	 * must be used in preferense to the non-
-//	 * extended values above
-//	 */
-//	struct acpi_gas	reset_reg;
-//	u_int8_t	reset_value;
-//
-//	u_int8_t	reserved2a;
-//	u_int8_t	reserved2b;
-//	u_int8_t	reserved2c;
-//
-//	u_int64_t	x_firmware_ctl;
-//	u_int64_t	x_dsdt;
-//	struct acpi_gas	x_pm1a_evt_blk;
-//	struct acpi_gas	x_pm1b_evt_blk;
-//	struct acpi_gas	x_pm1a_cnt_blk;
-//	struct acpi_gas	x_pm1b_cnt_blk;
-//	struct acpi_gas	x_pm2_cnt_blk;
-//	struct acpi_gas	x_pm_tmr_blk;
-//	struct acpi_gas	x_gpe0_blk;
-//	struct acpi_gas	x_gpe1_blk;
-//} __attribute__ ((packed));
+
+
+/* Generic Address Structure */
+struct acpi_gas {
+	u_int8_t	address_space_id;
+#define GAS_SYSTEM_MEMORY		0
+#define GAS_SYSTEM_IOSPACE		1
+#define GAS_PCI_CFG_SPACE		2
+#define GAS_EMBEDDED			3
+#define GAS_SMBUS				4
+#define GAS_FUNCTIONAL_FIXED	127
+	u_int8_t	register_bit_width;
+	u_int8_t	register_bit_offset;
+	u_int8_t	access_size;
+#define GAS_ACCESS_UNDEFINED	0
+#define GAS_ACCESS_BYTE			1
+#define GAS_ACCESS_WORD			2
+#define GAS_ACCESS_DWORD		3
+#define GAS_ACCESS_QWORD		4
+	u_int64_t	address;
+} __attribute__ ((packed));
+
+/* Fixed ACPI Descriptiion Table */
+struct acpi_fadt {
+	struct acpi_table_header	hdr;
+#define	FADT_SIG	"FACP"
+
+	u_int32_t	firmware_ctl;	/* phys addr FACS */
+	u_int32_t	dsdt;			/* phys addr DSDT */
+
+  /* int_model is defined in ACPI 1.0, in ACPI 2.0, it should be zero */
+	u_int8_t	int_model;		/* interrupt model (hdr_revision < 3) */
+
+#define	FADT_INT_DUAL_PIC	0
+#define	FADT_INT_MULTI_APIC	1
+	u_int8_t	pm_profile;		/* power mgmt profile */
+#define	FADT_PM_UNSPEC		0
+#define	FADT_PM_DESKTOP		1
+#define	FADT_PM_MOBILE		2
+#define	FADT_PM_WORKSTATION	3
+#define	FADT_PM_ENT_SERVER	4
+#define	FADT_PM_SOHO_SERVER	5
+#define	FADT_PM_APPLIANCE	6
+#define	FADT_PM_PERF_SERVER	7
+	u_int16_t	sci_int;		/* SCI interrupt */
+	u_int32_t	smi_cmd;		/* SMI command port */
+	u_int8_t	acpi_enable;	/* value to enable */
+	u_int8_t	acpi_disable;	/* value to disable */
+	u_int8_t	s4bios_req;		/* value for S4 */
+	u_int8_t	pstate_cnt;		/* value for performance (hdr_revision > 2) */
+	u_int32_t	pm1a_evt_blk;	/* power management 1a */
+	u_int32_t	pm1b_evt_blk;	/* power mangement 1b */
+	u_int32_t	pm1a_cnt_blk;	/* pm control 1a */
+	u_int32_t	pm1b_cnt_blk;	/* pm control 1b */
+	u_int32_t	pm2_cnt_blk;	/* pm control 2 */
+	u_int32_t	pm_tmr_blk;
+	u_int32_t	gpe0_blk;
+	u_int32_t	gpe1_blk;
+	u_int8_t	pm1_evt_len;
+	u_int8_t	pm1_cnt_len;
+	u_int8_t	pm2_cnt_len;
+	u_int8_t	pm_tmr_len;
+	u_int8_t	gpe0_blk_len;
+	u_int8_t	gpe1_blk_len;
+	u_int8_t	gpe1_base;
+	u_int8_t	cst_cnt;		/* (hdr_revision > 2) */
+	u_int16_t	p_lvl2_lat;
+	u_int16_t	p_lvl3_lat;
+	u_int16_t	flush_size;
+	u_int16_t	flush_stride;
+	u_int8_t	duty_offset;
+	u_int8_t	duty_width;
+	u_int8_t	day_alrm;
+	u_int8_t	mon_alrm;
+	u_int8_t	century;
+	u_int16_t	iapc_boot_arch;	/* (hdr_revision > 2) */
+#define	FADT_LEGACY_DEVICES		0x0001	/* Legacy devices supported */
+#define	FADT_i8042				0x0002	/* Keyboard controller present */
+#define	FADT_NO_VGA				0x0004	/* Do not probe VGA */
+	u_int8_t	reserved1;
+	u_int32_t	flags;
+#define	FADT_WBINVD						0x00000001
+#define	FADT_WBINVD_FLUSH				0x00000002
+#define	FADT_PROC_C1					0x00000004
+#define	FADT_P_LVL2_UP					0x00000008
+#define	FADT_PWR_BUTTON					0x00000010
+#define	FADT_SLP_BUTTON					0x00000020
+#define	FADT_FIX_RTC					0x00000040
+#define	FADT_RTC_S4						0x00000080
+#define	FADT_TMR_VAL_EXT				0x00000100
+#define	FADT_DCK_CAP					0x00000200
+#define	FADT_RESET_REG_SUP				0x00000400
+#define	FADT_SEALED_CASE				0x00000800
+#define	FADT_HEADLESS					0x00001000
+#define	FADT_CPU_SW_SLP					0x00002000
+#define	FADT_PCI_EXP_WAK				0x00004000
+#define	FADT_USE_PLATFORM_CLOCK			0x00008000
+#define	FADT_S4_RTC_STS_VALID			0x00010000
+#define	FADT_REMOTE_POWER_ON_CAPABLE	0x00020000
+#define	FADT_FORCE_APIC_CLUSTER_MODEL	0x00040000
+#define	FADT_FORCE_APIC_PHYS_DEST_MODE	0x00080000
+	/*
+	 * Following values only exist when rev > 1
+	 * If the extended addresses exists, they
+	 * must be used in preferense to the non-
+	 * extended values above
+	 */
+	struct acpi_gas	reset_reg;
+	u_int8_t	reset_value;
+
+	u_int8_t	reserved2a;
+	u_int8_t	reserved2b;
+	u_int8_t	reserved2c;
+
+	u_int64_t	x_firmware_ctl;
+	u_int64_t	x_dsdt;
+	struct acpi_gas	x_pm1a_evt_blk;
+	struct acpi_gas	x_pm1b_evt_blk;
+	struct acpi_gas	x_pm1a_cnt_blk;
+	struct acpi_gas	x_pm1b_cnt_blk;
+	struct acpi_gas	x_pm2_cnt_blk;
+	struct acpi_gas	x_pm_tmr_blk;
+	struct acpi_gas	x_gpe0_blk;
+	struct acpi_gas	x_gpe1_blk;
+} __attribute__ ((packed));
 
 struct acpi_madt {
 	struct acpi_table_header	hdr;
@@ -498,15 +498,15 @@ typedef struct acpi_mcfg acpi_table_mcfg_t;
 //#endif
 extern int vtd_bios_enabled(void);
 extern int save_vtd_dmar_table(void);
-//extern bool restore_vtd_dmar_table(void);
+extern bool restore_vtd_dmar_table(void);
 //extern bool remove_vtd_dmar_table(void);
 //
 extern struct acpi_table_ioapic *get_acpi_ioapic_table(void);
 extern struct acpi_mcfg *get_acpi_mcfg_table(void);
 //extern void disable_smis(void);
 //
-//extern bool machine_sleep(const tboot_acpi_sleep_info_t *);
-//extern void set_s3_resume_vector(const tboot_acpi_sleep_info_t *, uint64_t);
+extern bool machine_sleep(const tboot_acpi_sleep_info_t *);
+extern void set_s3_resume_vector(const tboot_acpi_sleep_info_t *, uint64_t);
 extern struct acpi_rsdp *get_rsdp(); //(loader_ctx *lctx);
 extern uint32_t get_madt_apic_base(void);
 
