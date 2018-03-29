@@ -24,8 +24,6 @@ add_subdirectory(tools)
 #set (TARGET_ARCH "AMD" CACHE STRING "[AMD|Intel]")
 if (${TARGET_ARCH} STREQUAL "AMD")
 
-  message (FATAL_ERROR "BHUSHAN : WORKING ON INTEL AMD TEMPORARILY NOT SUPPORTED")
-
   add_executable (cleanup-AMD
   ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
   ${PROJECT_SOURCE_DIR}/src/elf.c

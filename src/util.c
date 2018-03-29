@@ -89,15 +89,16 @@ void dump_exception(EXCEPTION e) {
 void dump_exception(EXCEPTION e) {}
 #endif
 
-/* Tim: commented out SABLE's version of memcpy */
-/* Tim: Using tboot's version as it works when launching linux */
-//void *memcpy(void *dest, const void *src, UINT32 len) {
-//  BYTE *dp = dest;
-//  const BYTE *sp = src;
-//  while (len--)
-//    *(dp++) = *(sp++);
-//  return dest;
-//}
+#ifdef __ARCH_AMD__
+void *memcpy(void *dest, const void *src, UINT32 len) {
+  BYTE *dp = dest;
+  const BYTE *sp = src;
+  while (len--)
+    *(dp++) = *(sp++);
+  return dest;
+}
+#endif
+#ifdef __ARCH_INTEL__
 void *memcpy(void *dst0, const void *src0, size_t length)
 {
 	char		*dst;
@@ -174,6 +175,7 @@ void *memcpy(void *dst0, const void *src0, size_t length)
 done:
 	return (dst0);
 }
+#endif
 
 char *strncpy(char *dest, const char *src, UINT32 num) {
   while (num-- && *src != '\0')

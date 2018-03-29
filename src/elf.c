@@ -18,7 +18,9 @@
 
 #ifndef ISABELLE
 #include "mbi.h"
+#ifdef __ARCH_INTEL__
 #include <types.h>
+#endif
 #include "elf.h"
 #include "alloc.h"
 #include "util.h"

@@ -32,11 +32,13 @@
 #ifdef __ARCH_AMD__
 #include "amd.h"
 #endif
-#include "types.h"
+#ifdef __ARCH_INTEL__
+#include <types.h>
 #include "msr.h"
 #include "processor.h"
 #include "uuid.h"
 #include "loader.h"
+#endif
 
 #define KB 1024
 BYTE heap_array[8 * KB] __attribute__((aligned(8)));
@@ -45,14 +47,16 @@ BYTE *heap = heap_array;
 #define PASSPHRASE_STR_SIZE 128
 #define AUTHDATA_STR_SIZE 64
 
+#ifdef __ARCH_INTEL__
 extern loader_ctx *g_ldr_ctx;
 
 int prepare_sinit_acm(struct mbi *m);
-int platform_pre_checks();
+int copy_e820_map(loader_ctx *lctx);
 void determine_loader_type(uint32_t magic);
 void determine_loader_type_context(void *addr, uint32_t magic);
+#endif
+int platform_pre_checks();
 int txt_launch_environment();
-int copy_e820_map(loader_ctx *lctx);
 void print_mbi(struct mbi *mbi);
 
 // Result generators
@@ -457,19 +461,11 @@ extern void save_cpu_state();
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
+
+#ifdef __ARCH_INTEL__
   out_string("Master Merge1\n");
-  wait(3000);
-  out_description("Bhushan: module count", m->mods_count);
 
-  out_description("mbi adress : m", (unsigned int)m);
-  out_description("conetext->addr", (unsigned int)g_ldr_ctx->addr);
 
-  WAIT_FOR_INPUT()
-  out_info("HEX DUMP");
-  hex_dump((unsigned char *)0x7c00, 256);
-  WAIT_FOR_INPUT()
-  hash_and_dump(0x7c00, 521);
-  WAIT_FOR_INPUT()
   determine_loader_type(flags);
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
@@ -509,6 +505,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 	print_cpu_state();
        start_module(g_ldr_ctx->addr);
    }
+#endif
 
   init_heap(heap, sizeof(heap_array));
 
@@ -516,6 +513,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
    * skipping these changes in post launch
    */
 
+#ifdef __ARCH_INTEL__
   if (!txt_is_launched()) {
       ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
       ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
@@ -583,6 +581,16 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   if(!txt_launch_environment()) {
 	out_info("ERROR: Measured launch failed");
   }
+#endif
+
+#ifdef __ARCH_AMD__
+  ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
+  ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
+
+  // set bootloader name
+  SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
+  m->boot_loader_name = (unsigned)version_string;
+#endif
 
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
