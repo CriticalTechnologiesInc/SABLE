@@ -455,8 +455,6 @@ extern void print_cpu_state();
 extern void save_cpu_state();
 
 RESULT pre_launch(struct mbi *m, unsigned flags) {
-  //start_module(m);
-
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
   out_string("Master Merge1\n");
@@ -668,9 +666,7 @@ RESULT post_launch(struct mbi *m) {
 
     char config_str[2];
     out_string("Configure now? [y/n]: ");
-    //get_string(config_str, sizeof(config_str) - 1, true);
-    config_str[0] = 'b';
-    config_str[1] = '\0';
+    get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
       RESULT configure_ret = configure(nvIndex);
       THROW(configure_ret.exception);
@@ -698,6 +694,13 @@ WAIT_FOR_INPUT()
     }
   }
 
+#ifdef __ARCH_INTEL__
+  char config_str[2];
+  out_string("Launch Linux Kernel now? [y/n]:");
+  get_string(config_str, sizeof(config_str) - 1, true);
+  if (config_str[0] == 'y')
+    launch_kernel(true);
+#endif
   RESULT start_module_ret = start_module(m);
   THROW(start_module_ret.exception);
 
