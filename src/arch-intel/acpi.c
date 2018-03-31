@@ -1,60 +1,47 @@
-///*
-// * acpi.c: ACPI utility fns
-// *
-// * Copyright (c) 2010, Intel Corporation
-// * All rights reserved.
-// *
-// * Redistribution and use in source and binary forms, with or without
-// * modification, are permitted provided that the following conditions
-// * are met:
-// *
-// *   * Redistributions of source code must retain the above copyright
-// *     notice, this list of conditions and the following disclaimer.
-// *   * Redistributions in binary form must reproduce the above
-// *     copyright notice, this list of conditions and the following
-// *     disclaimer in the documentation and/or other materials provided
-// *     with the distribution.
-// *   * Neither the name of the Intel Corporation nor the names of its
-// *     contributors may be used to endorse or promote products derived
-// *     from this software without specific prior written permission.
-// *
-// * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// * OF THE POSSIBILITY OF SUCH DAMAGE.
-// */
+/*
+ * acpi.c: ACPI utility fns
+ *
+ * Copyright (c) 2010, Intel Corporation
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <config.h>
 #include "types.h"
 #include "util.h"
 #include <uuid.h>
-//#include <stdbool.h>
-//#include <compiler.h>
 #include <processor.h>
 #include <io.h>
-//#include <string.h>
-//#include <printk.h>
 #include <tboot.h>
-//#include <loader.h>
 #include "acpi.h"
 #include <misc.h>
-//#include <cmdline.h>
-//#include <pci_cfgreg.h>
-//
-//#ifdef ACPI_DEBUG
-//#define acpi_printk         printk
-//#else
-//#define acpi_printk(...)    /* */
-//#endif
-//
+
 static struct acpi_rsdp *rsdp;
 static struct acpi_table_header *g_dmar_table;
 static __data bool g_hide_dmar;
@@ -126,12 +113,9 @@ static int find_rsdp_in_range(void *start, void *end)
 	}
 	return 0;
 }
-//
-//extern loader_ctx *g_ldr_ctx;
-//
+
 static int  find_rsdp(void)
 {
-//	uint32_t length;
 	uint8_t *ldr_rsdp = NULL;
 
 	if (rsdp != NULL) {
@@ -169,7 +153,7 @@ static int  find_rsdp(void)
 	return 0;
 }
 
-struct acpi_rsdp *get_rsdp()	//(loader_ctx *lctx)
+struct acpi_rsdp *get_rsdp()
 {
 	if (rsdp != NULL)
 		return rsdp;
@@ -267,7 +251,6 @@ bool restore_vtd_dmar_table(void)
     /* find DMAR table first */
     hdr = (struct acpi_table_header *)get_vtd_dmar_table();
     if ( hdr != NULL ) {
-        //printk(TBOOT_DETA"DMAR table @ %p is still there, skip restore step.\n", hdr);
         return true;
     }
 
@@ -282,32 +265,8 @@ bool restore_vtd_dmar_table(void)
 
     /* need to hide DMAR table while resume from S3 */
     g_hide_dmar = true;
-    //printk(TBOOT_DETA"DMAR table @ %p restored.\n", hdr);
     return true;
 }
-
-//bool remove_vtd_dmar_table(void)
-//{
-//    struct acpi_table_header *hdr;
-//
-//    /* check whether it is needed */
-//    if ( !g_hide_dmar ) {
-//        printk(TBOOT_DETA"No need to hide DMAR table.\n");
-//        return true;
-//    }
-//
-//    /* find DMAR table */
-//    hdr = (struct acpi_table_header *)get_vtd_dmar_table();
-//    if ( hdr == NULL ) {
-//        printk(TBOOT_DETA"No DMAR table, skip remove step.\n");
-//        return true;
-//    }
-//
-//    /* remove DMAR table */
-//    hdr->signature[0] = '\0';
-//    printk(TBOOT_DETA"DMAR table @ %p removed.\n", hdr);
-//    return true;
-//}
 
 static struct acpi_madt *get_apic_table(void)
 {
@@ -500,17 +459,4 @@ void set_s3_resume_vector(const tboot_acpi_sleep_info_t *acpi_sinfo,
                                     resume_vector;
     else
         out_info("vector_width error.\n");
-
-//    acpi_printk(TBOOT_DETA"wakeup_vector_address = %llx\n", acpi_sinfo->wakeup_vector);
-//    acpi_printk(TBOOT_DETA"wakeup_vector_value = %llxx\n", resume_vector);
 }
-
-///*
-// * Local variables:
-// * mode: C
-// * c-set-style: "BSD"
-// * c-basic-offset: 4
-// * tab-width: 4
-// * indent-tabs-mode: nil
-// * End:
-// */
