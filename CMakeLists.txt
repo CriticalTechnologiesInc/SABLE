@@ -5,7 +5,7 @@ set (SABLE_VERSION_MINOR 5)
 set (SABLE_VERSION_PATCH 2)
 
 message (STATUS "CMAKE_BUILD_TYPE is '${CMAKE_BUILD_TYPE}'")
-message (STATUS "BHUSHAN : TARGET_ARCH is '${TARGET_ARCH}'")
+message (STATUS "TARGET_ARCH is '${TARGET_ARCH}'")
 
 set (CMAKE_C_FLAGS
   "${CMAKE_C_FLAGS} \
@@ -121,13 +121,10 @@ target_include_directories (sable-AMD PUBLIC
 
 elseif (${TARGET_ARCH} STREQUAL "Intel")
 
-# Bhushan : code change start
-# ToDo : Remove AMD specific files as required
+# Bhushan: ToDo : Remove AMD specific files as required
 # remove keyboard.c from cleanup file list as added only for debbuging
 
-  message (STATUS "BHUSHAN : Building for Intel")
-
-  add_executable (cleanup-Intel
+add_executable (cleanup-Intel
   ${PROJECT_SOURCE_DIR}/src/cleanup/asm.S
   ${PROJECT_SOURCE_DIR}/src/elf.c
   ${PROJECT_SOURCE_DIR}/src/alloc.c
@@ -243,8 +240,6 @@ target_include_directories (sable-Intel PUBLIC
   ${PROJECT_SOURCE_DIR}/include/arch-intel
   )
 
-# Bhushan : code change end
-
 else (${TARGET_ARCH} STREQUAL "AMD")
   message (FATAL_ERROR "Invalid target architecture: " ${TARGET_ARCH})
 endif (${TARGET_ARCH} STREQUAL "AMD")
@@ -254,9 +249,6 @@ option (GENERATE_ISABELLE "Enable Isabelle/HOL code generation")
 # Build the input file for Isabelle/HOL
 # custom command and target to generate sable_isa.c
 if (${GENERATE_ISABELLE})
-
-message (FATAL_ERROR "BHUSHAN : WORKING ON INTEL : GENERATE_ISABELLE TEMPORARITY NOT SUPPORTED" : ${GENERATE_ISABELLE})
-
 set (HEADER_FILES ${HEADER_FILES}
   ${PROJECT_SOURCE_DIR}/include/arch-amd/amd.h
   ${PROJECT_SOURCE_DIR}/include/arch-amd/asm.h

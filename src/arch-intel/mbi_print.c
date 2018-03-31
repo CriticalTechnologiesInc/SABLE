@@ -30,25 +30,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 
 	WAIT_FOR_INPUT();
 	if (mbi->flags & MBI_CMDLINE ) {
-//# define CHUNK_SIZE 72 
-//        /* Break the command line up into 72 byte chunks */
-//        int   cmdlen = strlen(mbi->cmdline);
-//        char *cmdptr = (char *)mbi->cmdline;
-//        char  chunk[CHUNK_SIZE+1];
-//        printk(TBOOT_DETA"\t cmdline@0x%x: ", mbi->cmdline);
-//        chunk[CHUNK_SIZE] = '\0';
-//        while (cmdlen > 0) {
-//            strncpy(chunk, cmdptr, CHUNK_SIZE); 
-//            printk(TBOOT_DETA"\n\t\"%s\"", chunk);
-//            cmdptr += CHUNK_SIZE;
-//            cmdlen -= CHUNK_SIZE;
-//        }
-//        printk(TBOOT_DETA"\n");
-//		out_info("cmd_line forcefully printing 20 chars : can contain garbage");
-//		for(j = 0; j  < 20; j++) {
-//			out_char(mbi->cmdline + j);
-//		}
-	
 		out_info("MBI_CMDLINE is set: Skipping printing cmd line now as it creates infinite loop");
 	} else {
 		out_info("MBI_MEMLIMITS is not set");
@@ -63,11 +44,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 			out_description("module num", i);
 			out_description("mod_start", p->mod_start);
 			out_description("mod_end", p->mod_end);
-//			for (j = 0; j < 10; i++) {
-//				// fource fully priting 10 characters
-//				out_char(p->string + j);
-//			}
-			WAIT_FOR_INPUT();
 		}
 	} else {
 		out_info("skipping MBI_MODULES is not set");

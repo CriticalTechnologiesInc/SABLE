@@ -1,49 +1,40 @@
-///*
-// * e820.c: support functions for manipulating the e820 table
-// *
-// * Copyright (c) 2006-2012, Intel Corporation
-// * All rights reserved.
-// *
-// * Redistribution and use in source and binary forms, with or without
-// * modification, are permitted provided that the following conditions
-// * are met:
-// *
-// *   * Redistributions of source code must retain the above copyright
-// *     notice, this list of conditions and the following disclaimer.
-// *   * Redistributions in binary form must reproduce the above
-// *     copyright notice, this list of conditions and the following
-// *     disclaimer in the documentation and/or other materials provided
-// *     with the distribution.
-// *   * Neither the name of the Intel Corporation nor the names of its
-// *     contributors may be used to endorse or promote products derived
-// *     from this software without specific prior written permission.
-// *
-// * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// * OF THE POSSIBILITY OF SUCH DAMAGE.
-// *
-// */
-//
+/*
+ * e820.c: support functions for manipulating the e820 table
+ *
+ * Copyright (c) 2006-2012, Intel Corporation
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
 #include "config.h"
 #include "types.h"
-//#include <stdbool.h>
-//#include <printk.h>
-//#include <cmdline.h>
-//#include <string.h>
-//#include <loader.h>
-//#include <stdarg.h>
-//#include <misc.h>
-//#include <pci_cfgreg.h>
-//#include <txt/config_regs.h>
 #include "util.h"
 #include <uuid.h>
 #include <multiboot.h>
@@ -55,11 +46,11 @@
  * behavior) */
 
 uint32_t g_min_ram = 0;
-//
-///*
-// * copy of bootloader/BIOS e820 table with adjusted entries
-// * this version will replace original in mbi
-// */
+
+/*
+ * copy of bootloader/BIOS e820 table with adjusted entries
+ * this version will replace original in mbi
+ */
 
 #define MAX_E820_ENTRIES	(TBOOT_E820_COPY_SIZE / sizeof(memory_map_t))
 static unsigned int g_nr_map;
@@ -280,8 +271,6 @@ unsigned int get_nr_map()
 
 bool copy_e820_map(loader_ctx *lctx)
 {
-//    get_tboot_min_ram();
-
 	g_nr_map = 0;
 
 	if (have_loader_memmap(lctx)){
@@ -322,27 +311,6 @@ bool copy_e820_map(loader_ctx *lctx)
 	else if ( have_loader_memlimits(lctx) ) {
 		out_info("We dont expect to be here: copy_e820_map");
 		while(1);
-//        printk(TBOOT_DETA"no e820 map, mem_lower=%x, mem_upper=%x\n",
-//               get_loader_mem_lower(lctx), get_loader_mem_upper(lctx));
-//
-//        /* lower limit is 0x00000000 - <mem_lower>*0x400 (i.e. in kb) */
-//        g_copy_e820_map[0].base_addr_low = 0;
-//        g_copy_e820_map[0].base_addr_high = 0;
-//        g_copy_e820_map[0].length_low = (get_loader_mem_lower(lctx)) << 10;
-//        g_copy_e820_map[0].length_high = 0;
-//        g_copy_e820_map[0].type = E820_RAM;
-//        g_copy_e820_map[0].size = sizeof(memory_map_t) - sizeof(uint32_t);
-//
-//        /* upper limit is 0x00100000 - <mem_upper>*0x400 */
-//        g_copy_e820_map[1].base_addr_low = 0x100000;
-//        g_copy_e820_map[1].base_addr_high = 0;
-//        split64b((uint64_t)(get_loader_mem_upper(lctx)) << 10,
-//                 &(g_copy_e820_map[1].length_low),
-//                 &(g_copy_e820_map[1].length_high));
-//        g_copy_e820_map[1].type = E820_RAM;
-//        g_copy_e820_map[1].size = sizeof(memory_map_t) - sizeof(uint32_t);
-//
-//        g_nr_map = 2;
 	} else {
 		out_info("ERROR: no e820 map nor memory limits provided");
 		return false;
@@ -580,10 +548,6 @@ bool get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi
 
 		out_info("We dont expect to be here : g_min_ram");
 		while(1);
-//        get_highest_sized_ram(g_min_ram, 0x100000000ULL, &last_min_ram_base,
-//                              &last_min_ram_size);
-//        printk(TBOOT_DETA"highest min_ram (0x%x) region found: base=0x%Lx, size=0x%Lx\n",
-//               g_min_ram, last_min_ram_base, last_min_ram_size);
 	}
 
 	for (unsigned int i = 0; i < g_nr_map; i++) {
@@ -677,12 +641,12 @@ void get_highest_sized_ram(uint64_t size, uint64_t limit,
 }
 
 
-///*
-// * Local variables:
-// * mode: C
-// * c-set-style: "BSD"
-// * c-basic-offset: 4
-// * tab-width: 4
-// * indent-tabs-mode: nil
-// * End:
-// */
+/*
+ * Local variables:
+ * mode: C
+ * c-set-style: "BSD"
+ * c-basic-offset: 4
+ * tab-width: 4
+ * indent-tabs-mode: nil
+ * End:
+ */

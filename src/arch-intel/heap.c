@@ -1,52 +1,43 @@
-///*
-// * heap.c: fns for verifying and printing the Intel(r) TXT heap data structs
-// *
-// * Copyright (c) 2003-2011, Intel Corporation
-// * All rights reserved.
-// *
-// * Redistribution and use in source and binary forms, with or without
-// * modification, are permitted provided that the following conditions
-// * are met:
-// *
-// *   * Redistributions of source code must retain the above copyright
-// *     notice, this list of conditions and the following disclaimer.
-// *   * Redistributions in binary form must reproduce the above
-// *     copyright notice, this list of conditions and the following
-// *     disclaimer in the documentation and/or other materials provided
-// *     with the distribution.
-// *   * Neither the name of the Intel Corporation nor the names of its
-// *     contributors may be used to endorse or promote products derived
-// *     from this software without specific prior written permission.
-// *
-// * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// * OF THE POSSIBILITY OF SUCH DAMAGE.
-// *
-// */
-//
-//#ifndef IS_INCLUDED
+/*
+ * heap.c: fns for verifying and printing the Intel(r) TXT heap data structs
+ *
+ * Copyright (c) 2003-2011, Intel Corporation
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
 #include "config.h"
 #include "types.h"
 #include "platform.h"
-//#include <stdbool.h>
-//#include <compiler.h>
-//#include <string.h>
-//#include <printk.h>
-//#include <multiboot.h>
-//#include <mle.h>
 #include <misc.h>
 #include "hash.h"
-//#include <tpm.h>
-//#include <txt/mtrrs.h>
 #include "util.h"
 #include "config_regs.h"
 #include "uuid.h"
@@ -55,21 +46,20 @@
 #include "mtrrs.h"
 #include "arch-intel/heap.h"
 #include "keyboard.h"
-//#endif
-//
-///*
-// * extended data elements
-// */
-//
-///* HEAP_BIOS_SPEC_VER_ELEMENT */
+
+/*
+ * extended data elements
+ */
+
+/* HEAP_BIOS_SPEC_VER_ELEMENT */
 static void print_bios_spec_ver_elt(const heap_ext_data_element_t *elt)
 {
 	const heap_bios_spec_ver_elt_t *bios_spec_ver_elt = (const heap_bios_spec_ver_elt_t *)elt->data;
 
-	out_info("\t\tBIOS_SPEC_VER");
-	out_description("\t\tmajor", bios_spec_ver_elt->spec_ver_major);
-	out_description("\t\tminor", bios_spec_ver_elt->spec_ver_minor);
-	out_description("\t\trev", bios_spec_ver_elt->spec_ver_rev);
+	out_info("BIOS_SPEC_VER");
+	out_description("major", bios_spec_ver_elt->spec_ver_major);
+	out_description("minor", bios_spec_ver_elt->spec_ver_minor);
+	out_description("trev", bios_spec_ver_elt->spec_ver_rev);
 }
 
 static int verify_bios_spec_ver_elt(const heap_ext_data_element_t *elt)
@@ -208,8 +198,8 @@ static int verify_evt_log(const event_log_container_t *elog)
 	if (memcmp(elog->signature, EVTLOG_SIGNATURE, sizeof(elog->signature)) ) {
 		out_info("Bad event log container signature");
 		/* Bhushan: This can cause screen to go black as signature might not contain null char at end */
-	//	wait(2000);
-	//	out_string(elog->signature);
+		// wait(2000);
+		// out_string(elog->signature);
 		return 0;
 	}
 
@@ -257,204 +247,10 @@ static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 	return verify_evt_log((event_log_container_t *)(unsigned long) elog_elt->event_log_phys_addr);
 }
 
-//void print_event_2(void *evt, uint16_t alg)
-//{
-//    uint32_t hash_size, data_size; 
-//    void *next = evt;
-//
-//    hash_size = get_hash_size(alg); 
-//    if ( hash_size == 0 )
-//        return;
-//
-//    printk(TBOOT_DETA"\t\t\t Event:\n");
-//    printk(TBOOT_DETA"\t\t\t     PCRIndex: %u\n", *((uint32_t *)next));
-//    
-//    if ( *((uint32_t *)next) > 24 && *((uint32_t *)next) != 0xFF ) {
-//         printk(TBOOT_DETA"\t\t\t           Wrong Event Log.\n");
-//         return;
-//     }
-//    
-//    next += sizeof(uint32_t);
-//    printk(TBOOT_DETA"\t\t\t         Type: 0x%x\n", *((uint32_t *)next));
-//
-//    if ( *((uint32_t *)next) > 0xFFF ) {
-//        printk(TBOOT_DETA"\t\t\t           Wrong Event Log.\n");
-//        return;
-//    }
-//
-//    next += sizeof(uint32_t);
-//    printk(TBOOT_DETA"\t\t\t       Digest: ");
-//    print_hex(NULL, (uint8_t *)next, hash_size);
-//    next += hash_size;
-//    data_size = *(uint32_t *)next;
-//    printk(TBOOT_DETA"\t\t\t         Data: %u bytes", data_size);
-//    if ( data_size > 4096 ) {
-//        printk(TBOOT_DETA"\t\t\t           Wrong Event Log.\n");
-//        return;
-//    }
-//
-//    next += sizeof(uint32_t);
-//    if ( data_size )
-//         print_hex("\t\t\t         ", (uint8_t *)next, data_size);
-//    else
-//         printk(TBOOT_DETA"\n");
-//}
-//
-//uint32_t print_event_2_1_log_header(void *evt){
-//
-//   tcg_pcr_event *evt_ptr = (tcg_pcr_event *)evt;
-//   tcg_efi_specid_event_strcut *evt_data_ptr = (tcg_efi_specid_event_strcut *) evt_ptr->event_data;
-//
-//   printk(TBOOT_DETA"\t TCG Event Log Header:\n");
-//   printk(TBOOT_DETA"\t\t       pcr_index: %u\n", evt_ptr->pcr_index);
-//   printk(TBOOT_DETA"\t\t      event_type: %u\n", evt_ptr->event_type);
-//   printk(TBOOT_DETA"\t\t          digest: %s\n", evt_ptr->digest);
-//   printk(TBOOT_DETA"\t\t event_data_size: %u\n", evt_ptr->event_data_size);
-//
-//   // print out event log header data
-//
-//   printk(TBOOT_DETA"\t\t 	   header event data:  \n"); 
-//   printk(TBOOT_DETA"\t\t\t              signature: %s\n", evt_data_ptr->signature);
-//   printk(TBOOT_DETA"\t\t\t         platform_class: %u\n", evt_data_ptr->platform_class);
-//   printk(TBOOT_DETA"\t\t\t     spec_version_major: %u\n", evt_data_ptr->spec_version_major);
-//   printk(TBOOT_DETA"\t\t\t     spec_version_minor: %u\n", evt_data_ptr->spec_version_minor);
-//   printk(TBOOT_DETA"\t\t\t            spec_errata: %u\n", evt_data_ptr->spec_errata);
-//   printk(TBOOT_DETA"\t\t\t             uintn_size: %u\n", evt_data_ptr->uintn_size);
-//   printk(TBOOT_DETA"\t\t\t   number_of_algorithms: %u\n", evt_data_ptr->number_of_algorithms);
-//
-//   for ( uint32_t i = 0; i < evt_data_ptr->number_of_algorithms; i++){
-//       printk(TBOOT_DETA"\t\t\t\t   algorithm_id: 0x%x \n", evt_data_ptr->digestSizes[i].algorithm_id);
-//       printk(TBOOT_DETA"\t\t\t\t    digest_size: %u\n", evt_data_ptr->digestSizes[i].digest_size);
-//   }
-//   
-//   printk(TBOOT_DETA"\t\t\t       vendor_info: %u bytes\n", evt_data_ptr->vendor_info_size);
-//   print_hex(NULL, evt_data_ptr->vendor_info, evt_data_ptr->vendor_info_size);
-//
-//   return evt_ptr->event_data_size;
-//}
-//uint32_t print_event_2_1(void *evt)
-//{
-//   
-//    tcg_pcr_event2 *evt_ptr = (tcg_pcr_event2 *)evt;
-//    uint8_t *evt_data_ptr;
-//    uint16_t hash_alg;
-//    uint32_t event_size = 0;
-//    printk(TBOOT_DETA"\t\t\t TCG Event:\n");
-//    printk(TBOOT_DETA"\t\t\t      pcr_index: %u\n", evt_ptr->pcr_index);
-//    printk(TBOOT_DETA"\t\t\t     event_type: 0x%x\n", evt_ptr->event_type);
-//    printk(TBOOT_DETA"\t\t\t          count: %u\n", evt_ptr->digest.count);
-//    if (evt_ptr->digest.count != 0) {
-//	evt_data_ptr = (uint8_t *)evt_ptr->digest.digests[0].digest;
-//        hash_alg = evt_ptr->digest.digests[0].hash_alg;
-//	for (uint32_t i = 0; i < evt_ptr->digest.count; i++ ) { 
-//    	    switch (hash_alg) {
-//                case TB_HALG_SHA1:
-//				printk(TBOOT_INFO"SHA1: \n");
-//				print_hex(NULL, evt_data_ptr, SHA1_LENGTH);
-//				evt_data_ptr += SHA1_LENGTH;
-//				break;
-//
-//                case TB_HALG_SHA256:
-//				printk(TBOOT_INFO"SHA256: \n");
-//				print_hex(NULL, evt_data_ptr, SHA256_LENGTH);
-//					evt_data_ptr += SHA256_LENGTH;
-//				break;
-//
-//                case TB_HALG_SM3:
-//				printk(TBOOT_INFO"SM3_256: \n");
-//				print_hex(NULL, evt_data_ptr, SM3_LENGTH);
-//				evt_data_ptr += SM3_LENGTH;
-//				break;
-//
-//                case TB_HALG_SHA384:
-//				printk(TBOOT_INFO"SHA384: \n");
-//				print_hex(NULL, evt_data_ptr, SHA384_LENGTH);
-//				evt_data_ptr += SHA384_LENGTH;				
-//				break;
-//
-//                case TB_HALG_SHA512:
-//				printk(TBOOT_INFO"SHA512:  \n");
-//				print_hex(NULL, evt_data_ptr, SHA512_LENGTH);
-//				evt_data_ptr += SHA512_LENGTH;
-//				break;
-//                default:
-//	                        printk(TBOOT_ERR"Unsupported algorithm: %u\n", evt_ptr->digest.digests[i].hash_alg);
-//	 }
-//         hash_alg = (uint16_t)*evt_data_ptr;
-//	 evt_data_ptr += sizeof(uint16_t);
-//      }
-//      evt_data_ptr -= sizeof(uint16_t);
-//      event_size = (uint32_t)*evt_data_ptr;
-//      printk(TBOOT_DETA"\t\t\t     event_data: %u bytes", event_size);
-//      evt_data_ptr += sizeof(uint32_t);
-//      print_hex("\t\t\t     ", evt_data_ptr, event_size);
-//    }
-//    else { 
-//        printk(TBOOT_DETA"sth wrong in TCG event log: algoritm count = %u\n", evt_ptr->digest.count);
-//        evt_data_ptr= (uint8_t *)evt +12;
-//    }
-//    return (evt_data_ptr + event_size - (uint8_t *)evt);
-//}
-//
 static void print_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 {
 	out_info("ERROR : printing not supported : heap_ext_data_element_t");
 	wait(3000);
-//    const heap_event_log_ptr_elt2_t *elog_elt =
-//              (const heap_event_log_ptr_elt2_t *)elt->data;
-//    const heap_event_log_descr_t *log_descr;
-//
-//    printk(TBOOT_DETA"\t\t EVENT_LOG_PTR:\n");
-//    printk(TBOOT_DETA"\t\t       size: %u\n", elt->size);
-//    printk(TBOOT_DETA"\t\t      count: %d\n", elog_elt->count);
-//
-//    for ( unsigned int i=0; i<elog_elt->count; i++ ) {
-//        log_descr = &elog_elt->event_log_descr[i];
-//        printk(TBOOT_DETA"\t\t\t Log Descrption:\n");
-//        printk(TBOOT_DETA"\t\t\t             Alg: %u\n", log_descr->alg);
-//        printk(TBOOT_DETA"\t\t\t            Size: %u\n", log_descr->size);
-//        printk(TBOOT_DETA"\t\t\t    EventsOffset: [%u,%u]\n",
-//                log_descr->pcr_events_offset,
-//                log_descr->next_event_offset);
-//
-//        if (log_descr->pcr_events_offset == log_descr->next_event_offset) {
-//            printk(TBOOT_DETA"\t\t\t              No Event Log.\n");
-//            continue;
-//        }
-//
-//        uint32_t hash_size, data_size; 
-//        hash_size = get_hash_size(log_descr->alg); 
-//        if ( hash_size == 0 )
-//            return;
-//
-//        void *curr, *next;
-//
-//        curr = (void *)(unsigned long)log_descr->phys_addr + 
-//                log_descr->pcr_events_offset;
-//        next = (void *)(unsigned long)log_descr->phys_addr +
-//                log_descr->next_event_offset;
-//        
-//        //It is required for each of the non-SHA1 event log the first entry to be the following
-//        //TPM1.2 style TCG_PCR_EVENT record specifying type of the log:
-//        //TCG_PCR_EVENT.PCRIndex = 0
-//        //TCG_PCR_EVENT.EventType = 0x03 // EV_NO_ACTION per TCG EFI
-//                                       // Platform specification
-//        //TCG_PCR_EVENT.Digest = {00…00} // 20 zeros
-//        //TCG_PCR_EVENT.EventDataSize = sizeof(TCG_LOG_DESCRIPTOR).
-//        //TCG_PCR_EVENT.EventData = TCG_LOG_DESCRIPTOR
-//        //The digest of this record MUST NOT be extended into any PCR.
-//
-//        if (log_descr->alg != TB_HALG_SHA1){
-//            print_event_2(curr, TB_HALG_SHA1);
-//            curr += sizeof(tpm12_pcr_event_t) + sizeof(tpm20_log_descr_t);
-//        }
-//
-//        while ( curr < next ) {
-//            print_event_2(curr, log_descr->alg);
-//            data_size = *(uint32_t *)(curr + 2*sizeof(uint32_t) + hash_size);
-//            curr += 3*sizeof(uint32_t) + hash_size + data_size;
-//        }
-//    }
 }
 
 
@@ -462,30 +258,6 @@ static void print_evt_log_ptr_elt_2_1(const heap_ext_data_element_t *elt)
 {
 	out_info("ERROR: Printing not supported : heap_ext_data_element_t");
 	wait(3000);
-//    const heap_event_log_ptr_elt2_1_t *elog_elt = (const heap_event_log_ptr_elt2_1_t *)elt->data;
-//   
-//    printk(TBOOT_DETA"\t TCG EVENT_LOG_PTR:\n");
-//    printk(TBOOT_DETA"\t\t       type: %d\n", elt->type);
-//    printk(TBOOT_DETA"\t\t       size: %u\n", elt->size);
-//    printk(TBOOT_DETA"\t TCG Event Log Descrption:\n");
-//    printk(TBOOT_DETA"\t     allcoated_event_container_size: %u\n", elog_elt->allcoated_event_container_size);
-//    printk(TBOOT_DETA"\t                       EventsOffset: [%u,%u]\n", 
-//           elog_elt->first_record_offset, elog_elt->next_record_offset);
-//
-//    if (elog_elt->first_record_offset == elog_elt->next_record_offset) {
-//	printk(TBOOT_DETA"\t\t\t No Event Log found.\n");
-//	return;
-//    }
-//    void *curr, *next;
-//
-//    curr = (void *)(unsigned long)elog_elt->phys_addr + elog_elt->first_record_offset;
-//    next = (void *)(unsigned long)elog_elt->phys_addr + elog_elt->next_record_offset;               
-//    uint32_t event_header_data_size = print_event_2_1_log_header(curr);
-//		
-//    curr += sizeof(tcg_pcr_event) + event_header_data_size;
-//    while ( curr < next ) {
-//	curr += print_event_2_1(curr);
-//    }
 }
 
 
@@ -493,7 +265,6 @@ static int verify_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 {
 	if ( !elt )
 		return 0;
-
 	return 1;
 }
 
@@ -582,24 +353,6 @@ static bool verify_ext_data_elts(const heap_ext_data_element_t elts[], size_t el
 	return 1;
 }
 
-
-//static void print_bios_data(const bios_data_t *bios_data, uint64_t size)
-//{
-//    printk(TBOOT_DETA"bios_data (@%p, %jx):\n", bios_data,
-//           *((uint64_t *)bios_data - 1));
-//    printk(TBOOT_DETA"\t version: %u\n", bios_data->version);
-//    printk(TBOOT_DETA"\t bios_sinit_size: 0x%x (%u)\n", bios_data->bios_sinit_size,
-//           bios_data->bios_sinit_size);
-//    printk(TBOOT_DETA"\t lcp_pd_base: 0x%jx\n", bios_data->lcp_pd_base);
-//    printk(TBOOT_DETA"\t lcp_pd_size: 0x%jx (%ju)\n", bios_data->lcp_pd_size,
-//           bios_data->lcp_pd_size);
-//    printk(TBOOT_DETA"\t num_logical_procs: %u\n", bios_data->num_logical_procs);
-//    if ( bios_data->version >= 3 )
-//        printk(TBOOT_DETA"\t flags: 0x%08jx\n", bios_data->flags);
-//    if ( bios_data->version >= 4 && size > sizeof(*bios_data) + sizeof(size) )
-//        print_ext_data_elts(bios_data->ext_data_elts);
-//}
-//
 int verify_bios_data(const txt_heap_t *txt_heap)
 {
 	uint64_t heap_base = read_pub_config_reg(TXTCR_HEAP_BASE);
@@ -657,8 +410,6 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 
 	return 1;
 }
-
-//#ifndef IS_INCLUDED
 
 static void print_os_mle_data(const os_mle_data_t *os_mle_data)
 {
@@ -731,31 +482,6 @@ uint64_t calc_os_sinit_data_size(uint32_t version)
 		2 * sizeof(heap_ext_data_element_t) +
 		sizeof(heap_event_log_ptr_elt_t)
 	};
-//	txt_caps_t sinit_caps;
-//	
-//    if ( g_tpm->major == TPM20_VER_MAJOR ) {
-//		if (g_sinit != NULL) {
-//			sinit_caps = get_sinit_capabilities(g_sinit);
-//		}
-//        if (sinit_caps.tcg_event_log_format) {
-//			size[2] = sizeof(os_sinit_data_t) + sizeof(uint64_t) +
-//            2 * sizeof(heap_ext_data_element_t) + 
-//            sizeof(heap_event_log_ptr_elt2_1_t);
-//        }
-//		else {
-//			u32 count;
-//			if ( g_tpm->extpol == TB_EXTPOL_AGILE )
-//				count = g_tpm->banks;
-//			else 
-//				if ( g_tpm->extpol == TB_EXTPOL_EMBEDDED )
-//					count = g_tpm->alg_count;
-//				else
-//					count = 1;
-//			size[2] = sizeof(os_sinit_data_t) + sizeof(uint64_t) +
-//				2 * sizeof(heap_ext_data_element_t) +
-//				4 + count*sizeof(heap_event_log_descr_t);
-//		}
-//    }
 
 	if (version >= 6)
 		return size[2];
@@ -898,7 +624,6 @@ static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)
 	}
 	if ( size > heap_size ) {
 		out_info("SINIT to MLE data size is larger than heap size");
-//               "(%Lx, heap size=%Lx)\n", size, heap_size);
 		return 0;
 	}
 
@@ -974,14 +699,3 @@ int verify_txt_heap(const txt_heap_t *txt_heap, int bios_data_only)
 
 	return 1;
 }
-//
-//#endif
-//
-///*
-// * Local variables:
-// * mode: C
-// * c-basic-offset: 4
-// * tab-width: 4
-// * indent-tabs-mode: nil
-// * End:
-// */

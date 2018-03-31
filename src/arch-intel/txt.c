@@ -10,7 +10,6 @@
 #include "acmod.h"
 #include "page.h"
 #include "mtrrs.h"
-//#include "hash.h"
 #include "intel_tpm.h"
 #include "arch-intel/heap.h"
 #include "tboot.h"
@@ -37,9 +36,6 @@
 #define DEF_SENTER_CTRLS                0x00
  
 extern acm_hdr_t *g_sinit;
-
-//extern int get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi_ram, uint64_t *max_hi_ram);
-
 
 struct cpu_state {
 	unsigned long eax, ebx, ecx, edx, edi, esi;
@@ -71,9 +67,6 @@ typedef struct cpu_state cpu_t;
 /* InSecure Kernel state; system state to be restored post-flicker
  * session. */
 static cpu_t isk_state;
-
-//#define rdmsrl(msr, val) (val) = __readmsr(msr)^M
-//#define EFER_MSR          (0xc0000080)
 
 /**
  * Dump saved processor state to debug output
@@ -126,8 +119,7 @@ void dump_state(cpu_t *s) {
 
 void save_cpu_state(void) {
  	/* EFER */
-// 	rdmsrl(EFER_MSR, isk_state.efer);
- 
+
  	/* eflags */
  	asm volatile("pushfl");
  	asm volatile("popl %0" : "=m" (isk_state.eflags));
@@ -158,25 +150,6 @@ void save_cpu_state(void) {
 	asm volatile ("movl %%ebp, %0" : "=m" (isk_state.ebp));
 	asm volatile ("movl %%esp, %0" : "=m" (isk_state.esp));
 
-	/* return address */
-//	isk_state.return_address = (get_cpu_vendor() == CPU_VENDOR_INTEL) ?
-//		(uint32_t)intel_kernel_reenter : (uint32_t)amd_kernel_reenter;
-
-	/* We want to set isk_state.p2v_offset such that _adding_ it to the
-	 * PAL's physical address will result in the correct OS virtual
-	 * address. Even though there is overflow if the virtual address is
-	 * less than the physical address, we still get the right answer.*/
-
-//	isk_state.p2v_offset = (uint32_t)&(g_pal->reload) - (uint32_t)virt_to_phys(&(g_pal->reload));
-
-	/* Copy saved state to well-known area in PAL input buffer.
-	 * Note that assembly code in the PAL will reference the
-	 * reload region to restore CPU state when resumuing kernel. */
-//	memcpy(&(g_pal->reload), &isk_state, sizeof(cpu_t));
-
-//	out_description("size", sizeof(g_pal->reload));
-//	out_description("vrtl add", (uint32_t)&(g_pal->reload));
-//	out_Description("pysical add", (uint32_t)virt_to_phys(&(g_pal->reload)));
 	dump_state(&isk_state);
 	WAIT_FOR_INPUT();
 }
@@ -190,6 +163,7 @@ void print_cpu_state() {
 	out_description64("CR3", read_cr3());
 	WAIT_FOR_INPUT();
 }
+
 int get_parameters(getsec_parameters_t *params)
 {
 	unsigned long cr4;
@@ -269,74 +243,6 @@ int get_parameters(getsec_parameters_t *params)
 
 	return 1;
 }
-///*
-// * txt.c: Intel(r) TXT support functions, including initiating measured
-// *        launch, post-launch, AP wakeup, etc.
-// *
-// * Copyright (c) 2003-2011, Intel Corporation
-// * All rights reserved.
-// *
-// * Redistribution and use in source and binary forms, with or without
-// * modification, are permitted provided that the following conditions
-// * are met:
-// *
-// *   * Redistributions of source code must retain the above copyright
-// *     notice, this list of conditions and the following disclaimer.
-// *   * Redistributions in binary form must reproduce the above
-// *     copyright notice, this list of conditions and the following
-// *     disclaimer in the documentation and/or other materials provided
-// *     with the distribution.
-// *   * Neither the name of the Intel Corporation nor the names of its
-// *     contributors may be used to endorse or promote products derived
-// *     from this software without specific prior written permission.
-// *
-// * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-// * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-// * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// * OF THE POSSIBILITY OF SUCH DAMAGE.
-// *
-// */
-//
-//#include <config.h>
-//#include <stdbool.h>
-//#include <types.h>
-//#include <tb_error.h>
-//#include <msr.h>
-//#include <compiler.h>
-//#include <string.h>
-//#include <misc.h>
-//#include <page.h>
-//#include <processor.h>
-//#include <printk.h>
-//#include <atomic.h>
-//#include <mutex.h>
-//#include <tpm.h>
-//#include <uuid.h>
-//#include <loader.h>
-//#include <e820.h>
-//#include <tboot.h>
-//#include <mle.h>
-//#include <hash.h>
-//#include <cmdline.h>
-//#include <acpi.h>
-//#include <txt/txt.h>
-//#include <txt/config_regs.h>
-//#include <txt/mtrrs.h>
-//#include <txt/heap.h>
-//#include <txt/acmod.h>
-//#include <txt/smx.h>
-//#include <txt/verify.h>
-//#include <txt/vmcs.h>
-//#include <io.h>
-
 /* counter timeout for waiting for all APs to enter wait-for-sipi */
 #define AP_WFS_TIMEOUT     0x10000000
 
@@ -360,24 +266,15 @@ extern char _txt_wakeup[];        /* RLP join address for GETSEC[WAKEUP] */
 #define CMDLINE_SIZE	512
 extern char g_cmdline[CMDLINE_SIZE];
 
-
-
-//extern long s3_flag;
-//
 extern struct mutex ap_lock;
-//
-///* MLE/kernel shared data page (in boot.S) */
+/* MLE/kernel shared data page (in boot.S) */
 extern tboot_shared_t _tboot_shared;
-//extern void apply_policy(tb_error_t error);
 extern void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec);
-//extern void print_event(const tpm12_pcr_event_t *evt);
-//extern void print_event_2(void *evt, uint16_t alg);
-//
-//
-///*
-// * this is the structure whose addr we'll put in TXT heap
-// * it needs to be within the MLE pages, so force it to the .text section
-// */
+
+/*
+ * this is the structure whose addr we'll put in TXT heap
+ * it needs to be within the MLE pages, so force it to the .text section
+ */
 
 /* 
  * Bhushan : 
@@ -398,28 +295,12 @@ static __text const mle_hdr_t g_mle_hdr = {
 };
 
 
-///*
-// * counts of APs going into wait-for-sipi
-// */
-///* count of APs in WAIT-FOR-SIPI */
-atomic_t ap_wfs_count;
 /*
- static inline void print_uuid(const uuid_t *uuid)
- {
-	out_info("UUID");
-	out_description("uuid->data1", uuid->data1);
-	out_description("uuid->data2", (uint32_t)uuid->data2);
-	out_description("uuid->data3", (uint32_t)uuid->data3);
-	out_description("uuid->data4", (uint32_t)uuid->data4);
-	out_description("uuid->data5[0]", uuid->data5[0]);
-	out_description("uuid->data5[1]", (uint32_t)uuid->data5[1]);
-	out_description("uuid->data5[2]", (uint32_t)uuid->data5[2]);
-	out_description("uuid->data5[3]", (uint32_t)uuid->data5[3]);
-	out_description("uuid->data5[4]", (uint32_t)uuid->data5[4]);
-	out_description("uuid->data5[5]", (uint32_t)uuid->data5[5]);
- }
-*/
+ * counts of APs going into wait-for-sipi
+ */
+/* count of APs in WAIT-FOR-SIPI */
 
+atomic_t ap_wfs_count;
 static void print_file_info(void)
 {
 	out_info("file addresses:");
@@ -524,8 +405,6 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 
 
 static __data event_log_container_t *g_elog = NULL;
-//static __data heap_event_log_ptr_elt2_t *g_elog_2 = NULL;
-//static __data heap_event_log_ptr_elt2_1_t *g_elog_2_1 = NULL;
 
 /* should be called after os_mle_data initialized */
 static void *init_event_log(void)
@@ -544,64 +423,9 @@ static void *init_event_log(void)
 
 	return (void *)g_elog;
 }
-//
-///* initialize TCG compliant TPM 2.0 event log descriptor */
-//static void init_evtlog_desc_1(heap_event_log_ptr_elt2_1_t *evt_log)
-//{
-//    os_mle_data_t *os_mle_data = get_os_mle_data_start(get_txt_heap());
-//   
-//    evt_log->phys_addr = (uint64_t)(unsigned long)(os_mle_data->event_log_buffer);
-//    evt_log->allcoated_event_container_size = 2*PAGE_SIZE;
-//    evt_log->first_record_offset = 0;
-//    evt_log->next_record_offset = 0;
-//    printk(TBOOT_DETA"TCG compliant TPM 2.0 event log descriptor:\n");
-//    printk(TBOOT_DETA"\t phys_addr = 0x%LX\n",  evt_log->phys_addr);
-//    printk(TBOOT_DETA"\t allcoated_event_container_size = 0x%x \n", evt_log->allcoated_event_container_size);
-//    printk(TBOOT_DETA"\t first_record_offset = 0x%x \n", evt_log->first_record_offset);
-//    printk(TBOOT_DETA"\t next_record_offset = 0x%x \n", evt_log->next_record_offset);
-//}
-//
-//static void init_evtlog_desc(heap_event_log_ptr_elt2_t *evt_log)
-//{
-//    unsigned int i;
-//    os_mle_data_t *os_mle_data = get_os_mle_data_start(get_txt_heap());
-//    switch (g_tpm->extpol) {
-//    case TB_EXTPOL_AGILE:
-//        for (i=0; i<evt_log->count; i++) {
-//            evt_log->event_log_descr[i].alg = g_tpm->algs_banks[i];
-//            evt_log->event_log_descr[i].phys_addr =
-//                    (uint64_t)(unsigned long)(os_mle_data->event_log_buffer + i*4096);
-//            evt_log->event_log_descr[i].size = 4096;
-//            evt_log->event_log_descr[i].pcr_events_offset = 0;
-//            evt_log->event_log_descr[i].next_event_offset = 0;
-//        }
-//        break;
-//    case TB_EXTPOL_EMBEDDED:
-//        for (i=0; i<evt_log->count; i++) {
-//            evt_log->event_log_descr[i].alg = g_tpm->algs[i];
-//            evt_log->event_log_descr[i].phys_addr =
-//                    (uint64_t)(unsigned long)(os_mle_data->event_log_buffer + i*4096);
-//            evt_log->event_log_descr[i].size = 4096;
-//            evt_log->event_log_descr[i].pcr_events_offset = 0;
-//            evt_log->event_log_descr[i].next_event_offset = 0;
-//        }
-//        break;
-//    case TB_EXTPOL_FIXED:
-//        evt_log->event_log_descr[0].alg = g_tpm->cur_alg;
-//        evt_log->event_log_descr[0].phys_addr =
-//                    (uint64_t)(unsigned long)os_mle_data->event_log_buffer;
-//        evt_log->event_log_descr[0].size = 4096;
-//        evt_log->event_log_descr[0].pcr_events_offset = 0;
-//        evt_log->event_log_descr[0].next_event_offset = 0;
-//        break;
-//    default:
-//        return;
-//    }
-//}
-//
+
 static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
 {
-//	txt_caps_t			sinit_caps;
 	heap_event_log_ptr_elt_t*	evt_log;
 	heap_ext_data_element_t*	elt = elts;
 
@@ -614,156 +438,13 @@ static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
 	else if ( g_tpm->major == TPM20_VER_MAJOR ) {
 		out_info("We dont expect to be here: init_os_sinit_ext_data");
 		while(1);
-//		if (g_sinit != NULL) {
-//			sinit_caps = get_sinit_capabilities(g_sinit);
-//		}
-//		else 
-//			return;
-//		if (sinit_caps.tcg_event_log_format) {
-//			g_elog_2_1 = (heap_event_log_ptr_elt2_1_t *)elt->data;
-//			init_evtlog_desc_1(g_elog_2_1);
-//			elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2_1;
-//			elt->size = sizeof(*elt) + sizeof(heap_event_log_ptr_elt2_1_t);
-//			printk(TBOOT_DETA"heap_ext_data_element TYPE = %d \n", elt->type);
-//			printk(TBOOT_DETA"heap_ext_data_element SIZE = %d \n", elt->size);
-//		} else {
-//			g_elog_2 = (heap_event_log_ptr_elt2_t *)elt->data;
-//			if (g_tpm->extpol == TB_EXTPOL_AGILE)
-//				g_elog_2->count = g_tpm->banks;
-//			else 
-//				if ( g_tpm->extpol == TB_EXTPOL_EMBEDDED )
-//					g_elog_2->count = g_tpm->alg_count;
-//				else
-//					g_elog_2->count = 1;
-//			init_evtlog_desc(g_elog_2);
-//			elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR_2;
-//			elt->size = sizeof(*elt) + sizeof(u32) +
-//			g_elog_2->count * sizeof(heap_event_log_descr_t);
-//			printk(TBOOT_DETA"INTEL TXT LOG elt SIZE = %d \n", elt->size);
-//		}
 	}
 	elt = (void *)elt + elt->size;
 	elt->type = HEAP_EXTDATA_TYPE_END;
 	elt->size = sizeof(*elt);
 }
 
-//bool evtlog_append_tpm12(uint8_t pcr, tb_hash_t *hash, uint32_t type)
-//{
-//    if ( g_elog == NULL )
-//        return true;
-//
-//    tpm12_pcr_event_t *next = (tpm12_pcr_event_t *)
-//                              ((void*)g_elog + g_elog->next_event_offset);
-//    
-//    if ( g_elog->next_event_offset + sizeof(*next) > g_elog->size )
-//        return false;
-//
-//    next->pcr_index = pcr;
-//    next->type = type;
-//    memcpy(next->digest, hash, sizeof(next->digest));
-//    next->data_size = 0;
-//
-//    g_elog->next_event_offset += sizeof(*next) + next->data_size;
-//
-//    print_event(next);
-//    return true;
-//}
-//
-//void dump_event_2(void)
-//{
-//    heap_event_log_descr_t *log_descr;
-//
-//    for ( unsigned int i=0; i<g_elog_2->count; i++ ) {
-//        log_descr = &g_elog_2->event_log_descr[i];
-//        printk(TBOOT_DETA"\t\t\t Log Descrption:\n");
-//        printk(TBOOT_DETA"\t\t\t             Alg: %u\n", log_descr->alg);
-//        printk(TBOOT_DETA"\t\t\t            Size: %u\n", log_descr->size);
-//        printk(TBOOT_DETA"\t\t\t    EventsOffset: [%u,%u)\n",
-//                log_descr->pcr_events_offset,
-//                log_descr->next_event_offset);
-//
-//        uint32_t hash_size, data_size; 
-//        hash_size = get_hash_size(log_descr->alg); 
-//        if ( hash_size == 0 )
-//            return;
-//
-//        void *curr, *next;
-//        *((u64 *)(&curr)) = log_descr->phys_addr +
-//                log_descr->pcr_events_offset;
-//        *((u64 *)(&next)) = log_descr->phys_addr +
-//                log_descr->next_event_offset;
-//
-//        if ( log_descr->alg != TB_HALG_SHA1 ) {
-//            print_event_2(curr, TB_HALG_SHA1);
-//            curr += sizeof(tpm12_pcr_event_t) + sizeof(tpm20_log_descr_t);
-//        }
-//
-//        while ( curr < next ) {
-//            print_event_2(curr, log_descr->alg);
-//            data_size = *(uint32_t *)(curr + 2*sizeof(uint32_t) + hash_size);
-//            curr += 3*sizeof(uint32_t) + hash_size + data_size;
-//        }
-//    }
-//}
-//
-//bool evtlog_append_tpm20(uint8_t pcr, uint16_t alg, tb_hash_t *hash, uint32_t type)
-//{
-//    heap_event_log_descr_t *cur_desc = NULL;
-//    uint32_t hash_size; 
-//    void *cur, *next;
-//
-//    for ( unsigned int i=0; i<g_elog_2->count; i++ ) {
-//        if ( g_elog_2->event_log_descr[i].alg == alg ) {
-//            cur_desc = &g_elog_2->event_log_descr[i];
-//            break;
-//        }
-//    }
-//    if ( !cur_desc )
-//        return false;
-//
-//    hash_size = get_hash_size(alg); 
-//    if ( hash_size == 0 )
-//        return false;
-//
-//    if ( cur_desc->next_event_offset + 32 > cur_desc->size )
-//        return false;
-//
-//    cur = next = (void *)(unsigned long)cur_desc->phys_addr +
-//                     cur_desc->next_event_offset;
-//    *((u32 *)next) = pcr;
-//    next += sizeof(u32);
-//    *((u32 *)next) = type;
-//    next += sizeof(u32);
-//    memcpy((uint8_t *)next, hash, hash_size);
-//    next += hash_size;
-//    *((u32 *)next) = 0;
-//    cur_desc->next_event_offset += 3*sizeof(uint32_t) + hash_size; 
-//
-//    print_event_2(cur, alg);
-//    return true;
-//}
-//
-//bool evtlog_append(uint8_t pcr, hash_list_t *hl, uint32_t type)
-//{
-//    switch (g_tpm->major) {
-//    case TPM12_VER_MAJOR:
-//        evtlog_append_tpm12(pcr, &hl->entries[0].hash, type);
-//        break;
-//    case TPM20_VER_MAJOR:
-//        for (unsigned int i=0; i<hl->count; i++)
-//            evtlog_append_tpm20(pcr, hl->entries[i].alg,
-//                    &hl->entries[i].hash, type);
-//        break;
-//    default:
-//        return false;
-//    }
-//
-//    return true;
-//}
-//
 __data uint32_t g_using_da = 0;
-//__data acm_hdr_t *g_sinit = 0;
-//
 
 /*
  * sets up TXT heap
@@ -869,22 +550,6 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	}
 
 	set_vtd_pmrs(os_sinit_data, min_lo_ram, max_lo_ram, min_hi_ram, max_hi_ram);
-//    /* LCP owner policy data */
-//    void *lcp_base = NULL;
-//    uint32_t lcp_size = 0;
-
-//    if ( find_lcp_module(lctx, &lcp_base, &lcp_size) && lcp_size > 0 ) {
-//        /* copy to heap */
-//        if ( lcp_size > sizeof(os_mle_data->lcp_po_data) ) {
-//            printk(TBOOT_ERR"LCP owner policy data file is too large (%u)\n",
-//                   lcp_size);
-//            return NULL;
-//        }
-//        memcpy(os_mle_data->lcp_po_data, lcp_base, lcp_size);
-//        os_sinit_data->lcp_po_base = (unsigned long)&os_mle_data->lcp_po_data;
-//        os_sinit_data->lcp_po_size = lcp_size;
-//    }
-
 
 	/* capabilities : choose monitor wake mechanism first */
 	txt_caps_t sinit_caps = get_sinit_capabilities(sinit);
@@ -913,9 +578,8 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	 */
 
 	os_sinit_data->capabilities.ecx_pgtbl = 0;
-//    if (is_loader_launch_efi(lctx)){
 	/* we were launched EFI, set efi_rsdt_ptr */
-	struct acpi_rsdp *rsdp = get_rsdp(); //get_rsdp(lctx);
+	struct acpi_rsdp *rsdp = get_rsdp();
 	if (rsdp != NULL){
 		if (version < 6){
 			/* rsdt */
@@ -932,7 +596,6 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 		while(1);
 		return NULL;
 	}
-//    }
 
 	/* capabilities : choose DA/LG */
 	os_sinit_data->capabilities.pcr_map_no_legacy = 1;
@@ -942,7 +605,6 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 		os_sinit_data->capabilities.pcr_map_no_legacy = 0;
 	else if ( sinit_caps.pcr_map_da ) {
 		out_info("DA is the only supported PCR mapping by SINIT, use it");
-		wait(3000);
 		os_sinit_data->capabilities.pcr_map_da = 1;
 	} else {
 		out_description("SINIT capabilities are incompatible ", sinit_caps._raw);
@@ -963,24 +625,13 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 
 		out_info("ERROR: we dont expect to here");
 		while(1);
-		/*
-		os_sinit_data->flags = (g_tpm->extpol == TB_EXTPOL_AGILE) ? 0 : 1;
-		os_sinit_data->capabilities.pcr_map_no_legacy = 0;
-		os_sinit_data->capabilities.pcr_map_da = 0;
-		g_using_da = 1;
-		*/
 	}   
-
 
 	/* Event log initialization */
 	
-
 	if (os_sinit_data->version >= 6)
 		init_os_sinit_ext_data(os_sinit_data->ext_data_elts);
-
-
 	print_os_sinit_data(os_sinit_data);
-	wait(5000);
 
 	/*
 	 * SINIT to MLE data will be setup by SINIT
@@ -996,9 +647,6 @@ static void txt_wakeup_cpus(void)
 	mle_join_t mle_join;
 	unsigned int ap_wakeup_count;
 
-//	if (!verify_stm(get_apicid()) )
-//        apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
-
 	/*
 	 * enable SMIs on BSP before waking APs (which will enable them on APs)
 	 * because some SMM may take immediate SMI and hang if AP gets in first
@@ -1007,22 +655,14 @@ static void txt_wakeup_cpus(void)
 	out_info("enabling SMIs on BSP");
 	__getsec_smctrl();
 
-
-	//return;			/// BHSUHAN TESTING REMOVE
-
-
 	atomic_set(&ap_wfs_count, 0);
 
 	/* RLPs will use our GDT and CS */
-//	extern char gdt_table[], gdt_table_end[];
 	extern char gdt[], end_gdt[];
 	__asm__ __volatile__ ("mov %%cs, %0\n" : "=r"(cs));
 
 	mle_join.entry_point = (uint32_t)(unsigned long)&_txt_wakeup;
 	mle_join.seg_sel = cs;
-
-//	mle_join.gdt_base = (uint32_t)gdt_table; // extra
-//	mle_join.gdt_limit = gdt_table_end - gdt_table - 1; // extra
 
 	mle_join.gdt_base = (uint32_t) gdt;
 	mle_join.gdt_limit = end_gdt - gdt - 1;
@@ -1107,25 +747,20 @@ int txt_launch_environment()
 
 	/* print some debug info */
 	print_file_info();
-//	wait(3000);
 	print_mle_hdr(&g_mle_hdr);
-//	wait(3000);
 	/* create MLE page table */
 	mle_ptab_base = build_mle_pagetable(g_mle_hdr.mle_start_off + TBOOT_BASE_ADDR, g_mle_hdr.mle_end_off - g_mle_hdr.mle_start_off);
 	if (mle_ptab_base == NULL) {
 		out_info("Failed to create pages");
-//		wait(3000);
 		return 0;
 	}
 
 	out_info("Initializing Heap .....");
-//	wait(3000);
 
 	/* initialize TXT heap */
 	txt_heap = init_txt_heap(mle_ptab_base, g_sinit);
 	if (txt_heap == NULL) {
 		out_info("Failed to initialize heap");
-//		wait(3000);
 		return 0;
 	}
 
@@ -1144,11 +779,6 @@ int txt_launch_environment()
 	if (g_tpm_family == TPM_IF_20_CRB ) {
 		out_info("We dont expect to be here");
 		while(1);
-//		printk(TBOOT_INFO"Relinquish CRB localility 0 before executing GETSEC[SENTER]...\n");
-//		if (!tpm_relinquish_locality_crb(0)){
-//			printk(TBOOT_INFO"Relinquish CRB locality 0 failed...\n");
-//			apply_policy(TB_ERR_TPM_NOT_READY) ;
-//		}
 	}
 
 	out_info("executing GETSEC[SENTER]...\n");
@@ -1163,86 +793,6 @@ int txt_launch_environment()
 	return 0;
 }
 
-//bool txt_s3_launch_environment(void)
-//{
-//    /* initial launch's TXT heap data is still in place and assumed valid */
-//    /* so don't re-create; this is OK because it was untrusted initially */
-//    /* and would be untrusted now */
-//	txt_caps_t sinit_caps;
-//
-//    /* get sinit binary loaded */
-//    g_sinit = (acm_hdr_t *)(uint32_t)read_pub_config_reg(TXTCR_SINIT_BASE);
-//    if ( g_sinit == NULL ){
-//        return false;
-//    }
-//	/* initialize event log in os_sinit_data, so that events will not */
-//	/* repeat when s3 */
-//	if ( g_tpm->major == TPM12_VER_MAJOR && g_elog )
-//		g_elog = (event_log_container_t *)init_event_log();
-//	else 
-//		if ( g_tpm->major == TPM20_VER_MAJOR ){
-//			sinit_caps = get_sinit_capabilities(g_sinit);		
-//			if (sinit_caps.tcg_event_log_format && g_elog_2_1) 
-//				init_evtlog_desc_1(g_elog_2_1);
-//			if(!sinit_caps.tcg_event_log_format && g_elog_2) 
-//				init_evtlog_desc(g_elog_2);
-//		}
-//
-//    /* set MTRRs properly for AC module (SINIT) */
-//    set_mtrrs_for_acmod(g_sinit);
-//
-//    printk(TBOOT_INFO"executing GETSEC[SENTER]...\n");
-//    /* (optionally) pause before executing GETSEC[SENTER] */
-//    if ( g_vga_delay > 0 )
-//        delay(g_vga_delay * 1000);
-//    __getsec_senter((uint32_t)g_sinit, (g_sinit->size)*4);
-//    printk(TBOOT_ERR"ERROR--we should not get here!\n");
-//    return false;
-//}
-//
-//tb_error_t txt_launch_racm(loader_ctx *lctx)
-//{
-//    acm_hdr_t *racm = NULL;
-//
-//    /*
-//     * find correct revocation AC module in modules list
-//     */
-//    find_platform_racm(lctx, (void **)&racm, NULL);
-//    /* copy it to a 32KB aligned memory address */
-//    racm = copy_racm(racm);
-//    if ( racm == NULL )
-//        return TB_ERR_SINIT_NOT_PRESENT;
-//    /* do some checks on it */
-//    if ( !verify_racm(racm) )
-//        return TB_ERR_ACMOD_VERIFY_FAILED;
-//
-//    /* save MTRRs before we alter them for RACM launch */
-//    /*  - not needed by far since always reboot after RACM launch */
-//    //save_mtrrs(...);
-//
-//    /* set MTRRs properly for AC module (RACM) */
-//    if ( !set_mtrrs_for_acmod(racm) )
-//        return TB_ERR_FATAL;
-//
-//    /* clear MSEG_BASE/SIZE registers */
-//    write_pub_config_reg(TXTCR_MSEG_BASE, 0);
-//    write_pub_config_reg(TXTCR_MSEG_SIZE, 0);
-//
-//    printk(TBOOT_INFO"executing GETSEC[ENTERACCS]...\n");
-//    /* (optionally) pause before executing GETSEC[ENTERACCS] */
-//    if ( g_vga_delay > 0 )
-//        delay(g_vga_delay * 1000);
-//    __getsec_enteraccs((uint32_t)racm, (racm->size)*4, 0xF0);
-//    /* powercycle by writing 0x0a+0x0e to port 0xcf9, */
-//    /* warm reset by write 0x06 to port 0xcf9 */
-//    //outb(0xcf9, 0x0a);
-//    //outb(0xcf9, 0x0e);
-//    outb(0xcf9, 0x06);
-//    
-//    printk(TBOOT_ERR"ERROR--we should not get here!\n");
-//    return TB_ERR_FATAL;
-//}
-//
 int txt_prepare_cpu(void)
 {
 	unsigned long eflags, cr0;
@@ -1340,7 +890,6 @@ int txt_prepare_cpu(void)
 	return 1;
 }
 
-
 static int verify_saved_mtrrs(txt_heap_t *txt_heap)
 {   
 	os_mle_data_t *os_mle_data;
@@ -1348,9 +897,6 @@ static int verify_saved_mtrrs(txt_heap_t *txt_heap)
 
 	return validate_mtrrs(&(os_mle_data->saved_mtrr_state));
 }   
-
-
-//int e820_reserve_ram(uint64_t base, uint64_t length);
 
 static int reserve_vtd_delta_mem(uint64_t min_lo_ram, uint64_t max_lo_ram, uint64_t min_hi_ram, uint64_t max_hi_ram)
 {
@@ -1382,7 +928,6 @@ static int reserve_vtd_delta_mem(uint64_t min_lo_ram, uint64_t max_lo_ram, uint6
 	return 1;
 }
 
-
 static int verify_vtd_pmrs(txt_heap_t *txt_heap)
 {
 	os_sinit_data_t *os_sinit_data, tmp_os_sinit_data;
@@ -1398,15 +943,6 @@ static int verify_vtd_pmrs(txt_heap_t *txt_heap)
 	/* calculate what they should have been */
 	/* no e820 table on S3 resume, so use saved (sealed) values */
 
-/*
-285     if ( s3_flag ) {
-286         min_lo_ram = g_pre_k_s3_state.vtd_pmr_lo_base;
-287         max_lo_ram = min_lo_ram + g_pre_k_s3_state.vtd_pmr_lo_size;
-288         min_hi_ram = g_pre_k_s3_state.vtd_pmr_hi_base;
-289         max_hi_ram = min_hi_ram + g_pre_k_s3_state.vtd_pmr_hi_size;
-	}
-291     else {
-*/
 		if (!get_ram_ranges(&min_lo_ram, &max_lo_ram, &min_hi_ram, &max_hi_ram))
 			return 0;
  
@@ -1419,7 +955,6 @@ static int verify_vtd_pmrs(txt_heap_t *txt_heap)
 			out_info("failed to reserve VT-d PMR delta memory");
 			return 0;
 		}
-//305     }
  
 	/* compare to current values */
 	memset(&tmp_os_sinit_data, 0, sizeof(tmp_os_sinit_data));
@@ -1436,18 +971,8 @@ static int verify_vtd_pmrs(txt_heap_t *txt_heap)
 			return 0;
 	}
 
-
-//326     if ( !s3_flag ) {
-//327         /* save the verified values so that they can be sealed for S3 */
-//328         g_pre_k_s3_state.vtd_pmr_lo_base = os_sinit_data->vtd_pmr_lo_base;
-//329         g_pre_k_s3_state.vtd_pmr_lo_size = os_sinit_data->vtd_pmr_lo_size;
-//330         g_pre_k_s3_state.vtd_pmr_hi_base = os_sinit_data->vtd_pmr_hi_base;
-//331         g_pre_k_s3_state.vtd_pmr_hi_size = os_sinit_data->vtd_pmr_hi_size;
-//332     }
- 
 	return 1;
 }
-
 
 int txt_post_launch_verify_platform(void)
 {
@@ -1473,7 +998,6 @@ int txt_post_launch_verify_platform(void)
 
 	return 0;
 }                        
-
 
 void txt_post_launch(void)
 {
@@ -1511,20 +1035,10 @@ void txt_post_launch(void)
 	   prevent wakeup) */
 	out_description("saved IA32_MISC_ENABLE", os_mle_data->saved_misc_enable_msr);
 	wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
-//    if ( use_mwait() ) {
-//        /* set MONITOR/MWAIT support */
-//        uint64_t misc;
-//        misc = rdmsr(MSR_IA32_MISC_ENABLE);
-//        misc |= MSR_IA32_MISC_ENABLE_MONITOR_FSM;
-//        wrmsr(MSR_IA32_MISC_ENABLE, misc);
-//    }
-//
+
 	/* restore pre-SENTER MTRRs that were overwritten for SINIT launch */
 	restore_mtrrs(&(os_mle_data->saved_mtrr_state));
 
-	/* now, if there was an error, apply policy */
-//    apply_policy(err);
-//
 	/* always set the TXT.CMD.SECRETS flag */
 	write_priv_config_reg(TXTCR_CMD_SECRETS, 0x01);
 	read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
@@ -1540,7 +1054,6 @@ void ap_wait(unsigned int cpuid)
 {
     if ( cpuid >= NR_CPUS ) {
         out_description("cpuid exceeds # supported CPUs", cpuid);
-//        apply_policy(TB_ERR_FATAL);
         mtx_leave(&ap_lock);
         return;
     }
@@ -1592,7 +1105,6 @@ void txt_cpu_wakeup(void)
 	madt_apicbase = (uint64_t)get_madt_apic_base();
 	if (madt_apicbase == 0) {
 		out_info("not able to get apci base from MADT\n");
-//        apply_policy(TB_ERR_FATAL);
 		return;
 	}
 	msr_apicbase = rdmsr(MSR_APICBASE);
@@ -1611,9 +1123,6 @@ void txt_cpu_wakeup(void)
 	/* restore pre-SENTER IA32_MISC_ENABLE_MSR */
 	wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
 
-//    if ( !verify_stm(cpuid) )
-//        apply_policy(TB_ERR_POST_LAUNCH_VERIFICATION);
-
 	/* enable SMIs */
 	out_description("enabling SMIs on cpu :", cpuid);
 	__getsec_smctrl();
@@ -1627,11 +1136,6 @@ void txt_cpu_wakeup(void)
             out_info("Handle\n");
             handle_init_sipi_sipi(cpuid);
 	}
-	
-	//* BHUSHAN THIS IS JUST FOR TESING */
-	//mtx_leave(&ap_lock);
-	//* TESTING LINE END */
-	//WAIT_FOR_INPUT();
 }
 
 int txt_protect_mem_regions(void)
@@ -1684,11 +1188,6 @@ int txt_protect_mem_regions(void)
     return 0;
 }
 
-//void handle_exception(void)
-//{
-//    out_info("received exception; shutting down...\n");
-//}
-
 void txt_shutdown(void)
 {
     unsigned long apicbase;
@@ -1740,96 +1239,3 @@ bool txt_is_powercycle_required(void)
     txt_ests_t ests = (txt_ests_t)read_pub_config_reg(TXTCR_ESTS);
     return ests.txt_reset_sts;
 }
-
-//#define ACM_MEM_TYPE_UC                 0x0100
-//#define ACM_MEM_TYPE_WC                 0x0200
-//#define ACM_MEM_TYPE_WT                 0x1000
-//#define ACM_MEM_TYPE_WP                 0x2000
-//#define ACM_MEM_TYPE_WB                 0x4000
-//
-//#define DEF_ACM_MAX_SIZE                0x8000
-//#define DEF_ACM_VER_MASK                0xffffffff
-//#define DEF_ACM_VER_SUPPORTED           0x00
-//#define DEF_ACM_MEM_TYPES               ACM_MEM_TYPE_UC
-//#define DEF_SENTER_CTRLS                0x00
-//
-//bool get_parameters(getsec_parameters_t *params)
-//{
-//    unsigned long cr4;
-//    uint32_t index, eax, ebx, ecx;
-//    int param_type;
-//
-//    /* sanity check because GETSEC[PARAMETERS] will fail if not set */
-//    cr4 = read_cr4();
-//    if ( !(cr4 & CR4_SMXE) ) {
-//        printk(TBOOT_ERR"SMXE not enabled, can't read parameters\n");
-//        return false;
-//    }
-//
-//    memset(params, 0, sizeof(*params));
-//    params->acm_max_size = DEF_ACM_MAX_SIZE;
-//    params->acm_mem_types = DEF_ACM_MEM_TYPES;
-//    params->senter_controls = DEF_SENTER_CTRLS;
-//    params->proc_based_scrtm = false;
-//    params->preserve_mce = false;
-//
-//    index = 0;
-//    do {
-//        __getsec_parameters(index++, &param_type, &eax, &ebx, &ecx);
-//        /* the code generated for a 'switch' statement doesn't work in this */
-//        /* environment, so use if/else blocks instead */
-//
-//        /* NULL - all reserved */
-//        if ( param_type == 0 )
-//            ;
-//        /* supported ACM versions */
-//        else if ( param_type == 1 ) {
-//            if ( params->n_versions == MAX_SUPPORTED_ACM_VERSIONS )
-//                printk(TBOOT_WARN"number of supported ACM version exceeds "
-//                       "MAX_SUPPORTED_ACM_VERSIONS\n");
-//            else {
-//                params->acm_versions[params->n_versions].mask = ebx;
-//                params->acm_versions[params->n_versions].version = ecx;
-//                params->n_versions++;
-//            }
-//        }
-//        /* max size AC execution area */
-//        else if ( param_type == 2 )
-//            params->acm_max_size = eax & 0xffffffe0;
-//        /* supported non-AC mem types */
-//        else if ( param_type == 3 )
-//            params->acm_mem_types = eax & 0xffffffe0;
-//        /* SENTER controls */
-//        else if ( param_type == 4 )
-//            params->senter_controls = (eax & 0x00007fff) >> 8;
-//        /* TXT extensions support */
-//        else if ( param_type == 5 ) {
-//            params->proc_based_scrtm = (eax & 0x00000020) ? true : false;
-//            params->preserve_mce = (eax & 0x00000040) ? true : false;
-//        }
-//        else {
-//            printk(TBOOT_WARN"unknown GETSEC[PARAMETERS] type: %d\n", 
-//                   param_type);
-//            param_type = 0;    /* set so that we break out of the loop */
-//        }
-//    } while ( param_type != 0 );
-//
-//    if ( params->n_versions == 0 ) {
-//        params->acm_versions[0].mask = DEF_ACM_VER_MASK;
-//        params->acm_versions[0].version = DEF_ACM_VER_SUPPORTED;
-//        params->n_versions = 1;
-//    }
-//
-//    return true;
-//}
-//
-//
-///*
-// * Local variables:
-// * mode: C
-// * c-set-style: "BSD"
-// * c-basic-offset: 4
-// * tab-width: 4
-// * indent-tabs-mode: nil
-// * End:
-// */
