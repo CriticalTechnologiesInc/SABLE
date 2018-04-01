@@ -41,7 +41,7 @@ __data loader_ctx *g_ldr_ctx = &g_loader_ctx;
 
 
 void print_txt_caps(txt_caps_t caps)
-{ 
+{
 	out_description("\tcapabilities: ", caps._raw);
 	out_description("\trlp_wake_getsec: ", caps.rlp_wake_getsec);
 	out_description("\trlp_wake_monitor: ", caps.rlp_wake_monitor);
@@ -58,8 +58,6 @@ static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 {
  	uint32_t user_area_off;
 
-//	wait(4000);
- 
 	/* overflow? */
  	if (plus_overflow_u32(hdr->header_len, hdr->scratch_size)) {
  		out_string("ACM header length plus scratch size overflows\n");
@@ -100,8 +98,6 @@ static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
 
 int is_acmod(const void *acmod_base, uint32_t acmod_size, uint8_t *type)
 {
-
-	//wait(4000);
 	acm_hdr_t *acm_hdr = (acm_hdr_t *)acmod_base;
 
 	/* first check size */
@@ -164,7 +160,6 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
 {                   
 	uint8_t type;
 
-//	wait(4000);
 	if (!is_acmod(acmod_base, acmod_size, &type))
 		return 0;
 
@@ -178,7 +173,6 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
 struct module *get_module_mb1(struct mbi *m, unsigned int i)
 {
 	
-//	wait(4000);
 	if (m == NULL) {
 		out_string("Error: mbi pointer is zero.\n");
 		return NULL;
@@ -364,7 +358,6 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
  		     (((chipset_id->flags & 0x1) == 1) && ((didvid.revision_id & chipset_id->revision_id) != 0)))) {
 			break;
 		}
-//		wait(3000);
 	}
 	if ( i >= chipset_id_list->count ) {
 		out_info("ERROR: chipset id mismatch");
@@ -398,7 +391,6 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 			if ((proc_id->fms == (fms & proc_id->fms_mask)) && (proc_id->platform_id == (platform_id & proc_id->platform_mask))) {
 				break;
 			}
-		//	wait(3000);
 		}
 		if ( i >= proc_id_list->count ) {
 			out_info("ERROR : processor mismatch");
@@ -542,9 +534,6 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 	 * perform checks on AC mod structure
 	 */
 
-	/* print it for debugging */
-//913     print_acm_hdr(acm_hdr, "SINIT");
-
 	/* entry point is offset from base addr so make sure it is within module */
 	if (acm_hdr->entry_point >= size ) {
 		out_description("AC mod entry ", acm_hdr->entry_point);
@@ -618,12 +607,6 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 
 int prepare_sinit_acm(struct mbi *m) {
 	void *base2=NULL;
-
-	out_description("Bhushan: prepare_sinit", m->mods_count);
-	out_description("Bhushan: prepare_sinit tboot", ((multiboot_info_t *) m)->mods_count);
-	out_description("g_sinit", (unsigned int) g_sinit);
-//	wait(3000);
-
 	if (g_sinit != NULL) {
 
 		/*
@@ -635,7 +618,6 @@ int prepare_sinit_acm(struct mbi *m) {
 		 */
 
 		out_info("ATTENTION : g_sinit is already intialized ..skipping SINIT operation");	
-		wait(1000);
 		return 1;
 	}
 
@@ -645,10 +627,6 @@ int prepare_sinit_acm(struct mbi *m) {
 
 	for ( unsigned int i = (m->mods_count) - 1; i > 0; i-- ) {
 		struct module *mod = get_module_mb1(m, i);
-		out_string((const char *)mod->string); // this line can case error if mod->string is null
-
-	//	wait(4000);
-		out_string("Working on module :\n");
 		base2 = (void *)mod->mod_start;
 		uint32_t size2 = mod->mod_end - (unsigned long)(base2);
 		if (is_sinit_acmod(base2, size2)) {
@@ -712,7 +690,6 @@ void determine_loader_type_context(void *addr, uint32_t magic)
 		switch (magic){
 			case MB_MAGIC:
 				out_info("Initializing context with MBI 1");
-			//	wait(3000);
 				// BHUSHAN : in case of sable we will be here
 				g_ldr_ctx->type = MB1_ONLY;
 				{
@@ -733,23 +710,6 @@ void determine_loader_type_context(void *addr, uint32_t magic)
 				g_ldr_ctx->type = MB2_ONLY;
 				out_info("ERROR : we dont expect to be here");
 				while(1);
-				/*
-				// save the original MB2 info size, since we have
-				// to put updates inline
-				
-				g_mb_orig_size = *(uint32_t *) addr;
-				{
-					// we may as well do this here--if we received an ELF
-					// sections tag, we won't use it, and it's useless to
-					// Xen downstream, since it's OUR ELF sections, not Xen's
-					//
-					struct mb2_tag *start = (struct mb2_tag *)(addr + 8);
-					start = find_mb2_tag_type(start, MB2_TAG_TYPE_ELF_SECTIONS);
-					if (start != NULL)
-					if (start != NULL)
-					(void) remove_mb2_tag(g_ldr_ctx, start);
-				}
-				*/
 				break;
 			default:
 				g_ldr_ctx->type = 0;
@@ -764,16 +724,16 @@ void determine_loader_type_context(void *addr, uint32_t magic)
 }
 
 uint32_t get_supported_os_sinit_data_ver(const acm_hdr_t* hdr)
-{   
+{
 	/* assumes that it passed is_sinit_acmod() */
 
 	acm_info_table_t *info_table = get_acmod_info_table(hdr);
 	if (info_table == NULL) {
 		return 0;
 	}
-        
+
 	return info_table->os_sinit_data_ver;
-}   
+}
 
 txt_caps_t get_sinit_capabilities(const acm_hdr_t* hdr)
 {
