@@ -33,110 +33,11 @@
  *
  */
 
-//#include <stdbool.h>
 #include "util.h"
 #include <types.h>
-//#include <printk.h>
-//#include <compiler.h>
-//#include <processor.h>
-//#include <io.h>
-//#include <msr.h>
 #include <ctype.h>
 #include <misc.h>
 
-/*
- * if 'prefix' != NULL, print it before each line of hex string
- */
-//void print_hex(const char *prefix, const void *prtptr, size_t size)
-//{
-//    for ( size_t i = 0; i < size; i++ ) {
-//        if ( i % 16 == 0 && prefix != NULL )
-//            printk(TBOOT_DETA"\n%s", prefix);
-//        printk(TBOOT_DETA"%02x ", *(uint8_t *)prtptr++);
-//    }
-//    printk(TBOOT_DETA"\n");
-//}
-
-//static bool g_calibrated = false;
-//static uint64_t g_ticks_per_millisec;
-//
-//#define TIMER_FREQ	1193182
-//#define TIMER_DIV(hz)	((TIMER_FREQ+(hz)/2)/(hz))
-//
-//static void wait_tsc_uip(void)
-//{
-//    do {
-//        outb(0x43, 0xe8);
-//        cpu_relax();
-//    } while ( !(inb(0x42) & 0x80) );
-//    do {
-//        outb(0x43, 0xe8);
-//        cpu_relax();
-//    } while ( inb(0x42) & 0x80 );
-//}
-//
-//static void calibrate_tsc(void)
-//{
-//    if ( g_calibrated )
-//        return;
-//
-//    /* disable speeker */
-//    uint8_t val = inb(0x61);
-//    val = ((val & ~0x2) | 0x1);
-//    outb(0x61, val);
-//
-//    /* 0xb6 - counter2, low then high byte write */
-//    /* mode 3, binary */
-//    outb(0x43, 0xb6);
-//
-//    /* 0x4a9 - divisor to get 1ms period time */
-//    /* 1.19318 MHz / 1193 = 1000.15Hz */
-//    uint16_t latch = TIMER_DIV(1000);
-//    outb(0x42, latch & 0xff);
-//    outb(0x42, latch >> 8);
-//
-//    /* 0xe8 - read back command, don't get count */
-//    /* get status, counter2 select */
-//    do {
-//        outb(0x43, 0xe8);
-//        cpu_relax();
-//    } while ( inb(0x42) & 0x40 );
-//
-//    wait_tsc_uip();
-//
-//    /* get starting TSC val */
-//    uint64_t start = rdtsc();
-//
-//    wait_tsc_uip();
-//
-//    uint64_t end = rdtsc();
-//
-//    /* # ticks in 1 millisecond */
-//    g_ticks_per_millisec = end - start;
-//
-//    /* restore timer 1 programming */
-//    outb(0x43, 0x54);
-//    outb(0x41, 0x12);
-//
-//    g_calibrated = true;
-//}
-
-//void delay(int millisecs)
-//{
-//    if ( millisecs <= 0 )
-//        return;
-//
-//    calibrate_tsc();
-//
-//    uint64_t rtc = rdtsc();
-//
-//    uint64_t end_ticks = rtc + millisecs * g_ticks_per_millisec;
-//    while ( rtc < end_ticks ) {
-//        cpu_relax();
-//        rtc = rdtsc();
-//    }
-//}
-//
 /* used by isXXX() in ctype.h */
 /* originally from:
  * http://fxr.watson.org/fxr/source/dist/acpica/utclib.c?v=NETBSD5
@@ -282,13 +183,3 @@ const uint8_t _ctype[257] = {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  /* 0xE0 to 0xEF    */
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 /* 0xF0 to 0x100   */
 };
-
-/*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
- */
