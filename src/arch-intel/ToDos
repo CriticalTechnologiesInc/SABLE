@@ -8,8 +8,12 @@ Bhushan : This is file I am maintaining to keep thoughts came to mind, but due t
 We need to revisit ld script while creating page table. TXT require MLE to be in specific format to execute.
 also tboot's code section starts at 0x800000 which is 4k alinged.
 
+----------------------------------------------------------------------------
+Master merge
+
 2. Tboot is maintaing secure environment for entire duration (start to shutdown of linux)
 	if we dont want that then we can remove lot of code
 		1. code to modify e820 map and realted code can be removed as we no longer have to make space of txt heap and other structures after post launch
 		2. I guess we can even remove code related to acpi, but we need more investigation
 		3. we can remove code realted to linux shut down
+		4. replace tboot tpm driver with sable tpm driver
