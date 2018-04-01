@@ -35,11 +35,7 @@
 
 #include <config.h>
 #include <types.h>
-//#include <stdbool.h>
 #include <msr.h>
-//#include <tb_error.h>
-//#include <compiler.h>
-//#include <string.h>
 #include <util.h>
 #include <misc.h>
 #include <page.h>
@@ -77,8 +73,6 @@
       EXCEPTION_BITMAP_BP )
 
 #define load_TR(n)  __asm__ __volatile__ ("ltr  %%ax" : : "a" ((n)<<3) )
-//extern char gdt_table[];
-//#define RESET_TSS_DESC(n)   gdt_table[((n)<<3)+5] = 0x89
 extern char gdt[];
 #define RESET_TSS_DESC(n)   gdt[((n)<<3)+5] = 0x89
 
@@ -99,8 +93,6 @@ extern char _end[];
 extern void print_cr0(const char *s);
 extern void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec);
 
-//extern void apply_policy(tb_error_t error);
-
 static uint32_t vmcs_rev_id;
 static uint32_t pin_based_vm_exec_ctrls;
 static uint32_t proc_based_vm_exec_ctrls;
@@ -120,7 +112,6 @@ static void init_vmx_ctrl(uint32_t msr, uint32_t ctrl_val, uint32_t *ctrl)
     /* make sure that the conditions we want are actually allowed */
     if ( (*ctrl & ctrl_val) != ctrl_val )
 	out_info("Conditions are not allowed\n");
-        //apply_policy(TB_ERR_FATAL);
 }
 
 static void init_vmcs_config(void)
@@ -372,7 +363,6 @@ static void construct_vmcs(void)
 
     /* IDT */
     __asm__ __volatile__ ("sidt (%0) \n" :: "a"(&xdt) : "memory");
-    /*printk(TBOOT_INFO"idt.base=0x%x, limit=0x%x.\n", xdt.base, xdt.limit);*/
     __vmwrite(GUEST_IDTR_BASE, xdt.base);
     __vmwrite(GUEST_IDTR_LIMIT, xdt.limit);
 
@@ -467,7 +457,6 @@ static void launch_mini_guest(unsigned int cpuid)
     error = __vmread(VM_INSTRUCTION_ERROR);
     out_description("vmlaunch failed for cpu ", cpuid);
     out_description("error ", error);
-    //apply_policy(TB_ERR_FATAL);
 }
 
 static void print_failed_vmentry_reason(unsigned int exit_reason)
@@ -501,16 +490,12 @@ static void print_failed_vmentry_reason(unsigned int exit_reason)
 void vmx_vmexit_handler(void)
 {
     unsigned int apicid = get_apicid();
-
     unsigned int exit_reason = __vmread(VM_EXIT_REASON);
-    /*printk("vmx_vmexit_handler, cpu= %d,  exit_reason=%x.\n", apicid, exit_reason);*/
-
     if ( (exit_reason & VMX_EXIT_REASONS_FAILED_VMENTRY) ) {
         print_failed_vmentry_reason(exit_reason);
         stop_vmx(apicid);
         atomic_dec(&ap_wfs_count);
         atomic_dec((atomic_t *)&_tboot_shared.num_in_wfs);
-        //apply_policy(TB_ERR_FATAL);
     }
     else if ( exit_reason == EXIT_REASON_INIT ) {
         __vmwrite(GUEST_ACTIVITY_STATE, GUEST_STATE_WAIT_SIPI);
@@ -524,7 +509,6 @@ void vmx_vmexit_handler(void)
         /* disable VT then jump to xen code */
         unsigned long exit_qual = __vmread(EXIT_QUALIFICATION);
         uint32_t sipi_vec = (exit_qual & 0xffUL) << PAGE_SHIFT;
-        /*printk("exiting due to SIPI: vector=%x\n", sipi_vec); */
         stop_vmx(apicid);
         atomic_dec(&ap_wfs_count);
         atomic_dec((atomic_t *)&_tboot_shared.num_in_wfs);
@@ -532,7 +516,6 @@ void vmx_vmexit_handler(void)
 
         /* cpu_wakeup() doesn't return, so we should never get here */
         out_info("cpu_wakeup() failed\n");
-        //apply_policy(TB_ERR_FATAL);
     }
     else if ( exit_reason == EXIT_REASON_VMCALL ) {
         stop_vmx(apicid);
@@ -553,7 +536,6 @@ void handle_init_sipi_sipi(unsigned int cpuid)
 {
     if ( cpuid >= NR_CPUS ) {
         out_description("cpuid exceeds # supported CPUs ", cpuid);
-        //apply_policy(TB_ERR_FATAL);
         mtx_leave(&ap_lock);
         return;
     }
@@ -570,7 +552,6 @@ void handle_init_sipi_sipi(unsigned int cpuid)
     /* 1: setup VMX environment and VMXON */
     out_info("Start vmx\n");
     if ( !start_vmx(cpuid) ) {
-        //apply_policy(TB_ERR_FATAL);
         mtx_leave(&ap_lock);
         return;
     }
@@ -586,7 +567,6 @@ void handle_init_sipi_sipi(unsigned int cpuid)
     }
 
     out_info("control should not return here from launch_mini_guest\n");
-    //apply_policy(TB_ERR_FATAL);
     return;
 }
 
@@ -594,14 +574,3 @@ void force_aps_exit(void)
 {
     aps_exit_guest = 1;
 }
-
-
-/*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
- */
