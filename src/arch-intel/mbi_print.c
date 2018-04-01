@@ -28,14 +28,12 @@ void _print_mbi(const multiboot_info_t *mbi)
 		out_info("skipping MBI_BOOTDEV not set");
 	}
 
-	WAIT_FOR_INPUT();
 	if (mbi->flags & MBI_CMDLINE ) {
 		out_info("MBI_CMDLINE is set: Skipping printing cmd line now as it creates infinite loop");
 	} else {
 		out_info("MBI_MEMLIMITS is not set");
 	}
 
-	WAIT_FOR_INPUT();
 	if ( mbi->flags & MBI_MODULES ) {
 		out_description("mods_count", mbi->mods_count);
 		out_description("mods_addr", mbi->mods_addr);
@@ -49,8 +47,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 		out_info("skipping MBI_MODULES is not set");
 	}
 
-	WAIT_FOR_INPUT();
-
 	if (mbi->flags & MBI_AOUT ) {
 		const aout_t *p = &(mbi->syms.aout_image);
 		out_description("aout : tabsize", p->tabsize);
@@ -59,8 +55,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 	} else {
 		out_info("Skipping MBI_AOUT not set");
 	}
-
-	WAIT_FOR_INPUT();
 
 	if ( mbi->flags & MBI_ELF ) {
 		const elf_t *p = &(mbi->syms.elf_image);
@@ -89,7 +83,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 				out_description("length_low", p->length_low);
 				out_description("type", p->type);
 				j++;
-			WAIT_FOR_INPUT();
 		}
 	}
 
@@ -130,7 +123,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 		out_description("vbe_interface_off", mbi->vbe_interface_off);
 		out_description("vbe_interface_len", mbi->vbe_interface_len);
 	}
-	WAIT_FOR_INPUT();
 }
 
 void print_mbi(struct mbi *mbi) {
