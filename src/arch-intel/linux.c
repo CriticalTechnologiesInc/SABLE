@@ -34,14 +34,6 @@
  */
 
 #include <config.h>
-//#include <stdbool.h>
-//#include <printk.h>
-//#include <compiler.h>
-//#include <hash.h>
-//#include <integrity.h>
-//#include <processor.h>
-//#include <string.h>
-
 #include <types.h>
 #include <platform.h>
 #include <util.h>
@@ -63,23 +55,6 @@ static boot_params_t *boot_params;
 
 extern void *get_tboot_mem_end(void);
 
-//static void
-//printk_long(const char *what)
-//{
-//    /* chunk the command line into 70 byte chunks */
-//#define CHUNK_SIZE 70
-//    int      cmdlen = strlen(what);
-//    const char    *cptr = what;
-//    char     cmdchunk[CHUNK_SIZE+1];
-//    while (cmdlen > 0) {
-//        strncpy(cmdchunk, cptr, CHUNK_SIZE);
-//        cmdchunk[CHUNK_SIZE] = 0;
-//        printk(TBOOT_INFO"\t%s\n", cmdchunk);
-//        cmdlen -= CHUNK_SIZE;
-//        cptr += CHUNK_SIZE;
-//    }
-//}
-//
 /* expand linux kernel with kernel image and initrd image */
 bool expand_linux_image(const void *linux_image, size_t linux_size,
                         const void *initrd_image, size_t initrd_size,
@@ -218,10 +193,6 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
         }
 
         memcpy((void *)initrd_base, initrd_image, initrd_size);
-        //printk(TBOOT_DETA"Initrd from 0x%lx to 0x%lx",
-        //       (unsigned long)initrd_base,
-        //       (unsigned long)(initrd_base + initrd_size));
-
     } 
     else
         initrd_base = (uint32_t)initrd_image;
@@ -304,15 +275,9 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
     /* load protected-mode part */
     memcpy((void *)protected_mode_base, linux_image + real_mode_size,
             protected_mode_size);
-    //printk(TBOOT_DETA"Kernel (protected mode) from 0x%lx to 0x%lx\n",
-    //       (unsigned long)protected_mode_base,
-    //       (unsigned long)(protected_mode_base + protected_mode_size));
 
     /* load real-mode part */
     memcpy((void *)real_mode_base, linux_image, real_mode_size);
-    //printk(TBOOT_DETA"Kernel (real mode) from 0x%lx to 0x%lx\n",
-    //       (unsigned long)real_mode_base,
-    //       (unsigned long)(real_mode_base + real_mode_size));
 
     /* copy cmdline */
     const char *kernel_cmdline = get_cmdline(g_ldr_ctx);
@@ -322,11 +287,6 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
         kernel_cmdline_strlen = kernel_cmdline_size - 1;
     memset((void *)hdr->cmd_line_ptr, 0, kernel_cmdline_size);
     memcpy((void *)hdr->cmd_line_ptr, kernel_cmdline, kernel_cmdline_strlen);
-
-    //printk(TBOOT_INFO"Linux cmdline from 0x%lx to 0x%lx:\n",
-    //       (unsigned long)hdr->cmd_line_ptr,
-    //       (unsigned long)(hdr->cmd_line_ptr + kernel_cmdline_size));
-    //printk_long((void *)hdr->cmd_line_ptr);
 
     /* need to put boot_params in real mode area so it gets mapped */
     boot_params = (boot_params_t *)(real_mode_base + real_mode_size);
@@ -380,11 +340,6 @@ bool expand_linux_image(const void *linux_image, size_t linux_size,
              * the Multiboot2 information structure, etc. higher than 4 GiB - 1.
              */
             efi->efi_memmap_hi = 0;
-
-            //printk(TBOOT_INFO "EFI memmap: memmap base: 0x%x, memmap size: 0x%x\n",
-            //      efi->efi_memmap, efi->efi_memmap_size);
-            //printk(TBOOT_INFO "EFI memmap: descr size: 0x%x, descr version: 0x%x\n",
-            //      efi->efi_memdescr_size, efi->efi_memdescr_ver);
          }
 
         /* if we're here, GRUB2 probably threw a framebuffer tag at us */
@@ -480,13 +435,3 @@ bool jump_linux_image(void *entry_point)
 
     return true;
 }
-
-/*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
- */
