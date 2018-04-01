@@ -145,7 +145,6 @@ static int  verify_custom_elt(const heap_ext_data_element_t *elt)
 /* HEAP_EVENT_LOG_POINTER_ELEMENT */
 static inline void print_heap_hash(const sha1_hash_t hash)
 {
-	//print_hash((const tb_hash_t *)hash, TB_HALG_SHA1);
 	hex_dump((unsigned char *)hash, SHA1_LENGTH);
 }
 
@@ -157,7 +156,6 @@ void print_event(const tpm12_pcr_event_t *evt)
 	out_info("\t\t\t     Digest: ");
 	print_heap_hash(evt->digest);
 	out_description("\t\t\t     Data: bytes", evt->data_size);
-//	print_hex("\t\t\t         ", evt->data, evt->data_size);
 }
 
 static void print_evt_log(const event_log_container_t *elog)
@@ -198,8 +196,6 @@ static int verify_evt_log(const event_log_container_t *elog)
 	if (memcmp(elog->signature, EVTLOG_SIGNATURE, sizeof(elog->signature)) ) {
 		out_info("Bad event log container signature");
 		/* Bhushan: This can cause screen to go black as signature might not contain null char at end */
-		// wait(2000);
-		// out_string(elog->signature);
 		return 0;
 	}
 
@@ -405,9 +401,6 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 		 if (!verify_ext_data_elts(bios_data->ext_data_elts, size - sizeof(*bios_data) - sizeof(size)))
 			return 0;
 	}
-
-	// print_bios_data(bios_data, size);
-
 	return 1;
 }
 
@@ -558,33 +551,15 @@ static bool verify_os_sinit_data(const txt_heap_t *txt_heap)
 	return 1;
 }
 
-//static void print_sinit_mdrs(const sinit_mdr_t mdrs[], uint32_t num_mdrs)
-//{
-//    static const char *mem_types[] = {"GOOD", "SMRAM OVERLAY",
-//                                      "SMRAM NON-OVERLAY",
-//                                      "PCIE EXTENDED CONFIG", "PROTECTED"};
-//
-//    printk(TBOOT_DETA"\t sinit_mdrs:\n");
-//    for ( unsigned int i = 0; i < num_mdrs; i++ ) {
-//        printk(TBOOT_DETA"\t\t %016Lx - %016Lx ", mdrs[i].base,
-//               mdrs[i].base + mdrs[i].length);
-//        if ( mdrs[i].mem_type < sizeof(mem_types)/sizeof(mem_types[0]) )
-//            printk(TBOOT_DETA"(%s)\n", mem_types[mdrs[i].mem_type]);
-//        else
-//            printk(TBOOT_DETA"(%d)\n", (int)mdrs[i].mem_type);
-//    }
-//}
-
 static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
 {
 	out_info("sinit_mle_data");
-	out_description("    sinit_mle_data", (int unsigned)sinit_mle_data);
-//           *((uint64_t *)sinit_mle_data - 1));
-	out_description("    version:", sinit_mle_data->version);
-	out_info("    bios_acm_id:");
+	out_description("sinit_mle_data", (int unsigned)sinit_mle_data);
+	out_description("version:", sinit_mle_data->version);
+	out_info("bios_acm_id:");
 	print_heap_hash(sinit_mle_data->bios_acm_id);
-	out_description("    edx_senter_flags", sinit_mle_data->edx_senter_flags);
-	out_description("    mseg_valid", sinit_mle_data->mseg_valid);
+	out_description("edx_senter_flags", sinit_mle_data->edx_senter_flags);
+	out_description("mseg_valid", sinit_mle_data->mseg_valid);
 	out_info("sinit_hash:"); 
 	print_heap_hash(sinit_mle_data->sinit_hash);
 	out_info("mle_hash:"); 
@@ -599,15 +574,10 @@ static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
 	out_description("mdrs_off ", sinit_mle_data->mdrs_off);
 	out_description("num_vtd_dmars ", sinit_mle_data->num_vtd_dmars);
 	out_description("vtd_dmars_off ", sinit_mle_data->vtd_dmars_off);
-//    print_sinit_mdrs((sinit_mdr_t *)
-//                     (((void *)sinit_mle_data - sizeof(uint64_t)) +
-//                      sinit_mle_data->mdrs_off), sinit_mle_data->num_mdrs);
 	if (sinit_mle_data->version >= 8)
 		out_description("proc_scrtm_status ", sinit_mle_data->proc_scrtm_status);
 	if (sinit_mle_data->version >= 9)
 		print_ext_data_elts(sinit_mle_data->ext_data_elts);
-	out_info("BHUSHAN : CHECK RPL WAKEUP ADD");
-	WAIT_FOR_INPUT();
 }
 
 static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)
