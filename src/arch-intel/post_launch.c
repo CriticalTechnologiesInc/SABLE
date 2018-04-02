@@ -186,17 +186,21 @@ void intel_post_launch(void){
         base = TBOOT_SERIAL_LOG_ADDR;
         size = TBOOT_SERIAL_LOG_SIZE;
         out_info("reserving tboot memory log in e820 table\n");
-        if ( !e820_protect_region(base, size, E820_RESERVED) )         
+        if ( !e820_protect_region(base, size, E820_RESERVED) ){
           out_info("Error: e820_protect_region2 failed!\n");
-        else
+        }else{
+	  #ifndef NDEBUG
           out_info("e820_protect_region2 succeeded!\n");
+	  #endif
+	}
 
 	/* replace map in loader context with copy */
 	replace_e820_map(g_ldr_ctx);
 
-	// TODO: if debug..
+	#ifndef NDEBUG
 	out_info("adjusted e820 map:");
 	print_e820_map();
+	#endif
 
 	/*
 	 * init MLE/kernel shared data page

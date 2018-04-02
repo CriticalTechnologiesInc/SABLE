@@ -466,6 +466,7 @@ void hash_and_dump(unsigned int start, unsigned int endlen) {
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
+  wait(2000);
 
 #ifdef __ARCH_INTEL__
   out_string("Master Merge1\n");
@@ -520,9 +521,10 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
      out_string("Bhushan: system bootstrap processor\n");
   }
 
-  // TODO if debug:
+  #ifndef NDEBUG
   out_description("BSP is cpu ", get_apicid());
   out_description64("Testing 64", 0x1F1F1F1F1F1F1F1F);
+  #endif
 
   //Making copy e820 map to restore after post launch
   if (!copy_e820_map(g_ldr_ctx)) {
@@ -620,9 +622,10 @@ void _pre_launch(struct mbi *m, unsigned flags) {
 RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
- //TODO if debug..
+ #ifndef NDEBUG
  out_description("Bhushan : in post launch with mbi @ :", (unsigned int)m);
  wait(3000);
+ #endif
 
 #ifdef __ARCH_AMD__
   RESULT revert_skinit_ret = revert_skinit();
@@ -649,13 +652,18 @@ RESULT post_launch(struct mbi *m) {
   ERROR(!m, ERROR_NO_MBI, "no mbi in sable()");
 
   if (tis_init()) {
-    //TODO if debug..
+
+    #ifndef NDEBUG
     out_info("Accessing TIS");
+    #endif
+
     RESULT tis_access_ret = tis_access(TIS_LOCALITY_2, 0);
     THROW(tis_access_ret.exception);
 
-    //TODO if debug..
+    #ifndef NDEBUG
     out_info("Calculating hash");
+    #endif
+
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 

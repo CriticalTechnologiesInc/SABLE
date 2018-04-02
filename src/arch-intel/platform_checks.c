@@ -75,8 +75,10 @@ static int supports_smx(void)
 		out_info("CPU does not support SMX");
 		return 0;
 	}
-	// TODO if debug...
+
+	#ifndef NDEBUG
 	out_info("CPU is SMX-capable\n");
+	#endif
 
 	/*
 	 * and that SMX is enabled in the feature control MSR
@@ -107,8 +109,10 @@ static int supports_vmx(void)
 		out_info("ERR: CPU does not support VMX");
 		return 0;
 	}
-	// TODO if debug..
+
+	#ifndef NDEBUG
 	out_info("CPU is VMX-capable");
+	#endif
 
 	/* and that VMX is enabled in the feature control MSR */
 	if (!(g_feat_ctrl_msr & IA32_FEATURE_CONTROL_MSR_ENABLE_VMX_IN_SMX) ) {
@@ -138,12 +142,14 @@ int supports_txt(void)
 		out_info("VMX not supported");
 		return 0;
 	}
- 
+
 	/* testing for chipset support requires enabling SMX on the processor */
 	write_cr4(read_cr4() | CR4_SMXE);
-	// TODO if debug ..
+
+	#ifndef NDEBUG
 	out_info("SMX is enabled\n");
- 
+	#endif
+
 	/*
 	 * verify that an TXT-capable chipset is present and
 	 * check that all needed SMX capabilities are supported
@@ -166,10 +172,11 @@ int supports_txt(void)
 	return 0;
 }
 
-void verify_IA32_se_svn_status()
-{
-	// TODO if debug ..
+void verify_IA32_se_svn_status(){
+
+	#ifndef NDEBUG
 	out_info("SGX:verify_IA32_se_svn_status is called");
+	#endif
 
 	//check if SGX is enabled by cpuid with ax=7, cx=0 
 	if ((cpuid_ebx1(7,0) & 0x00000004) == 0){
@@ -249,8 +256,9 @@ int platform_pre_checks() {
 	}
 
 	if (txt_is_launched()) {
-		// TODO if debug ..
+		#ifndef NDEBUG
 		out_info("We are in measured launch..");
+		#endif
 		return 1;
 	}
 
@@ -264,8 +272,9 @@ int platform_pre_checks() {
 		out_info("TPM is not ready for measured launch");
 		return 0;
 	} else {
-		// TODO if debug ..
+		#ifndef NDEBUG
 		out_info("TPM is ready for measured launch");
+		#endif
 	}
 
 	return 1;
