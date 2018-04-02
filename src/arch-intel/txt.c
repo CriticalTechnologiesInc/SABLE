@@ -135,7 +135,7 @@ int get_parameters(getsec_parameters_t *params)
 
 	/* testing for chipset support requires enabling SMX on the processor */
 	write_cr4(read_cr4() | CR4_SMXE);
-	out_info("Remove this code : SMX is enabled");
+	out_info("Remove this code : SMX is enabled"); // TODO ??
 
 	// END
 
@@ -186,18 +186,18 @@ int get_parameters(getsec_parameters_t *params)
 		else if (param_type == 5) {
 			params->proc_based_scrtm = (eax & 0x00000020) ? 1 : 0;
 			params->preserve_mce = (eax & 0x00000040) ? 1 : 0;
-		}
-		else {
+		}else {
 			out_description("unknown GETSEC[PARAMETERS] type", param_type);
 			param_type = 0;    /* set so that we break out of the loop */
 		}
+
 	} while (param_type != 0);
 
-	if (params->n_versions == 0) {
-		params->acm_versions[0].mask = DEF_ACM_VER_MASK;
-		params->acm_versions[0].version = DEF_ACM_VER_SUPPORTED;
-		params->n_versions = 1;
-	}
+		if (params->n_versions == 0) {
+			params->acm_versions[0].mask = DEF_ACM_VER_MASK;
+			params->acm_versions[0].version = DEF_ACM_VER_SUPPORTED;
+			params->n_versions = 1;
+		}
 
 	return 1;
 }
@@ -314,6 +314,7 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 	void *pg_dir_ptr_tab, *pg_dir, *pg_tab;
 	uint64_t *pte;
 
+        // TODO if debug ..
 	out_info("MLE information : Creating pages for MLE");
 	out_description("Start", mle_start);
 	out_description("End", mle_start + mle_size);
@@ -335,6 +336,7 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 	ptab_base = &g_mle_pt;
 	memset(ptab_base, 0, ptab_size);
 
+        // TODO if debug..
 	out_info("Page table information");
 	out_description("ptab_size=", ptab_size);
 	out_description("ptab_base=", (unsigned int)ptab_base);
@@ -365,7 +367,7 @@ static void *build_mle_pagetable(uint32_t mle_start, uint32_t mle_size)
 static __data event_log_container_t *g_elog = NULL;
 
 /* should be called after os_mle_data initialized */
-static void *init_event_log(void)
+static void *init_event_log(void) // TODO is this used?
 {
 	os_mle_data_t *os_mle_data = get_os_mle_data_start(get_txt_heap());
 	g_elog = (event_log_container_t *)&os_mle_data->event_log_buffer;
@@ -392,8 +394,7 @@ static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
 		evt_log->event_log_phys_addr = (uint64_t)(unsigned long)init_event_log();
 		elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR;
 		elt->size = sizeof(*elt) + sizeof(*evt_log);
-	} 
-	else if ( g_tpm->major == TPM20_VER_MAJOR ) {
+	} else if ( g_tpm->major == TPM20_VER_MAJOR ) {
 		out_info("We dont expect to be here: init_os_sinit_ext_data");
 		while(1);
 	}
@@ -408,8 +409,8 @@ __data uint32_t g_using_da = 0;
  * sets up TXT heap
  */
 
-void set_vtd_pmrs(os_sinit_data_t *os_sinit_data, uint64_t min_lo_ram, uint64_t max_lo_ram, uint64_t min_hi_ram, uint64_t max_hi_ram)
-{    
+void set_vtd_pmrs(os_sinit_data_t *os_sinit_data, uint64_t min_lo_ram, uint64_t max_lo_ram, uint64_t min_hi_ram, uint64_t max_hi_ram){    
+        // TODO if debug ..
 	out_description64("min_lo_ram", min_lo_ram);
 	out_description64("max_lo_ram", max_lo_ram);
 	out_description64("min_hi_ram", min_hi_ram);
@@ -456,9 +457,6 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	 * OS/loader to MLE data
 	*/
 
-	out_info("bios_data init is done");
-	wait(4000);
-
 	os_mle_data_t *os_mle_data = get_os_mle_data_start(txt_heap);
 	size = (uint64_t *)((uint32_t)os_mle_data - sizeof(uint64_t));
 	*size = sizeof(*os_mle_data) + sizeof(uint64_t);
@@ -487,6 +485,8 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	if (version > MAX_OS_SINIT_DATA_VER) {
 		version = MAX_OS_SINIT_DATA_VER;
 	}
+
+	// TODO if debug ..
 	out_description("OS to SINIT data version in sinit", version);
 
 	os_sinit_data_t *os_sinit_data = get_os_sinit_data_start(txt_heap);
@@ -524,7 +524,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 		out_description("SINIT capabilities are incompatible", sinit_caps._raw);
 		return NULL;
 	}
-   
+ 
 	if (sinit_caps.tcg_event_log_format) {
 		out_description("SINIT ACM supports TCG compliant TPM 2.0 event log format, tcg_event_log_format", sinit_caps.tcg_event_log_format);
 		os_sinit_data->capabilities.tcg_event_log_format = 1;
@@ -586,7 +586,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	}   
 
 	/* Event log initialization */
-	
+
 	if (os_sinit_data->version >= 6)
 		init_os_sinit_ext_data(os_sinit_data->ext_data_elts);
 	print_os_sinit_data(os_sinit_data);
@@ -610,6 +610,7 @@ static void txt_wakeup_cpus(void)
 	 * because some SMM may take immediate SMI and hang if AP gets in first
 	 */
 
+	// TODO if debug..
 	out_info("enabling SMIs on BSP");
 	__getsec_smctrl();
 
@@ -625,13 +626,14 @@ static void txt_wakeup_cpus(void)
 	mle_join.gdt_base = (uint32_t) gdt;
 	mle_join.gdt_limit = end_gdt - gdt - 1;
 
+	// TODO if debug..
 	out_description("mle_join.entry_point ", (unsigned int)mle_join.entry_point);
 	out_description("mle_join.seg_sel ", mle_join.seg_sel);
 	out_description("mle_join.gdt_base ", mle_join.gdt_base);
 	out_description("mle_join.gdt_limit ", mle_join.gdt_limit);
 
 	write_priv_config_reg(TXTCR_MLE_JOIN, (uint64_t)(unsigned long)&mle_join);
-	
+
 	mtx_init(&ap_lock);
 
 	txt_heap_t *txt_heap = get_txt_heap();
@@ -640,13 +642,17 @@ static void txt_wakeup_cpus(void)
 
       /* choose wakeup mechanism based on capabilities used */
 	if (os_sinit_data->capabilities.rlp_wake_monitor) {
+		// TODO if debug..
 		out_info("joining RLPs to MLE with MONITOR wakeup");
 		out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
+
 		*((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
 	}
 	else {
+		// TODO if debug..
 		out_info("joining RLPs to MLE with GETSEC[WAKEUP]");
 		__getsec_wakeup();
+		// TODO if debug..
 		out_info("GETSEC[WAKEUP] completed");
 	}
 
@@ -713,6 +719,7 @@ int txt_launch_environment()
 		return 0;
 	}
 
+	// TODO if debug..
 	out_info("Initializing Heap .....");
 
 	/* initialize TXT heap */
@@ -739,20 +746,19 @@ int txt_launch_environment()
 		while(1);
 	}
 
+	// TODO if debug ..
 	out_info("executing GETSEC[SENTER]...\n");
-
 	out_description("SINIT BASE BASE :", (unsigned int) g_sinit);
 	out_description("SINIT SIZE :", (unsigned int) (g_sinit->size)*4);
-
 	wait(4000);
 	print_cpu_state();
+
 	__getsec_senter((uint32_t)g_sinit, (g_sinit->size)*4);
 	out_info("ERROR--we should not get here!\n");
 	return 0;
 }
 
-int txt_prepare_cpu(void)
-{
+int txt_prepare_cpu(void){
 	unsigned long eflags, cr0;
 	uint64_t mcg_cap, mcg_stat;
 
@@ -793,6 +799,7 @@ int txt_prepare_cpu(void)
 		write_eflags(eflags | ~X86_EFLAGS_VM);
 	}
 
+	// TODO if debug..
 	out_info("CR0 and EFLAGS OK");
 
 	/*
@@ -834,15 +841,20 @@ int txt_prepare_cpu(void)
 		}
 	}
 
-	if (params.preserve_mce)
+	if (params.preserve_mce){
+		// TODO if debug.. 
 		out_info("supports preserving machine check errors");
-	else
+	}else{
 		out_info("no machine check errors");
+	}
 
-	if (params.proc_based_scrtm)
+	if (params.proc_based_scrtm){
+		// TODO if debug..
 		out_info("CPU support processor-based S-CRTM");
+	}
 
 	/* all is well with the processor state */
+	// TODO if debug ..
 	out_info("CPU is ready for SENTER");
 
 	return 1;
@@ -867,18 +879,24 @@ static int reserve_vtd_delta_mem(uint64_t min_lo_ram, uint64_t max_lo_ram, uint6
 	if (max_lo_ram != (os_sinit_data->vtd_pmr_lo_base + os_sinit_data->vtd_pmr_lo_size) ) {
 		base = os_sinit_data->vtd_pmr_lo_base + os_sinit_data->vtd_pmr_lo_size;
 		length = max_lo_ram - base;
+
+		// TODO if debug..
 		out_info("reserving memory  which was truncated for VT-d");
 		out_description("base", base);
 		out_description("base + length", base + length);
+
 		if (!e820_reserve_ram(base, length))
 			return 0;
 	}
 	if (max_hi_ram != (os_sinit_data->vtd_pmr_hi_base + os_sinit_data->vtd_pmr_hi_size)) {
 		base = os_sinit_data->vtd_pmr_hi_base + os_sinit_data->vtd_pmr_hi_size;
 		length = max_hi_ram - base;
+
+		// TODO if debug..
 		out_info("reserving memory  which was truncated for VT-d");
 		out_description("base", base);
 		out_description("base + length", base + length);
+
 		if (!e820_reserve_ram(base, length))
 			return 0;
 	}
@@ -971,8 +989,9 @@ void txt_post_launch(void)
 		out_info("failed to verify platform");
 		while(1);
 	}
+
 	out_info("Platform verification done");
-	wait(3000);
+	wait(1000);
 
 	/* get saved OS state (os_mvmm_data_t) from LT heap */
 	txt_heap = get_txt_heap();
@@ -984,14 +1003,18 @@ void txt_post_launch(void)
 
 	/* bring RLPs into environment (do this before restoring MTRRs to ensure */
 	/* SINIT area is mapped WB for MONITOR-based RLP wakeup) */
-	out_info("Wakeup CPUs\n");
-	WAIT_FOR_INPUT();
+
+	// TODO if debug ..
+	out_info("About to wakeup CPUs\n");
+
 	txt_wakeup_cpus();
 
 	/* restore pre-SENTER IA32_MISC_ENABLE_MSR (no verification needed)
 	   (do after AP wakeup so that if restored MSR has MWAIT clear it won't
 	   prevent wakeup) */
+	// TODO if debug ..
 	out_description("saved IA32_MISC_ENABLE", os_mle_data->saved_misc_enable_msr);
+
 	wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
 
 	/* restore pre-SENTER MTRRs that were overwritten for SINIT launch */
@@ -1000,11 +1023,15 @@ void txt_post_launch(void)
 	/* always set the TXT.CMD.SECRETS flag */
 	write_priv_config_reg(TXTCR_CMD_SECRETS, 0x01);
 	read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
+	
+	// TODO if debug..
 	out_info("set TXT.CMD.SECRETS flag");
 
 	/* open TPM locality 1 */
 	write_priv_config_reg(TXTCR_CMD_OPEN_LOCALITY1, 0x01);
 	read_priv_config_reg(TXTCR_E2STS);   /* just a fence, so ignore return */
+
+	// TODO if debug ..
 	out_info("opened TPM locality 1\n");
 }
 
@@ -1026,7 +1053,9 @@ void ap_wait(unsigned int cpuid)
     atomic_inc((atomic_t *)&_tboot_shared.num_in_wfs);
     mtx_leave(&ap_lock);
 
-    out_description("cpu mwait'ing", cpuid);
+    // TODO if debug ..
+    out_description("cpu mwait'ing", cpuid); // tips fedora
+
     while ( _tboot_shared.ap_wake_trigger != cpuid ) {
         cpu_monitor(&_tboot_shared.ap_wake_trigger, 0, 0);
         mb();
@@ -1048,15 +1077,20 @@ void txt_cpu_wakeup(void)
 	uint64_t madt_apicbase, msr_apicbase;
 	unsigned int cpuid = get_apicid();
 
+	//  TODO we can get rid of this commented code right? We already check
+	//  for NR_CPUS somewhere else. Someone double check please and remove if true
+
 	//if (cpuid >= NR_CPUS) {
 	//	out_description("cpuid exceeds # supported CPUs. id", cpuid);
 	//	return;
 	//}
+
 	while(cpuid-1 != atomic_read(&ap_wfs_count))
 	   wait(500);
 
 	//mtx_enter(&ap_lock);
 
+	// TODO if debug ..
 	out_description("cpu waking up from TXT sleep :", cpuid);
 
 	/* restore LAPIC base address for AP */
@@ -1082,22 +1116,24 @@ void txt_cpu_wakeup(void)
 	wrmsr(MSR_IA32_MISC_ENABLE, os_mle_data->saved_misc_enable_msr);
 
 	/* enable SMIs */
+	// TODO if debug..
 	out_description("enabling SMIs on cpu :", cpuid);
+
 	__getsec_smctrl();
-	
+
 	atomic_inc(&ap_wfs_count);
-        if ( use_mwait() )
-	{
+        if ( use_mwait() ){
+	    // TODO if debug ..
             out_info("AP wait\n");
             ap_wait(cpuid);
         }else{
+	    // TODO if debug ..
             out_info("Handle\n");
             handle_init_sipi_sipi(cpuid);
 	}
 }
 
-int txt_protect_mem_regions(void)
-{
+int txt_protect_mem_regions(void){
     uint64_t base, size;
 
     /*
@@ -1109,22 +1145,30 @@ int txt_protect_mem_regions(void)
     /* TXT heap */
     base = read_pub_config_reg(TXTCR_HEAP_BASE);
     size = read_pub_config_reg(TXTCR_HEAP_SIZE);
+
+    // TODO if debug ..
     out_info("protecting TXT heap in e820 table\n");
+
     if ( !e820_protect_region(base, size, E820_RESERVED) )
         return -1;
 
     /* SINIT */
     base = read_pub_config_reg(TXTCR_SINIT_BASE);
     size = read_pub_config_reg(TXTCR_SINIT_SIZE);
+
+    // TODO if debug..
     out_info("protecting SINIT in e820 table\n");
+
     if ( !e820_protect_region(base, size, E820_RESERVED) )
         return -1;
 
     /* TXT private space */
     base = TXT_PRIV_CONFIG_REGS_BASE;
     size = TXT_CONFIG_REGS_SIZE;
-    out_info(
-           "protecting TXT Private Space in e820 table\n");
+
+    // TODO if debug..
+    out_info("protecting TXT Private Space in e820 table\n");
+
     if ( !e820_protect_region(base, size, E820_RESERVED) )
         return -1;
 
@@ -1136,7 +1180,10 @@ int txt_protect_mem_regions(void)
     sinit_mdr_t *mdrs_base = (sinit_mdr_t *)(((void *)sinit_mle_data
                                               - sizeof(uint64_t)) +
                                              sinit_mle_data->mdrs_off);
+
+    // TODO if debug..
     out_info("verifying e820 table against SINIT MDRs: ");
+
     if ( !verify_e820_map(mdrs_base, num_mdrs) ) {
         out_info("verification failed.\n");
         return -2;

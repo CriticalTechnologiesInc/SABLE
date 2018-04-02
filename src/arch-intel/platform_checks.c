@@ -75,6 +75,7 @@ static int supports_smx(void)
 		out_info("CPU does not support SMX");
 		return 0;
 	}
+	// TODO if debug...
 	out_info("CPU is SMX-capable\n");
 
 	/*
@@ -106,6 +107,7 @@ static int supports_vmx(void)
 		out_info("ERR: CPU does not support VMX");
 		return 0;
 	}
+	// TODO if debug..
 	out_info("CPU is VMX-capable");
 
 	/* and that VMX is enabled in the feature control MSR */
@@ -139,6 +141,7 @@ int supports_txt(void)
  
 	/* testing for chipset support requires enabling SMX on the processor */
 	write_cr4(read_cr4() | CR4_SMXE);
+	// TODO if debug ..
 	out_info("SMX is enabled\n");
  
 	/*
@@ -165,7 +168,7 @@ int supports_txt(void)
 
 void verify_IA32_se_svn_status()
 {
-
+	// TODO if debug ..
 	out_info("SGX:verify_IA32_se_svn_status is called");
 
 	//check if SGX is enabled by cpuid with ax=7, cx=0 
@@ -176,7 +179,7 @@ void verify_IA32_se_svn_status()
 	out_info("SGX is enabled : We dont support that right now");
 
 	/*
-	 * we need to compaire se_svn with ACM Header se_svn
+	 * we need to compaire se_svn with ACM Header se_svn TODO ??
 	 */ 
 
 }
@@ -219,13 +222,11 @@ void intel_post_launch(void);
 int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
-		out_info("ERROR: supports_txt");
+		out_info("ERROR: This platform does not support TXT");
 		return 0;
-	} else {
-		out_info("Suppots_txt : DONE");
 	}
-	/* make TPM ready for measured launch */
 
+	/* make TPM ready for measured launch */
 	if (!tpm_detect()) {
 		out_info("Failed to detect TPM");
 		return 0;
@@ -248,9 +249,8 @@ int platform_pre_checks() {
 	}
 
 	if (txt_is_launched()) {
-		out_info("We are in measured launch .. Post_launch started ...");
-		out_info("Place Holder for txt_post_launch()");
-//		intel_post_launch();
+		// TODO if debug ..
+		out_info("We are in measured launch..");
 		return 1;
 	}
 
@@ -264,6 +264,7 @@ int platform_pre_checks() {
 		out_info("TPM is not ready for measured launch");
 		return 0;
 	} else {
+		// TODO if debug ..
 		out_info("TPM is ready for measured launch");
 	}
 
