@@ -1,7 +1,4 @@
 /*
- * tboot.c: main entry point and "generic" routines for measured launch
- *          support
- *
  * Copyright (c) 2006-2010, Intel Corporation
  * All rights reserved.
  *
@@ -123,8 +120,7 @@ static void copy_s3_wakeup_entry(void)
 
 extern void txt_post_launch(void);
 
-void intel_post_launch(void)
-{
+void intel_post_launch(void){
 	out_info("We are in post launch processing --  Measured launch succeeded");
 	wait(1000);
 	uint64_t base, size;
@@ -235,15 +231,6 @@ void intel_post_launch(void)
 	_tboot_shared.tboot_base = (uint32_t)&_start;
 	_tboot_shared.tboot_size = (uint32_t)&_end - (uint32_t)&_start;
 	_tboot_shared.num_in_wfs = atomic_read(&ap_wfs_count);
-
-        char config_str[2];
-        out_string("Launch Linux Kernel now? [y/n]:");
-        get_string(config_str, sizeof(config_str) - 1, true);
-
-        if (config_str[0] == 'y' || config_str[0] == 'Y')
-		launch_kernel(true);
-	else
-		post_launch(g_ldr_ctx->addr);
 }
 
 void cpu_wakeup(uint32_t cpuid, uint32_t sipi_vec)

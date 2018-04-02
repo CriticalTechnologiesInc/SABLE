@@ -250,7 +250,8 @@ int platform_pre_checks() {
 	if (txt_is_launched()) {
 		out_info("We are in measured launch .. Post_launch started ...");
 		out_info("Place Holder for txt_post_launch()");
-		intel_post_launch();
+//		intel_post_launch();
+		return 1;
 	}
 
 	/* make the CPU ready for measured launch */
@@ -258,13 +259,13 @@ int platform_pre_checks() {
 		out_info("ERROR : CPU is not ready for launch");
 		return 0;
 	}
-	
+
 	if (!prepare_tpm_intel()) {
 		out_info("TPM is not ready for measured launch");
 		return 0;
 	} else {
 		out_info("TPM is ready for measured launch");
 	}
-	
+
 	return 1;
 }

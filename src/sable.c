@@ -49,12 +49,14 @@ BYTE *heap = heap_array;
 
 #ifdef __ARCH_INTEL__
 extern loader_ctx *g_ldr_ctx;
+extern void intel_post_launch();
 
 int prepare_sinit_acm(struct mbi *m);
 int copy_e820_map(loader_ctx *lctx);
 void determine_loader_type(uint32_t magic);
 void determine_loader_type_context(void *addr, uint32_t magic);
 #endif
+
 int platform_pre_checks();
 int txt_launch_environment();
 void print_mbi(struct mbi *mbi);
@@ -487,10 +489,10 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 //  save_cpu_state();
 //  print_mbi(g_ldr_ctx->addr);
 
-  if (txt_is_launched()) {
-     out_info("We are in measured launch .. Post_launch started ...");
+//  if (txt_is_launched()) {
+//     out_info("We are in measured launch .. Post_launch started ...");
   //   post_launch(g_ldr_ctx->addr);
-  }
+//  }
 
 #endif
 
@@ -522,8 +524,6 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   out_description("BSP is cpu ", get_apicid());
   out_description64("Testing 64", 0x1F1F1F1F1F1F1F1F);
 
-
-
   //Making copy e820 map to restore after post launch
   if (!copy_e820_map(g_ldr_ctx)) {
 	out_info("Copying of e820 map failed");
@@ -548,16 +548,33 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   if(!platform_pre_checks()) {
      out_info("Bhushan: Problem with platform configuration detected");
      // ERROR occurred : Stop here
-  } else {
-     out_info("Platform verification : DONE");
   }
 
+ // If TXT is already launched, then run the intel_post_launch code
+  if(txt_is_launched()){
+        intel_post_launch();
 
-  if(!txt_launch_environment()) {
+        char config_str[2];
+        out_string("Launch Linux Kernel now? [y/n]:");
+        get_string(config_str, sizeof(config_str) - 1, true);
+
+        // TODO we shouldn't ask to jump to kernel yet, should do it at end
+	// of post_launch(), but post_launch is currently broken
+        if (config_str[0] == 'y' || config_str[0] == 'Y')
+            launch_kernel(true);
+        else
+            post_launch(g_ldr_ctx->addr);
+
+  // Otherwise, try and launch TXT
+  }else if(!txt_launch_environment()) {
 	out_info("ERROR: Measured launch failed");
+  }else{
+    //TODO handle this situation properly
+    out_string("ERROR: TXT isn't launched, and we failed to launch it");
+    while(1);
   }
-
 #endif
+
 
 #ifdef __ARCH_AMD__
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
