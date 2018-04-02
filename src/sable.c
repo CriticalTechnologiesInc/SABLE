@@ -369,14 +369,16 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
 
   ERROR(!CHECK_FLAG(mbi->flags, MBI_FLAG_MODS), ERROR_BAD_MODULE,
         "module flag missing");
+
   ERROR(!mbi->mods_count, ERROR_NO_MODULE, "no module to hash");
+
   out_description("Hashing modules count", mbi->mods_count);
 
   struct module *m = (struct module *)(mbi->mods_addr);
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
     sha1_init(&sctx);
 
-    out_description("Bhushan : Hashing module", i);
+
     ERROR(m->mod_end < m->mod_start, ERROR_BAD_MODULE,
           "mod_end less than start");
 #ifndef NDEBUG
@@ -384,6 +386,7 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
     out_description("Address", m->mod_start);
     out_description("Size", m->mod_end - m->mod_start);
 #endif
+
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
     if (strlen((char *)m->string) > 0) {
@@ -455,8 +458,8 @@ void hash_and_dump(unsigned int start, unsigned int endlen) {
 	show_hash("Hash", sctx.hash);
 }
 
-extern void print_cpu_state();
-extern void save_cpu_state();
+//extern void print_cpu_state();
+//extern void save_cpu_state();
 
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
@@ -464,54 +467,36 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
 #ifdef __ARCH_INTEL__
   out_string("Master Merge1\n");
-
-
   determine_loader_type(flags);
+
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
   } else {
 	out_info("SKIPPING as context is already INITIALIZED");
   }
 
-  print_cpu_state();
-	out_info("Checking endianness by enabling and disabling DIF (bit 11th)");
-	out_info("Enabling DF flag bit 11 (mask : 0x0400)");
-	__asm__ __volatile__ ("std");
-  print_cpu_state();
-	out_info("disabling DF flag bit 11 (mask : 0x0400)");
-	__asm__ __volatile__ ("cld");
-  print_cpu_state();
+//  print_cpu_state();
+//	out_info("Checking endianness by enabling and disabling DIF (bit 11th)");
+//	out_info("Enabling DF flag bit 11 (mask : 0x0400)");
+//	__asm__ __volatile__ ("std");
+//  print_cpu_state();
+//	out_info("disabling DF flag bit 11 (mask : 0x0400)");
+//	__asm__ __volatile__ ("cld");
+//  print_cpu_state();
 
+//  save_cpu_state();
+//  print_mbi(g_ldr_ctx->addr);
 
-  save_cpu_state();
-
-  print_mbi(g_ldr_ctx->addr);
-  /*
-
-  // moved post launch in appropriate place
-
-  wait(5000);
-  */
   if (txt_is_launched()) {
      out_info("We are in measured launch .. Post_launch started ...");
- //    wait(5000);
   //   post_launch(g_ldr_ctx->addr);
   }
 
-   char config_str[2];
-   out_string("Do you want to jump to next module? [y/n]:");
-   get_string(config_str, sizeof(config_str) - 1, true);
-   if (config_str[0] == 'y') {
-	print_cpu_state();
-       start_module(g_ldr_ctx->addr);
-   }
 #endif
+
 
   init_heap(heap, sizeof(heap_array));
 
-  /*
-   * skipping these changes in post launch
-   */
 
 #ifdef __ARCH_INTEL__
   if (!txt_is_launched()) {
@@ -532,12 +517,14 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   } else {
      out_string("Bhushan: system bootstrap processor\n");
   }
+
+  // TODO if debug:
   out_description("BSP is cpu ", get_apicid());
+  out_description64("Testing 64", 0x1F1F1F1F1F1F1F1F);
 
-  /*
-   * Bhushan : Making copy e820 map to restore after post launch
-   */
 
+
+  //Making copy e820 map to restore after post launch
   if (!copy_e820_map(g_ldr_ctx)) {
 	out_info("Copying of e820 map failed");
 	while(1);
@@ -545,14 +532,11 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 	out_info("Copying e820 map : done");
   }
 
-  /*
-   * verify SINIT AC module : step 3
-   */
-
+    //verify SINIT AC module : step 3
     if(!prepare_sinit_acm(m)) {
           out_string("Bhushan: Problem with SINIT AC module");
 	  while(1);
-//     // ERROR occurred : Stop here
+    // ERROR occurred : Stop here
     } else {
           out_info("SINIT verificaton : DONE");
     }
@@ -561,26 +545,18 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
    * verify platform : step 1 and 2
    */
 
-  //wait(2000);
   if(!platform_pre_checks()) {
      out_info("Bhushan: Problem with platform configuration detected");
      // ERROR occurred : Stop here
   } else {
      out_info("Platform verification : DONE");
   }
-  out_description64("Testing 64", 0x1F1F1F1F1F1F1F1F);
 
-  /*
-   * skipping step to create policy for launch : set_policy()
-   */
-
-  /*
-   * prepare and launch MLE step 4 and 5
-   */
 
   if(!txt_launch_environment()) {
 	out_info("ERROR: Measured launch failed");
   }
+
 #endif
 
 #ifdef __ARCH_AMD__
@@ -627,6 +603,7 @@ void _pre_launch(struct mbi *m, unsigned flags) {
 RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
+ //TODO if debug..
  out_description("Bhushan : in post launch with mbi @ :", (unsigned int)m);
  wait(3000);
 
@@ -655,10 +632,13 @@ RESULT post_launch(struct mbi *m) {
   ERROR(!m, ERROR_NO_MBI, "no mbi in sable()");
 
   if (tis_init()) {
-    out_info("Bhushan: accessing TIS");
+    //TODO if debug..
+    out_info("Accessing TIS");
     RESULT tis_access_ret = tis_access(TIS_LOCALITY_2, 0);
     THROW(tis_access_ret.exception);
-    out_info("Bhushan: Calculating hash");
+
+    //TODO if debug..
+    out_info("Calculating hash");
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 
@@ -683,20 +663,10 @@ RESULT post_launch(struct mbi *m) {
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
-    } else if (config_str[0] == 'b') {                  // BHUSHAN : REMOVE later
-
-WAIT_FOR_INPUT()
-out_info("HEX DUMP");
-hex_dump((unsigned char *)0x7c00, 256);
-WAIT_FOR_INPUT()
-hash_and_dump(0x7c00, 521);
-WAIT_FOR_INPUT()
-
-
-      start_module(m);        				// BHUSHAN : REMOVE later
     } else {
       RESULT trusted_boot_ret = trusted_boot(nvIndex);
       THROW(trusted_boot_ret.exception);
+
       RESULT tis_deactiv = tis_deactivate_all();
       THROW(tis_deactiv.exception);
     }
@@ -709,6 +679,7 @@ WAIT_FOR_INPUT()
   if (config_str[0] == 'y')
     launch_kernel(true);
 #endif
+
   RESULT start_module_ret = start_module(m);
   THROW(start_module_ret.exception);
 

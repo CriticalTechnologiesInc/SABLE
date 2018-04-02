@@ -125,13 +125,11 @@ extern void txt_post_launch(void);
 
 void intel_post_launch(void)
 {
-	out_info("WE are in post launch processing");
+	out_info("We are in post launch processing --  Measured launch succeeded");
 	wait(1000);
 	uint64_t base, size;
 	tboot_log_t *g_log;
 	extern void shutdown_entry(void);
-
-	out_info("measured launch succeeded");
 
 	/* init MLE/kernel shared data page early, .num_in_wfs used in ap wakeup*/
 	_tboot_shared.num_in_wfs = 0;
@@ -149,20 +147,14 @@ void intel_post_launch(void)
 
 	/* marked mem regions used by TXT (heap, SINIT, etc.) as E820_RESERVED */
 	int err = txt_protect_mem_regions();
-	if(err)
-	{
+	if(err)	{
 		out_info("Error: txt_protect_mem_regions failed!\n");
 	} else {
 		out_info("txt_protect_mem_regions succeeded!\n");
 	}
 
-	/*
-	 * Bhushan: We can remove verify module code
-	 */
-
 	/* ensure all modules are in RAM */
-	if (!verify_modules(g_ldr_ctx) )
-	{
+	if (!verify_modules(g_ldr_ctx) )	{
 		out_info("Error: verify_modules failed!\n");
 	} else {
 		out_info("verify_modules succeeded!\n");
@@ -183,8 +175,7 @@ void intel_post_launch(void)
 	size = (uint64_t)get_tboot_mem_end() - base;
 	uint32_t mem_type = is_kernel_linux() ? E820_RESERVED : E820_UNUSABLE;
 	out_info("protecting tboot in e820 table\n");
-	if ( !e820_protect_region(base, size, mem_type) )      
-	{
+	if ( !e820_protect_region(base, size, mem_type) ){
 		out_info("Error: e820_protect_region failed!\n");
 	}else{
 		out_info("e820_protect_region succeeded!\n");
@@ -203,13 +194,11 @@ void intel_post_launch(void)
           out_info("Error: e820_protect_region2 failed!\n");
         else
           out_info("e820_protect_region2 succeeded!\n");
-//    }else{
-//      out_info("Not using memory logging\n");
-//    }
 
 	/* replace map in loader context with copy */
 	replace_e820_map(g_ldr_ctx);
 
+	// TODO: if debug..
 	out_info("adjusted e820 map:");
 	print_e820_map();
 
@@ -237,6 +226,7 @@ void intel_post_launch(void)
 	}
 	if ( g_log->curr_pos > g_log->max_size )
 		g_log->curr_pos = g_log->zip_pos[g_log->zip_count];
+
 	memset(&_tboot_shared, 0, PAGE_SIZE);
 	_tboot_shared.uuid = (uuid_t)TBOOT_SHARED_UUID;
     	_tboot_shared.version = 6;
@@ -249,7 +239,8 @@ void intel_post_launch(void)
         char config_str[2];
         out_string("Launch Linux Kernel now? [y/n]:");
         get_string(config_str, sizeof(config_str) - 1, true);
-        if (config_str[0] == 'y')
+
+        if (config_str[0] == 'y' || config_str[0] == 'Y')
 		launch_kernel(true);
 	else
 		post_launch(g_ldr_ctx->addr);
@@ -343,10 +334,10 @@ void shutdown(void)
 	if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 ) {
 		/* restore DMAR table if needed */
 		restore_vtd_dmar_table();
-		
+
 		/* save kernel/VMM resume vector for sealing */
 		g_post_k_s3_state.kernel_s3_resume_vector =  _tboot_shared.acpi_sinfo.kernel_s3_resume_vector;
-        
+
 		/* create and seal memory integrity measurement */
 		/*
 		 * Bhushan: We can remove this memset but need more investigation
