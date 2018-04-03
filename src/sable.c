@@ -393,7 +393,7 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
     THROW(sha1_ret.exception);
     if (strlen((char *)m->string) > 0) {
       // hash the command-line arguments for this module
-      sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string) + 1);
+      sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string));
       THROW(sha1_ret.exception);
     }
 
