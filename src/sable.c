@@ -468,16 +468,10 @@ void hash_and_dump(unsigned int start, unsigned int endlen) {
 	show_hash("Hash", sctx.hash);
 }
 
-//extern void print_cpu_state();
-//extern void save_cpu_state();
-
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
-  wait(2000);
-
 #ifdef __ARCH_INTEL__
-  out_string("Master Merge1\n");
   determine_loader_type(flags);
 
   if (g_ldr_ctx->type == 0) {
@@ -485,32 +479,13 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   } else {
 	out_info("SKIPPING as context is already INITIALIZED");
   }
-
-//  print_cpu_state();
-//	out_info("Checking endianness by enabling and disabling DIF (bit 11th)");
-//	out_info("Enabling DF flag bit 11 (mask : 0x0400)");
-//	__asm__ __volatile__ ("std");
-//  print_cpu_state();
-//	out_info("disabling DF flag bit 11 (mask : 0x0400)");
-//	__asm__ __volatile__ ("cld");
-//  print_cpu_state();
-
-//  save_cpu_state();
-//  print_mbi(g_ldr_ctx->addr);
-
-//  if (txt_is_launched()) {
-//     out_info("We are in measured launch .. Post_launch started ...");
-  //   post_launch(g_ldr_ctx->addr);
-//  }
-
 #endif
-
-
   init_heap(heap, sizeof(heap_array));
 
-
 #ifdef __ARCH_INTEL__
-  if (!txt_is_launched()) {
+  if (!txt_is_launched()) 
+#endif
+  {
       ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
       ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
 
@@ -519,20 +494,12 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
       m->boot_loader_name = (unsigned)version_string;
   }
 
-  /*
-   * Bhushan: check for system bootstrap processor
-   */
-
+#ifdef __ARCH_INTEL__
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
      out_string("Bhushan: Not a system bootstrap processor\n");
   } else {
      out_string("Bhushan: system bootstrap processor\n");
   }
-
-  #ifndef NDEBUG
-  out_description("BSP is cpu ", get_apicid());
-  out_description64("Testing 64", 0x1F1F1F1F1F1F1F1F);
-  #endif
 
   //Making copy e820 map to restore after post launch
   if (!copy_e820_map(g_ldr_ctx)) {
@@ -546,7 +513,6 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
     if(!prepare_sinit_acm(m)) {
           out_string("Bhushan: Problem with SINIT AC module");
 	  while(1);
-    // ERROR occurred : Stop here
     } else {
           out_info("SINIT verificaton : DONE");
     }
@@ -557,7 +523,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
   if(!platform_pre_checks()) {
      out_info("Bhushan: Problem with platform configuration detected");
-     // ERROR occurred : Stop here
+     while(1);
   }
 
  // If TXT is already launched, then run the intel_post_launch code
@@ -575,15 +541,6 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   }
 #endif
 
-
-#ifdef __ARCH_AMD__
-  ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
-  ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
-
-  // set bootloader name
-  SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
-  m->boot_loader_name = (unsigned)version_string;
-#endif
 
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
@@ -621,8 +578,7 @@ RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
  #ifndef NDEBUG
- out_description("Bhushan : in post launch with mbi @ :", (unsigned int)m);
- wait(3000);
+ out_description("In post launch with mbi @ :", (unsigned int)m);
  #endif
 
 #ifdef __ARCH_AMD__
