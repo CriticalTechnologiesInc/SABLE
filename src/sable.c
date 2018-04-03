@@ -555,17 +555,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
  // If TXT is already launched, then run the intel_post_launch code
   if(txt_is_launched()){
         intel_post_launch();
-
-        char config_str[2];
-        out_string("Launch Linux Kernel now? [y/n]:");
-        get_string(config_str, sizeof(config_str) - 1, true);
-
-        // TODO we shouldn't ask to jump to kernel yet, should do it at end
-	// of post_launch(), but post_launch is currently broken
-        if (config_str[0] == 'y' || config_str[0] == 'Y')
-            launch_kernel(true);
-        else
-            post_launch(g_ldr_ctx->addr);
+        post_launch(g_ldr_ctx->addr);
 
   // Otherwise, try and launch TXT
   }else if(!txt_launch_environment()) {
@@ -698,10 +688,7 @@ RESULT post_launch(struct mbi *m) {
   }
 
 #ifdef __ARCH_INTEL__
-  char config_str[2];
-  out_string("Launch Linux Kernel now? [y/n]:");
-  get_string(config_str, sizeof(config_str) - 1, true);
-  if (config_str[0] == 'y')
+    out_string("Launching Linux Kernel now..");
     launch_kernel(true);
 #endif
 
