@@ -368,15 +368,19 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
 #endif
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
-    if (strlen((char *)m->string) > 0) {
-      // hash the command-line arguments for this module
-      sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string) + 1);
-      THROW(sha1_ret.exception);
-    }
-
     sha1_finish(&sctx);
     extend_ret = TPM_Extend(19, sctx.hash);
     THROW(extend_ret.exception);
+
+    if (strlen((char *)m->string) > 0) {
+      sha1_init(&sctx);
+      // hash the command-line arguments for this module
+      sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string) + 1);
+      THROW(sha1_ret.exception);
+      sha1_finish(&sctx);
+      extend_ret = TPM_Extend(19, sctx.hash);
+      THROW(extend_ret.exception);
+    }
   }
 
   return ret;
