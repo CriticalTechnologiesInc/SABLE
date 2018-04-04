@@ -129,7 +129,6 @@ void txt_display_errors(void)
 		out_info("ERROR : need attention");
 	}
 	out_description64("TXT.E2STS", e2sts._raw);
-	wait(3000);
 }
 
 //#define CLASS_ACM_ENTRY 0x1

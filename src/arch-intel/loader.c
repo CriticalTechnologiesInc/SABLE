@@ -783,7 +783,6 @@ bool launch_kernel(bool is_measured_launch)
 	{
 		out_info("expand_linux_image FAILED!");
 		while(1)
-			wait(10000);
 	}
         out_info("transfering control to kernel");
 	wait(4000);

@@ -122,7 +122,6 @@ extern void txt_post_launch(void);
 
 void intel_post_launch(void){
 	out_info("We are in post launch processing --  Measured launch succeeded");
-	wait(1000);
 	uint64_t base, size;
 	tboot_log_t *g_log;
 	extern void shutdown_entry(void);

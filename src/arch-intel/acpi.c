@@ -158,7 +158,6 @@ struct acpi_rsdp *get_rsdp()
 	if (rsdp != NULL)
 		return rsdp;
 	out_info("EORROR : RSDP not found");
-	wait(4000);
 //    if (true == find_rsdp())
 //        return rsdp;
 //    /* so far we're striking out.  Must have been an EFI lauch */

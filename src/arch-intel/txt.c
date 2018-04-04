@@ -119,7 +119,6 @@ void print_cpu_state() {
 	out_description64("CR0", read_cr0());
 	out_description64("CR4", read_cr4());
 	out_description64("CR3", read_cr3());
-	WAIT_FOR_INPUT();
 }
 
 int get_parameters(getsec_parameters_t *params)
@@ -275,7 +274,6 @@ static void print_file_info(void)
 	 */
 	out_description("&_txt_wakeup=", (unsigned int)&_txt_wakeup);
 	out_description("&g_mle_hdr=", (unsigned int)&g_mle_hdr);
-	wait(4000);
 }
 
 static void print_mle_hdr(const mle_hdr_t *mle_hdr)
@@ -417,7 +415,6 @@ void set_vtd_pmrs(os_sinit_data_t *os_sinit_data, uint64_t min_lo_ram, uint64_t 
 	out_description64("max_lo_ram", max_lo_ram);
 	out_description64("min_hi_ram", min_hi_ram);
 	out_description64("max_hi_ram", max_hi_ram);
-	wait(6000);
 	#endif
 
 	/*
@@ -453,7 +450,7 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	if (!verify_txt_heap(txt_heap, 1)) {
 		return NULL;
 		out_info("EORROR : bios_data init has some problem");
-		wait(3000);
+		while(1);
 	}
 
 	/*
@@ -682,7 +679,6 @@ static void txt_wakeup_cpus(void)
 	/* wait for all APs that woke up to have entered wait-for-sipi */
 	uint32_t timeout = AP_WFS_TIMEOUT;
 	out_description("Timeout = ", timeout);
-	WAIT_FOR_INPUT();
 	do {
 		if (timeout % 0x8000 == 0)
 			out_info(".");
@@ -761,7 +757,6 @@ int txt_launch_environment()
 	out_info("executing GETSEC[SENTER]...\n");
 	out_description("SINIT BASE BASE :", (unsigned int) g_sinit);
 	out_description("SINIT SIZE :", (unsigned int) (g_sinit->size)*4);
-	wait(4000);
 	print_cpu_state();
 	#endif
 
@@ -1009,7 +1004,6 @@ void txt_post_launch(void)
 	}
 
 	out_info("Platform verification done");
-	wait(1000);
 
 	/* get saved OS state (os_mvmm_data_t) from LT heap */
 	txt_heap = get_txt_heap();

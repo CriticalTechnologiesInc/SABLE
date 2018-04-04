@@ -108,7 +108,6 @@ void _print_mbi(const multiboot_info_t *mbi)
 		out_info("skipping MBI_BTLDNAME not set");
 	}
 
-	WAIT_FOR_INPUT();
 	if ( mbi->flags & MBI_APM ) {
 		out_description("apm_table", mbi->apm_table);
 	} else {

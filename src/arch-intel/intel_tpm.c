@@ -518,7 +518,6 @@ int tpm_detect(void)
 			return 0;
 		}
 		out_info("tpm_detect: Ok till now");
-		wait(2000);
 		/* determine TPM family from command check */
 		if (g_tpm->check())  {
 			g_tpm_family = TPM_IF_12;
@@ -529,7 +528,6 @@ int tpm_detect(void)
 			return 0;
 		}
 		out_info("TPM1_2 check : Done");
-		wait(2000);
 	}
 
 	if (g_tpm_family == TPM_IF_12)  g_tpm = &tpm_12_if;
