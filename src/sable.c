@@ -53,7 +53,6 @@ extern void intel_post_launch();
 
 int prepare_sinit_acm(struct mbi *m);
 int copy_e820_map(loader_ctx *lctx);
-void determine_loader_type(uint32_t magic);
 void determine_loader_type_context(void *addr, uint32_t magic);
 #endif
 
@@ -472,12 +471,8 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
 #ifdef __ARCH_INTEL__
-  determine_loader_type(flags);
-
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
-  } else {
-	out_info("SKIPPING as context is already INITIALIZED");
   }
 #endif
   init_heap(heap, sizeof(heap_array));

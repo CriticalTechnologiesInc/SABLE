@@ -662,58 +662,20 @@ int prepare_sinit_acm(struct mbi *m) {
 	return 1;
 }
 
-#define MB_MAGIC			0x2badb002
-#define MB2_HEADER_MAGIC		0xe85250d6
-#define MB2_LOADER_MAGIC		0x36d76289
-
-void determine_loader_type(uint32_t magic)
-{
-	switch (magic){
-		case MB_MAGIC:
-			out_info("MB1_ONLY");
-			break;
-		case MB2_LOADER_MAGIC: 
-			out_info("MB2_ONLY : WE DONT SUPPORT");
-			break;
-		default:
-			out_info("PROBLEM : no multi boot launch");
-			break;
-	}
-}
-
 
 void determine_loader_type_context(void *addr, uint32_t magic)
 {
 	if (g_ldr_ctx->addr == NULL){
 		/* brave new world */
 		g_ldr_ctx->addr = addr;  /* save for post launch */
-		switch (magic){
-			case MB_MAGIC:
-				out_info("Initializing context with MBI 1");
-				// BHUSHAN : in case of sable we will be here
-				g_ldr_ctx->type = MB1_ONLY;
-				{
-					/* we may as well do this here--if we received an ELF
-					 * sections tag, we won't use it, and it's useless to
-					 * Xen downstream, since it's OUR ELF sections, not Xen's
-					 */
-					multiboot_info_t *mbi = (multiboot_info_t *) addr;
-					if (mbi->flags & MBI_AOUT) {
-						mbi->flags &= ~MBI_AOUT;
-					}
-					if (mbi->flags & MBI_ELF){
-						mbi->flags &= ~MBI_ELF;
-					}
-				}
-				break;
-			case MB2_LOADER_MAGIC:
-				g_ldr_ctx->type = MB2_ONLY;
-				out_info("ERROR : we dont expect to be here");
-				while(1);
-				break;
-			default:
-				g_ldr_ctx->type = 0;
-				break;
+		g_ldr_ctx->type = MB1_ONLY;
+		/* TODO: remove this flag initialization and test if its required one */
+		multiboot_info_t *mbi = (multiboot_info_t *) addr;
+		if (mbi->flags & MBI_AOUT) {
+			mbi->flags &= ~MBI_AOUT;
+		}
+		if (mbi->flags & MBI_ELF){
+			mbi->flags &= ~MBI_ELF;
 		}
 	}
 	/* so at this point, g_ldr_ctx->type has one of three values:
