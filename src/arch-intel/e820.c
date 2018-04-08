@@ -639,14 +639,3 @@ void get_highest_sized_ram(uint64_t size, uint64_t limit,
     *ram_base = last_fit_base;
     *ram_size = last_fit_size;
 }
-
-
-/*
- * Local variables:
- * mode: C
- * c-set-style: "BSD"
- * c-basic-offset: 4
- * tab-width: 4
- * indent-tabs-mode: nil
- * End:
- */

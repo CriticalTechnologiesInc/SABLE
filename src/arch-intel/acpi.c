@@ -129,7 +129,6 @@ static int  find_rsdp(void)
 	 * Bhushan we get rsdp in loader context in case of MB2_ONLY. hence skipping
 	 */
 
-//	ldr_rsdp = get_loader_rsdp(g_ldr_ctx, &length);
 	if (ldr_rsdp != NULL){
 		rsdp = (struct acpi_rsdp *) ldr_rsdp;
 		out_info("rsdp found in loader contex");
@@ -158,16 +157,6 @@ struct acpi_rsdp *get_rsdp()
 	if (rsdp != NULL)
 		return rsdp;
 	out_info("EORROR : RSDP not found");
-//    if (true == find_rsdp())
-//        return rsdp;
-//    /* so far we're striking out.  Must have been an EFI lauch */
-//    if (false == is_loader_launch_efi(lctx)){
-//        /* uncle */
-//        return NULL;
-//    }
-//    /* EFI launch, and the loader didn't grace us with an ACPI tag.
-//     * We can try to find this the hard way, right?
-//     */
 	return NULL;
 }
 
