@@ -73,58 +73,17 @@
 	.long   0x00000003              /* feature flags */
 	.long   0 - (MBI_MAGIC1 + 0x3)
 
-
 FUNCTION start
 FUNCTION _start
-        jmp __start
+	jmp __start
 
 FUNCTION __start
-        /* Set up a few descriptors: on entry only CS is guaranteed good. */
-        lgdt    %cs:pgdt_desc
-        mov     $(ds_sel),%ecx
-        mov     %ecx,%ds
-        mov     %ecx,%es
-        mov     %ecx,%fs
-        mov     %ecx,%gs
-        mov     %ecx,%ss
-        ljmp    $(cs_sel),$(1f)
-1:	leal	STACK_TOP,%esp
-
-        /* Reset EFLAGS (subsumes CLI and CLD). */
-        pushl   $0
-        popf
-
-        /* preserve EAX to be a param to begin_launch--it should
-         *  contain either MULTIBOOT_MAGIC or MULTIBOOT2_MAGIC--we'll need
-         * to figure out which */
-        mov     %eax,%edx
-
-        /* Initialize BSS (no nasty surprises!) */
-        mov     $__bss_start,%edi
-        mov     $_end,%ecx
-        sub     %edi,%ecx
-        xor     %eax,%eax
-        rep     stosb
-
-        /* Load IDT */
-        lidt    idt_descr
-
-        /* enable MCE */
-        mov     %cr4,%eax
-        or      $CR4_MCE,%eax
-        mov     %eax,%cr4
-
-        /* pass multiboot info struct, magic and call measured launch code */
-        push    %edx // magic? param 2
-        push    %ebx // mbi? param 1
-
-//	xchg %eax,%edx
-	xchg %ebx,%eax
-//	pushl %eax
-//	pushl $exit
-
-        call    _pre_launch
-        ud2
+	leal    STACK_TOP,%esp
+	xchg    %eax,%edx
+	xchg    %ebx,%eax
+	pushl   %eax
+	pushl   $exit
+	jmp     _pre_launch
 
 /*
  * vmexit handler
