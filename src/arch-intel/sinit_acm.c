@@ -607,6 +607,7 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 
 int prepare_sinit_acm(struct mbi *m) {
 	void *base2=NULL;
+	/* TODO : Bhushan : we can remove s_sinit check */
 	if (g_sinit != NULL) {
 
 		/*
@@ -654,6 +655,10 @@ int prepare_sinit_acm(struct mbi *m) {
 	 * Step 3 : check SINIT is according to the requirements of SENTER
 	 */
 
+	/*
+	 * TODO : Bhushan : we can remove verify acmod and corresponding code
+	 */
+
 	if (!verify_acmod(g_sinit)) {
 		return 0;	
 	}
@@ -665,6 +670,7 @@ int prepare_sinit_acm(struct mbi *m) {
 
 void determine_loader_type_context(void *addr, uint32_t magic)
 {
+	/* TODO :  We can remove context initialization code (and all dependant code) if we will pass mbi from pre_launch to post_launch via stack */
 	if (g_ldr_ctx->addr == NULL){
 		/* brave new world */
 		g_ldr_ctx->addr = addr;  /* save for post launch */
