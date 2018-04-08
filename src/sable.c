@@ -460,23 +460,19 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
 #ifdef __ARCH_INTEL__
+  // We can remove all of determine_loader_type_context code by storing mbi pointer in stack instead of variable
   if (g_ldr_ctx->type == 0) {
   	determine_loader_type_context(m, flags);
   }
 #endif
   init_heap(heap, sizeof(heap_array));
 
-#ifdef __ARCH_INTEL__
-  if (!txt_is_launched()) 
-#endif
-  {
-      ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
-      ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
+  ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
+  ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
 
-      // set bootloader name
-      SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
-      m->boot_loader_name = (unsigned)version_string;
-  }
+  // set bootloader name
+  SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
+  m->boot_loader_name = (unsigned)version_string;
 
 #ifdef __ARCH_INTEL__
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
