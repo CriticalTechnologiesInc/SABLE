@@ -456,17 +456,6 @@ void sable_layout_error() {
  * processor and disable all localities.
  */
 
-void hash_and_dump(unsigned int start, unsigned int endlen) {
-	SHA1_Context sctx;
-	sha1_init(&sctx);
-	sha1(&sctx, (BYTE *)start, endlen);
-	sha1_finish(&sctx);
-
-	out_description("start", start);
-	out_description("endlen", endlen);
-	show_hash("Hash", sctx.hash);
-}
-
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
   out_string(version_string);
@@ -491,25 +480,20 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
 #ifdef __ARCH_INTEL__
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
-     out_string("Bhushan: Not a system bootstrap processor\n");
-  } else {
-     out_string("Bhushan: system bootstrap processor\n");
+     out_string("ERROR: Not a system bootstrap processor\n");
+     while(1);
   }
 
   //Making copy e820 map to restore after post launch
   if (!copy_e820_map(g_ldr_ctx)) {
-	out_info("Copying of e820 map failed");
+	out_info("ERROR: Copying of e820 map failed");
 	while(1);
-  } else {
-	out_info("Copying e820 map : done");
   }
 
     //verify SINIT AC module : step 3
     if(!prepare_sinit_acm(m)) {
-          out_string("Bhushan: Problem with SINIT AC module");
+          out_string("EORROR: Problem with SINIT AC module");
 	  while(1);
-    } else {
-          out_info("SINIT verificaton : DONE");
     }
 
   /*
@@ -517,22 +501,14 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
    */
 
   if(!platform_pre_checks()) {
-     out_info("Bhushan: Problem with platform configuration detected");
+     out_info("ERROR: Problem with platform configuration detected");
      while(1);
   }
 
- // If TXT is already launched, then run the intel_post_launch code
-  if(txt_is_launched()){
-        intel_post_launch();
-        post_launch(g_ldr_ctx->addr);
-
-  // Otherwise, try and launch TXT
-  }else if(!txt_launch_environment()) {
+  // call getsec senter
+  if(!txt_launch_environment()) {
 	out_info("ERROR: Measured launch failed");
-  }else{
-    //TODO handle this situation properly
-    out_string("ERROR: TXT isn't launched, and we failed to launch it");
-    while(1);
+    	while(1);
   }
 #endif
 
@@ -573,6 +549,8 @@ RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
  #ifndef NDEBUG
+ intel_post_launch();
+ m = g_ldr_ctx->addr;
  out_description("In post launch with mbi @ :", (unsigned int)m);
  #endif
 

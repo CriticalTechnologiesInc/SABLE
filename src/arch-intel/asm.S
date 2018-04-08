@@ -278,7 +278,7 @@ FUNCTION _post_launch_entry
 	and $PAGE_MASK, %ebx      /* ...rounded to page start */
 	/* are they equal? */
 	cmp %ebx, %eax
-	je __start                /* yes, so continue with normal launch */
+	jmp _post_launch
 
 layout_err:
 	jmp sable_layout_error
