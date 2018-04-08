@@ -545,9 +545,11 @@ RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
 
  #ifndef NDEBUG
+ copy_e820_map(g_ldr_ctx);
  intel_post_launch();
  m = g_ldr_ctx->addr;
  out_description("In post launch with mbi @ :", (unsigned int)m);
+ wait(6000);
  #endif
 
 #ifdef __ARCH_AMD__
@@ -603,6 +605,8 @@ RESULT post_launch(struct mbi *m) {
     char config_str[2];
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
+    out_string("Launching Linux Kernel now..");
+    launch_kernel(true);
     if (config_str[0] == 'y') {
       RESULT configure_ret = configure(nvIndex);
       THROW(configure_ret.exception);
