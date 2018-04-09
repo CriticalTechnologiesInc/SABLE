@@ -548,7 +548,7 @@ RESULT post_launch(struct mbi *m) {
   m = g_ldr_ctx->addr;
 #ifndef NDEBUG
   out_description("In post launch with mbi @ :", (unsigned int)m);
-  wait(6000);
+  wait(1000);
 #endif
 #endif
 

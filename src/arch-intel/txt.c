@@ -697,7 +697,6 @@ static void txt_wakeup_cpus(void)
 		out_info("wait-for-sipi loop timed-out");
 	else
 		out_info("all APs in wait-for-sipi");
-	WAIT_FOR_INPUT();
 }
 
 int txt_is_launched(void)

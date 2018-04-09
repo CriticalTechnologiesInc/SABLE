@@ -168,7 +168,7 @@ void intel_post_launch(void){
 	/* protect ourselves, MLE page table, and MLE/kernel shared page */
 	base = (uint64_t)TBOOT_BASE_ADDR;
 	size = (uint64_t)get_tboot_mem_end() - base;
-	uint32_t mem_type = is_kernel_linux() ? E820_RESERVED : E820_UNUSABLE;
+	uint32_t mem_type = E820_RESERVED;
 	out_info("protecting tboot in e820 table\n");
 	if ( !e820_protect_region(base, size, mem_type) ){
 		out_info("Error: e820_protect_region failed!\n");

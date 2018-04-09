@@ -52,7 +52,6 @@ extern unsigned int get_nr_map(void);
 
 /* multiboot struct saved so that post_launch() can use it (in tboot.c) */
 extern loader_ctx *g_ldr_ctx;
-extern bool is_elf_image(const void *image, size_t size);
 extern bool expand_linux_image(const void *linux_image, size_t linux_size,
                                const void *initrd_image, size_t initrd_size,
                                void **entry_point, bool is_measured_launch);
@@ -352,117 +351,6 @@ static void *remove_module(loader_ctx *lctx, void *mod_start)
     return NULL;
 }
 
-bool is_elf_image(const void *image, size_t size)
-{
-    elf_header_t *elf;
-   
-    if ( image == NULL ) {
-        out_info("Error: Pointer is zero.\n");
-        return false;
-    }
-
-    /* check size */
-    if ( sizeof(elf_header_t) > size ) {
-        out_info("Error: Image size is smaller than ELF header size.\n");
-        return false;
-    }
-
-    elf = (elf_header_t *)image;
-
-    /* check magic number for ELF */
-    if ( (elf->e_ident[EI_MAG0] != ELFMAG0) ||
-         (elf->e_ident[EI_MAG1] != ELFMAG1) ||
-         (elf->e_ident[EI_MAG2] != ELFMAG2) ||
-         (elf->e_ident[EI_MAG3] != ELFMAG3) ) {
-        out_info(TBOOT_WARN"ELF magic number is not matched, image is not ELF format.\n");
-        return false;
-    }
-    /* check data encoding in ELF */
-    if ( elf->e_ident[EI_DATA] != ELFDATA2LSB ) {
-        out_info("Error: ELF data encoding is not the least significant "
-               "byte occupying the lowest address.\n");
-        return false;
-    }
- 
-    /* check obj class in ELF */
-    if ( elf->e_ident[EI_CLASS] == ELFCLASS32 ) {
-        out_info(TBOOT_INFO"This is an ELF32 file.\n");
-	elf64 = false;
-        elf_header_t *elf;
-        elf = (elf_header_t *)image;
-        /* check ELF image is executable? */
-        if ( elf->e_type != ET_EXEC ) {
-           out_info("Error: ELF image is not executable.\n");
-           return false;
-        }
-
-        /* check ELF image is for IA? */
-        if ( elf->e_machine != EM_386 && elf->e_machine != EM_AMD64 ) {
-            out_info("Error: ELF image is not for IA.\n");
-            return false;
-        }
-
-        /* check ELF version is valid? */
-         if ( elf->e_version != EV_CURRENT ) {
-            out_info("Error: ELF version is invalid.\n");
-            return false;
-         }
-
-         if ( sizeof(elf_program_header_t) > elf->e_phentsize ) {
-            out_info("Error: Program size is smaller than program "
-               "header size.\n");
-            return false;
-         }
-
-      return true;
-      }
-      if ( elf->e_ident[EI_CLASS] == ELFCLASS64 ) {
-         out_info(TBOOT_INFO"This is an ELF64 file.\n");
-	 elf64 = true;
-         elf64_header_t *elf;
-         elf = (elf64_header_t *)image;
-   
-         /* check ELF image is executable? */
-         if ( elf->e_type != ET_EXEC ) {
-            out_info("Error: ELF image is not executable.\n");
-            return false;
-         }
-
-         /* check ELF image is for IA? */
-         if ( elf->e_machine != EM_386 && elf->e_machine != EM_AMD64) {
-            out_info("Error: ELF image is not for IA.\n");
-            return false;
-         }
-
-         /* check ELF version is valid? */
-         if ( elf->e_version != EV_CURRENT ) {
-            out_info("Error: ELF version is invalid.\n");
-            return false;
-         }
-
-         if ( sizeof(elf64_program_header_t) > elf->e_phentsize ) {
-            out_info("Error: Program size is smaller than program "
-               "header size.\n");
-            return false;
-         }
-
-       return true;
-       }
-    return false;
-}
-
-bool is_kernel_linux(void)
-{
-    if ( !verify_loader_context(g_ldr_ctx) )
-        return false;
-
-    module_t *m = get_module(g_ldr_ctx, 0);
-    void *kernel_image = (void *)m->mod_start;
-    size_t kernel_size = m->mod_end - m->mod_start;
-
-    return !is_elf_image(kernel_image, kernel_size);
-}
-
 static bool 
 find_module(loader_ctx *lctx, void **base, size_t *size,
             const void *data, size_t len)
@@ -656,27 +544,7 @@ static void *remove_first_module(loader_ctx *lctx)
 
 bool launch_kernel(bool is_measured_launch)
 {
-//    enum { ELF, LINUX } kernel_type;
-
     void *kernel_entry_point;
-//    uint32_t mb_type = MB_NONE;
-
-
-/*    if (g_tpm_family != TPM_IF_20_CRB ) {
-        if (!release_locality(g_tpm->cur_loc))
-            printk(TBOOT_ERR"Release TPM FIFO locality %d failed \n", g_tpm->cur_loc);
-    }
-    else {
-        if (!tpm_relinquish_locality_crb(g_tpm->cur_loc))
-            printk(TBOOT_ERR"Relinquish TPM CRB locality %d failed \n", g_tpm->cur_loc);
-        if (!tpm_workaround_crb())
-            printk(TBOOT_ERR"CRB workaround failed \n");
-    }
-
-    if ( !verify_loader_context(g_ldr_ctx) )
-        return false;*/
-
-    /* remove all SINIT and LCP modules since kernel may not handle */
     remove_txt_modules(g_ldr_ctx);
 
     module_t *m = get_module(g_ldr_ctx,0);
@@ -684,113 +552,34 @@ bool launch_kernel(bool is_measured_launch)
     void *kernel_image = (void *)m->mod_start;
     size_t kernel_size = m->mod_end - m->mod_start;
 
-#if 0
-    if ( is_elf_image(kernel_image, kernel_size) ) {
-        printk(TBOOT_INFO"kernel is ELF format\n");
-        kernel_type = ELF;
-        mb_type = determine_multiboot_type(kernel_image);
-        switch (mb_type){
-        case MB1_ONLY:
-            /* if this is an EFI boot, this is not sufficient */
-            if (is_loader_launch_efi(g_ldr_ctx)){
-                printk(TBOOT_ERR"Target kernel only supports multiboot1 ");
-                printk(TBOOT_ERR"which will not suffice for EFI launch\n");
-                return false;
-            }
-            /* if we got MB2 and they want MB1 and this is trad BIOS,
-             * we can downrev the MB data to MB1 and pass that along.
-             */
-            if (g_ldr_ctx->type == MB2_ONLY){
-                if (false == convert_mb2_to_mb1())
-                    return false;
-            }
-            break;
-        case MB2_ONLY:
-            /* if we got MB1, we need to die here */
-            if (g_ldr_ctx->type == MB1_ONLY){
-                printk(TBOOT_ERR"Target requires multiboot 2, loader only ");
-                printk(TBOOT_ERR"supplied multiboot 1m giving up\n");
-                return false;
-            }
-            break;
-        case MB_BOTH:
-            /* we'll pass through whichever we got, and hope */
-            mb_type = g_ldr_ctx->type;
-            break;
-        default:
-            printk(TBOOT_INFO"but kernel does not have multiboot header\n");
-            return false;
-        }
-        
-        /* fix for GRUB2, which may load modules into memory before tboot */
-        move_modules(g_ldr_ctx);
-
-        /* move modules out of the way (to top og memory below 4G) */
-        printk(TBOOT_INFO"move modules to high memory\n");
-        if(!move_modules_to_high_memory(g_ldr_ctx))
-            return false;
-    }
-    else {
-#endif
-        out_info("assuming kernel is Linux format\n");
-//        kernel_type = LINUX;
-//    }
-
-    /* print_mbi(g_mbi); */
-
     kernel_image = remove_first_module(g_ldr_ctx);
     if ( kernel_image == NULL )
         return false;
 
-//   if ( kernel_type == ELF ) {
-//        if ( is_measured_launch )
-//            adjust_kernel_cmdline(g_ldr_ctx, &_tboot_shared);
-//        if ( !expand_elf_image((elf_header_t *)kernel_image,
-//                               &kernel_entry_point) )
-//            return false;
-//
-//        /* move modules on top of expanded kernel */
-//        if(!move_modules_above_elf_kernel(g_ldr_ctx, (elf_header_t *)kernel_image))
-//            return false;
-//
-//        printk(TBOOT_INFO"transfering control to kernel @%p...\n", 
-//              kernel_entry_point);
-//       /* (optionally) pause when transferring to kernel */
-//       if ( g_vga_delay > 0 )
-//           delay(g_vga_delay * 1000);
-//       return jump_elf_image(kernel_entry_point, 
-//                             mb_type == MB1_ONLY ?
-//                             MB_MAGIC : MB2_LOADER_MAGIC);
-//   }
-//   else if ( kernel_type == LINUX ) {
-       void *initrd_image;
-       size_t initrd_size;
+    void *initrd_image;
+    size_t initrd_size;
 
-        if ( get_module_count(g_ldr_ctx) == 0 ) {
-            initrd_size = 0;
-            initrd_image = 0;
-        }
-        else {
-            m = get_module(g_ldr_ctx,0);
-            initrd_image = (void *)m->mod_start;
-            initrd_size = m->mod_end - m->mod_start;
-        }
+    if ( get_module_count(g_ldr_ctx) == 0 ) {
+        initrd_size = 0;
+        initrd_image = 0;
+    }
+    else {
+        m = get_module(g_ldr_ctx,0);
+        initrd_image = (void *)m->mod_start;
+        initrd_size = m->mod_end - m->mod_start;
+    }
 
-        bool status = expand_linux_image(kernel_image, kernel_size,
-                           initrd_image, initrd_size,
-                           &kernel_entry_point, is_measured_launch);
-	if(!status)
-	{
-		out_info("expand_linux_image FAILED!");
-		while(1);
-	}
-        out_info("transfering control to kernel");
-	wait(4000);
-        return jump_linux_image(kernel_entry_point);
-//    }
+    bool status = expand_linux_image(kernel_image, kernel_size,
+                       initrd_image, initrd_size,
+                       &kernel_entry_point, is_measured_launch);
+    if(!status)
+    {
+        out_info("expand_linux_image FAILED!");
+        while(1);
+    }
 
-    out_info("unknown kernel type\n");
-    return false;
+    out_info("transfering control to kernel");
+    return jump_linux_image(kernel_entry_point);
 }
 
 /*
