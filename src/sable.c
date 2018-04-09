@@ -544,13 +544,15 @@ RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
   init_heap(heap, sizeof(heap_array));
 
- #ifndef NDEBUG
- copy_e820_map(g_ldr_ctx);
- intel_post_launch();
- m = g_ldr_ctx->addr;
- out_description("In post launch with mbi @ :", (unsigned int)m);
- wait(6000);
- #endif
+#ifdef __ARCH_INTEL__
+  copy_e820_map(g_ldr_ctx);
+  intel_post_launch();
+  m = g_ldr_ctx->addr;
+#ifndef NDEBUG
+  out_description("In post launch with mbi @ :", (unsigned int)m);
+  wait(6000);
+#endif
+#endif
 
 #ifdef __ARCH_AMD__
   RESULT revert_skinit_ret = revert_skinit();
