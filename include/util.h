@@ -94,5 +94,6 @@ void show_hash(const char *s, TPM_DIGEST hash);
 int indexOf(char *sub, char *str);
 int strLen(char *str);
 char *cmdlineArgVal(char *cmdline, char *cmdlineArg);
+int aToI(char *str);
 
 #endif

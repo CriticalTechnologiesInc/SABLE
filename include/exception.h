@@ -189,7 +189,9 @@ typedef struct tdRESULT {
 #define CATCH_ANY(e, handler)                                                  \
   {                                                                            \
     if (e.error) {                                                             \
-      { handler; };                                                            \
+      {                                                                        \
+        handler;                                                               \
+      };                                                                       \
       e.error = NONE;                                                          \
     }                                                                          \
   }
@@ -200,7 +202,9 @@ typedef struct tdRESULT {
 #define CATCH(e, ex, handler)                                                  \
   {                                                                            \
     if (e.error == (ex)) {                                                     \
-      { handler; };                                                            \
+      {                                                                        \
+        handler;                                                               \
+      };                                                                       \
       e.error = NONE;                                                          \
     }                                                                          \
   }

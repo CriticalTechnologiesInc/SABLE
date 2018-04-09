@@ -113,13 +113,19 @@ would become
 ```
 menuentry 'SABLE-Ubuntu' {
   ...
-  multiboot /boot/sable-<arch> --nv-index=<SEC-nv-index>
+  multiboot /boot/sable-<arch> --nv-index=<SEC-nv-index> --nv-size=<SEC-nv-size>
   module /boot/cleanup-<arch>
   module /boot/grub/i386-pc/core.img
   module /boot/mylinux
   module /boot/myinitrd
 }
 ```
+
+In the `multiboot` line, `<SEC-nv-index>` should equal the value after the `-i`
+parameter in the `tpm_nvdefine` command, and `<SEC-nv-size>` should equal the
+value after the `-s` parameter. The `-s` parameter indicates the size of this
+SEC's NVRAM region.
+
 Then you may run
 ```
 # update-grub2

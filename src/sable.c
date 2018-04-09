@@ -197,7 +197,8 @@ static RESULT_(TPM_STORED_DATA12)
 }
 
 static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
-                               TPM_STORED_DATA12 sealedData, UINT32 index) {
+                               TPM_STORED_DATA12 sealedData, UINT32 index,
+                               UINT32 size) {
   RESULT ret = {.exception.error = NONE};
 
   RESULT oiap_ret = TPM_OIAP(&sessions[0]);
@@ -208,11 +209,10 @@ static RESULT write_passphrase(TPM_AUTHDATA nv_auth,
   sessions[0]->continueAuthSession = FALSE;
 
   struct extracted_TPM_STORED_DATA12 x = extract_TPM_STORED_DATA12(sealedData);
-  return TPM_NV_WriteValueAuth(x.data, x.dataSize, index, 0, nv_auth,
-                               &sessions[0]);
+  return TPM_NV_WriteValueAuth(x.data, size, index, 0, nv_auth, &sessions[0]);
 }
 
-RESULT configure(UINT32 index) {
+RESULT configure(UINT32 index, UINT32 size) {
   RESULT ret = {.exception.error = NONE};
   char *passphrase = alloc(heap, PASSPHRASE_STR_SIZE);
 
@@ -242,13 +242,15 @@ RESULT configure(UINT32 index) {
   THROW(nv_auth.exception);
 
   // write the sealed passphrase to disk
-  return write_passphrase(nv_auth.value, sealedData.value, index);
+  return write_passphrase(nv_auth.value, sealedData.value, index, size);
 }
 #endif
 
-static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index) {
+static RESULT_(TPM_STORED_DATA12) read_passphrase(UINT32 index, UINT32 size) {
   const OPTION(TPM_AUTHDATA) nv_auth = {.hasValue = false};
-  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(index, 0, 400, nv_auth, NULL);
+  // EXCLUDE(out_string("Please enter the size of nvRegion : ");)
+  // UINT32 nv_region = asc_to_uint();
+  RESULT_(HEAP_DATA) val = TPM_NV_ReadValue(index, 0, size, nv_auth, NULL);
   THROW_TYPE(RESULT_(TPM_STORED_DATA12), val.exception);
 
   return (RESULT_(TPM_STORED_DATA12)){
@@ -314,9 +316,9 @@ static RESULT_(CSTRING)
   return ret;
 }
 
-RESULT trusted_boot(UINT32 index) {
+RESULT trusted_boot(UINT32 index, UINT32 size) {
   RESULT ret = {.exception.error = NONE};
-  RESULT_(TPM_STORED_DATA12) sealed_pp = read_passphrase(index);
+  RESULT_(TPM_STORED_DATA12) sealed_pp = read_passphrase(index, size);
   THROW(sealed_pp.exception);
 
   EXCLUDE(out_string("Please enter the passPhraseAuthData (" xstr(
@@ -390,14 +392,12 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
 
     sha1_ret = sha1(&sctx, (BYTE *)m->mod_start, m->mod_end - m->mod_start);
     THROW(sha1_ret.exception);
-
-
     sha1_finish(&sctx);
     extend_ret = TPM_Extend(19, sctx.hash);
     THROW(extend_ret.exception);
 
     if (strlen((char *)m->string) > 0) {
-       sha1_init(&sctx);
+      sha1_init(&sctx);
       // hash the command-line arguments for this module
       sha1(&sctx, (unsigned char *)m->string, strlen((char *)m->string));
       THROW(sha1_ret.exception);
@@ -405,8 +405,6 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
       extend_ret = TPM_Extend(19, sctx.hash);
       THROW(extend_ret.exception);
     }
-
-
   }
 
   return ret;
@@ -565,11 +563,12 @@ RESULT post_launch(struct mbi *m) {
   // Finding NV Index
   int nvIndex = 0;
   char *val = cmdlineArgVal((char *)m->cmdline, "--nv-index=");
-  while (val[0] != '\0' && val[0] != ' ') {
-    nvIndex *= 10;
-    nvIndex += (val[0] - '0');
-    val++;
-  }
+  nvIndex = aToI(val);
+
+  // Finding NV Size
+  int nvSize = 0;
+  val = cmdlineArgVal((char *)m->cmdline, "--nv-size=");
+  nvSize = aToI(val);
 
   /* 
    * Bhushan : I guess this asset is not effective. as we should check variouse flags to decide
@@ -608,7 +607,7 @@ RESULT post_launch(struct mbi *m) {
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
     if (config_str[0] == 'y') {
-      RESULT configure_ret = configure(nvIndex);
+      RESULT configure_ret = configure(nvIndex, nvSize);
       THROW(configure_ret.exception);
       RESULT tis_deactiv = tis_deactivate_all();
       THROW(tis_deactiv.exception);
@@ -616,7 +615,7 @@ RESULT post_launch(struct mbi *m) {
       wait(5000);
       reboot();
     } else {
-      RESULT trusted_boot_ret = trusted_boot(nvIndex);
+      RESULT trusted_boot_ret = trusted_boot(nvIndex, nvSize);
       THROW(trusted_boot_ret.exception);
 
       RESULT tis_deactiv = tis_deactivate_all();

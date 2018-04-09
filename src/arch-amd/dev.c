@@ -281,7 +281,7 @@ static RESULT_(UINT32) dev_get_addr(void) {
   if (!ret.value)
     ret.value = pci_find_device(DEV_PCI_DEVICE_ID_BLD);
   if (!ret.value)
-	ret.value = pci_find_device(DEV_PCI_DEVICE_ID_LEN);
+    ret.value = pci_find_device(DEV_PCI_DEVICE_ID_LEN);
   ERROR(!ret.value, ERROR_DEV, "DEV not found");
   RESULT_(BYTE) cap_ret = pci_dev_find_cap(ret.value, DEV_PCI_CAP_ID);
   THROW(cap_ret.exception);

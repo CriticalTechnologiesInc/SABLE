@@ -619,9 +619,9 @@ TPM_Sealx
 #else
 TPM_Seal
 #endif
-(TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
-         TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in,
-         UINT32 inDataSize_in, TPM_SESSION **session, TPM_SECRET sharedSecret) {
+    (TPM_KEY_HANDLE keyHandle_in, TPM_ENCAUTH encAuth_in,
+     TPM_PCR_INFO_LONG pcrInfo_in, const BYTE *inData_in, UINT32 inDataSize_in,
+     TPM_SESSION **session, TPM_SECRET sharedSecret) {
   ASSERT(session);
   RESULT_(TPM_STORED_DATA12) ret = {.exception.error = NONE};
   TPM_RESULT res;
