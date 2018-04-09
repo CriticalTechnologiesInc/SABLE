@@ -597,6 +597,12 @@ RESULT post_launch(struct mbi *m) {
     THROW(pcr17.exception);
     show_hash("PCR[17]: ", pcr17.value);
 
+    #ifndef __ARCH_INTEL__
+    RESULT_(TPM_PCRVALUE) pcr18 = TPM_PCRRead(18);
+    THROW(pcr18.exception);
+    show_hash("PCR[18]: ", pcr18.value);
+    #endif
+
     RESULT_(TPM_PCRVALUE) pcr19 = TPM_PCRRead(19);
     THROW(pcr19.exception);
     show_hash("PCR[19]: ", pcr19.value);
