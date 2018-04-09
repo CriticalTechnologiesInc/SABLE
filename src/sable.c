@@ -465,7 +465,6 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   	determine_loader_type_context(m, flags);
   }
 #endif
-  init_heap(heap, sizeof(heap_array));
 
   ERROR(!m, ERROR_NO_MBI, "not loaded via multiboot");
   ERROR(flags != MBI_MAGIC2, ERROR_BAD_MBI, "not loaded via multiboot");
@@ -543,6 +542,7 @@ void _pre_launch(struct mbi *m, unsigned flags) {
  */
 RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
+  init_heap(heap, sizeof(heap_array));
 
  #ifndef NDEBUG
  copy_e820_map(g_ldr_ctx);
@@ -605,8 +605,6 @@ RESULT post_launch(struct mbi *m) {
     char config_str[2];
     out_string("Configure now? [y/n]: ");
     get_string(config_str, sizeof(config_str) - 1, true);
-    out_string("Launching Linux Kernel now..");
-    launch_kernel(true);
     if (config_str[0] == 'y') {
       RESULT configure_ret = configure(nvIndex);
       THROW(configure_ret.exception);
