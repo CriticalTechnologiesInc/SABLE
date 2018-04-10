@@ -122,12 +122,24 @@ static RESULT_(TPM_PCR_INFO_LONG) get_pcr_info(void) {
   BYTE *pcr_select_bytes = alloc(heap, 3);
   pcr_select_bytes[0] = 0x00;
   pcr_select_bytes[1] = 0x00;
+#ifdef __ARCH_AMD__
   pcr_select_bytes[2] = 0x0a;
+#endif
+#ifdef __ARCH_INTEL__
+  pcr_select_bytes[2] = 0x0c;
+#endif
   TPM_PCR_SELECTION pcr_select = {.sizeOfSelect = 3,
                                   .pcrSelect = (BYTE *)pcr_select_bytes};
+#ifdef __ARCH_AMD__
   RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
   THROW(pcr17.exception);
   pcr_values[0] = pcr17.value;
+#endif
+#ifdef __ARCH_INTEL__
+  RESULT_(TPM_PCRVALUE) pcr18 = TPM_PCRRead(18);
+  THROW(pcr18.exception);
+  pcr_values[0] = pcr18.value;
+#endif
   RESULT_(TPM_PCRVALUE) pcr19 = TPM_PCRRead(19);
   THROW(pcr19.exception);
   pcr_values[1] = pcr19.value;
@@ -593,11 +605,13 @@ RESULT post_launch(struct mbi *m) {
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 
+    #ifdef __ARCH_AMD__
     RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
     THROW(pcr17.exception);
     show_hash("PCR[17]: ", pcr17.value);
+    #endif
 
-    #ifndef __ARCH_INTEL__
+    #ifdef __ARCH_INTEL__
     RESULT_(TPM_PCRVALUE) pcr18 = TPM_PCRRead(18);
     THROW(pcr18.exception);
     show_hash("PCR[18]: ", pcr18.value);
