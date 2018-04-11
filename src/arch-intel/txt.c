@@ -208,7 +208,7 @@ extern char __start[];		/* start of module */
 extern char _end[];		/* end of module */
 extern char _mle_start[];	/* start of text section */
 extern char _mle_end[];		/* end of text section */
-extern char _post_launch_entry[]; /* entry point post SENTER, in boot.S */
+extern char _skinit[];		/* entry point post SENTER, in boot.S */
 extern char _txt_wakeup[];        /* RLP join address for GETSEC[WAKEUP] */
 
 
@@ -242,7 +242,7 @@ static __text const mle_hdr_t g_mle_hdr = {
 	uuid			:	MLE_HDR_UUID,
 	length			:	sizeof(mle_hdr_t),
 	version			:	MLE_HDR_VER,
-	entry_point		:	(uint32_t)&_post_launch_entry - TBOOT_START,
+	entry_point		:	(uint32_t)&_skinit - TBOOT_START,
 	first_valid_page	:	0,
 	mle_start_off		:	(uint32_t)&_mle_start - TBOOT_BASE_ADDR,
 	mle_end_off		:	(uint32_t)&_mle_end - TBOOT_BASE_ADDR,
@@ -265,13 +265,7 @@ static void print_file_info(void)
 	out_description("&_end=", (unsigned int)&_end);
 	out_description("&_mle_start=", (unsigned int)&_mle_start);
 	out_description("&_mle_end=", (unsigned int)&_mle_end);
-	out_description("&_post_launch_entry=", (unsigned int)&_post_launch_entry);
-
-	/* 
-	 * Bhushan
-	 * _skinit is just place holder to avoid build failure
-	 * replace it with &_post_launch_entry when required
-	 */
+	out_description("&_post_launch_entry=", (unsigned int)&_skinit);
 	out_description("&_txt_wakeup=", (unsigned int)&_txt_wakeup);
 	out_description("&g_mle_hdr=", (unsigned int)&g_mle_hdr);
 }
