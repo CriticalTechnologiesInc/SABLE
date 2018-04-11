@@ -476,6 +476,12 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   SET_FLAG(m->flags, MBI_FLAG_BOOT_LOADER_NAME);
   m->boot_loader_name = (unsigned)version_string;
 
+  RESULT tpm = prepare_tpm();
+  THROW(tpm.exception);
+
+  out_info("TPM initialized");
+  wait(6000);
+
 #ifdef __ARCH_INTEL__
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
      out_string("ERROR: Not a system bootstrap processor\n");
@@ -511,8 +517,8 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 #endif
 
 
-  RESULT tpm = prepare_tpm();
-  THROW(tpm.exception);
+//  RESULT tpm = prepare_tpm();
+//  THROW(tpm.exception);
 
 #ifdef __ARCH_AMD__
   RESULT_(UINT32) cpuid = check_cpuid();
