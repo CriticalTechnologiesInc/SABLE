@@ -50,7 +50,6 @@
 #define PAGE_MASK        (~(PAGE_SIZE-1))
 
 
-//#define NR_CPUS	512
 #define NR_CPUS		16
 #define AP_STACK_SIZE	0x0800
 
@@ -190,102 +189,22 @@ ENTRY(_prot_to_real)
 	ADDR16
 	ljmp    *_real_mode_entry_point
 
-/* Bhushan _post_launch_entry is just place holder. we have to provide implementation when required */
+FUNCTION _skinit
+	/* Set up a few descriptors: on entry only CS is guaranteed good. */
+	lgdt    %cs:pgdt_desc
+	mov     $(ds_sel),%ecx
+	mov     %ecx,%ds
+	mov     %ecx,%es
+	mov     %ecx,%fs
+	mov     %ecx,%gs
+	mov     %ecx,%ss
+	ljmp    $(cs_sel),$(1f)
 
-FUNCTION _post_launch_entry
-
-/* entry point post-launch, to verify memory layout */
-/* (must all be w/in one page; since _start is page-aligned, it will be; */
-/* which is why we can't call much other code (e.g. printk, TPM fns, etc.) */
-/* verify phys addr we were entered at is the one we expected
- * ebx contains the phys addr of the entry point
- * ecx contains the phy addr of the MLE page table
- */
-
-	cmp $_post_launch_entry, %ebx
-	jne layout_err
-
-	/* verify last entry in MLE page table is the one we expected
-	 * this is sufficient because: 1) all addrs must be phys increasing
-	 * and 2) tboot is phys contig--therefore if any page were moved to
-	 * a different phys addr then the last page would have to be different
-	 * from tboot's last page
-	 */
-	 /* get addr of MLE page table from OsSinitData */
-	/* start of TXT heap (== BiosDataSize) */
-	mov (TXT_PRIV_CONFIG_REGS_BASE + TXTCR_HEAP_BASE), %eax
-	add (%eax), %eax                   /* skip BiosData */
-	add (%eax), %eax                   /* skip OsMleData */
-	mov (MLE_PGTBL_OFF+8)(%eax), %eax  /* addr of MLE page table */
-	/* get to page table itself (there is only one for tboot) */
-	mov (%eax), %eax          /* pgdir ptr -> pgdir */
-	/* TODO when SINIT ready */
-	/* mov (%ecx), %eax */
-	and $PAGE_MASK, %eax
-	mov (%eax), %eax          /* pgdir -> pgtbl */
-	and $PAGE_MASK, %eax
-	/* find last page (pte) */
-	mov $_mle_end, %ecx
-	sub $_mle_start, %ecx     /* size of MLE */
-	shr $PAGE_SHIFT-3, %ecx
-	sub $8, %ecx              /* size/4k*8 is offset+1 of last pte */
-	add %ecx, %eax
-	mov (%eax), %eax          /* pte of last page */
-	and $PAGE_MASK, %eax
-	/* calc expected addr of last page */
-	mov $(_mle_end - 1), %ebx /* addr of last byte of MLE... */
-	and $PAGE_MASK, %ebx      /* ...rounded to page start */
-	/* are they equal? */
-	cmp %ebx, %eax
-
-        /* Set up a few descriptors: on entry only CS is guaranteed good. */
-        lgdt    %cs:pgdt_desc
-        mov     $(ds_sel),%ecx
-        mov     %ecx,%ds
-        mov     %ecx,%es
-        mov     %ecx,%fs
-        mov     %ecx,%gs
-        mov     %ecx,%ss
-        ljmp    $(cs_sel),$(1f)
+	/* restore stack and MBI header */
 1:	leal	STACK_TOP,%esp
-
-        /* Reset EFLAGS (subsumes CLI and CLD). */
-        pushl   $0
-        popf
-
-        /* preserve EAX to be a param to begin_launch--it should
-         *  contain either MULTIBOOT_MAGIC or MULTIBOOT2_MAGIC--we'll need
-         * to figure out which */
-        mov     %eax,%edx
-
-        /* Initialize BSS (no nasty surprises!) */
-        mov     $__bss_start,%edi
-        mov     $_end,%ecx
-        sub     %edi,%ecx
-        xor     %eax,%eax
-        rep     stosb
-
-        /* Load IDT */
-        lidt    idt_descr
-
-        /* enable MCE */
-        mov     %cr4,%eax
-        or      $CR4_MCE,%eax
-        mov     %eax,%cr4
-
-        /* pass multiboot info struct, magic and call measured launch code */
-        push    %edx // magic? param 2
-        push    %ebx // mbi? param 1
-
-//	xchg %eax,%edx
-	xchg %ebx,%eax
-//	pushl %eax
-//	pushl $exit
+	movl    -4(%esp), %eax	
 
 	jmp _post_launch
-
-layout_err:
-	jmp sable_layout_error
 
 FUNCTION smp_init_start
 	.code16

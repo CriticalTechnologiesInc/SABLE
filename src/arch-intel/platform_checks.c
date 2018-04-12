@@ -255,13 +255,6 @@ int platform_pre_checks() {
 		return 0;
 	}
 
-	if (txt_is_launched()) {
-		#ifndef NDEBUG
-		out_info("We are in measured launch..");
-		#endif
-		return 1;
-	}
-
 	/* make the CPU ready for measured launch */
 	if (!txt_prepare_cpu()) {
 		out_info("ERROR : CPU is not ready for launch");

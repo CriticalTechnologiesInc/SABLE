@@ -453,13 +453,6 @@ static RESULT prepare_tpm(void) {
 }
 
 RESULT post_launch(struct mbi *m);
-int txt_is_launched(void);
-
-
-void sable_layout_error() {
-	out_info("Sable error occured");
-	while(1);
-}
 
 /**
  * This function runs before the late launch and has to enable SVM in the
@@ -553,14 +546,10 @@ void _pre_launch(struct mbi *m, unsigned flags) {
 RESULT post_launch(struct mbi *m) {
   RESULT ret = {.exception.error = NONE};
   init_heap(heap, sizeof(heap_array));
-
 #ifdef __ARCH_INTEL__
   copy_e820_map(g_ldr_ctx);
   intel_post_launch();
-  m = g_ldr_ctx->addr;
 #ifndef NDEBUG
-  out_description("In post launch with mbi @ :", (unsigned int)m);
-  wait(1000);
 #endif
 #endif
 
@@ -634,6 +623,10 @@ RESULT post_launch(struct mbi *m) {
       out_string("\nConfiguration complete. Rebooting now...\n");
       wait(5000);
       reboot();
+#ifndef NDEBUG
+    /* Remove this while merge with master. just a hack to avoid password while testing */
+    } else if (config_str[0] == 's') {
+#endif  
     } else {
       RESULT trusted_boot_ret = trusted_boot(nvIndex, nvSize);
       THROW(trusted_boot_ret.exception);
