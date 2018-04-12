@@ -478,10 +478,7 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
-
-  out_info("TPM initialized");
-  wait(6000);
-
+ 
 #ifdef __ARCH_INTEL__
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
      out_string("ERROR: Not a system bootstrap processor\n");
