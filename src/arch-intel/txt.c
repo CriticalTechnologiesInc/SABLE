@@ -383,15 +383,15 @@ static void init_os_sinit_ext_data(heap_ext_data_element_t* elts)
 	heap_event_log_ptr_elt_t*	evt_log;
 	heap_ext_data_element_t*	elt = elts;
 
-	if (g_tpm->major == TPM12_VER_MAJOR) {
+//	if (g_tpm->major == TPM12_VER_MAJOR) {
 		evt_log = (heap_event_log_ptr_elt_t *)elt->data;
 		evt_log->event_log_phys_addr = (uint64_t)(unsigned long)init_event_log();
 		elt->type = HEAP_EXTDATA_TYPE_TPM_EVENT_LOG_PTR;
 		elt->size = sizeof(*elt) + sizeof(*evt_log);
-	} else if ( g_tpm->major == TPM20_VER_MAJOR ) {
-		out_info("We dont expect to be here: init_os_sinit_ext_data");
-		while(1);
-	}
+//	} else if ( g_tpm->major == TPM20_VER_MAJOR ) {
+//		out_info("We dont expect to be here: init_os_sinit_ext_data");
+//		while(1);
+//	}
 	elt = (void *)elt + elt->size;
 	elt->type = HEAP_EXTDATA_TYPE_END;
 	elt->size = sizeof(*elt);
@@ -570,15 +570,15 @@ static txt_heap_t *init_txt_heap(void *ptab_base, acm_hdr_t *sinit)
 	 * since D/A mapping is the only supported by TPM2.0
 	 */
 
-	if ( g_tpm->major >= TPM20_VER_MAJOR ) {
-
-		/*
-		 * Bhushan :  assumption : we know our development environment is TPM 1.2
-		 */
-
-		out_info("ERROR: we dont expect to here");
-		while(1);
-	}   
+//	if ( g_tpm->major >= TPM20_VER_MAJOR ) {
+//
+//		/*
+//		 * Bhushan :  assumption : we know our development environment is TPM 1.2
+//		 */
+//
+//		out_info("ERROR: we dont expect to here");
+//		while(1);
+//	}   
 
 	/* Event log initialization */
 
@@ -740,11 +740,11 @@ int txt_launch_environment()
 		return 0;
 	}
 
-	/* deactivate current locality */
-	if (g_tpm_family == TPM_IF_20_CRB ) {
-		out_info("We dont expect to be here");
-		while(1);
-	}
+//	/* deactivate current locality */
+//	if (g_tpm_family == TPM_IF_20_CRB ) {
+//		out_info("We dont expect to be here");
+//		while(1);
+//	}
 
 	#ifndef NDEBUG
 	out_info("executing GETSEC[SENTER]...\n");

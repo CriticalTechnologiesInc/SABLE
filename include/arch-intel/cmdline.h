@@ -54,7 +54,7 @@ extern bool get_tboot_call_racm(void);
 extern bool get_tboot_call_racm_check(void);
 extern bool get_tboot_ignore_prev_err(void);
 extern bool get_tboot_measure_nv(void);
-extern void get_tboot_extpol(void);
+//extern void get_tboot_extpol(void);
 
 /* for parse cmdline of linux kernel, say vga and mem */
 extern void linux_parse_cmdline(const char *cmdline);

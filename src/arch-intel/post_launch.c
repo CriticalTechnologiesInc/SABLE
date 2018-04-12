@@ -305,21 +305,24 @@ void shutdown(void)
 
 	/* ensure localities 0, 1 are inactive (in case kernel used them) */
 	/* request TPM current locality to be active */
-	if (g_tpm_family != TPM_IF_20_CRB ) {
-		if (!release_locality(0))
-			out_info("Release TPM FIFO locality 0 failed");
-		if (!release_locality(1))
-		out_info("Release TPM FIFO locality 1 failed");
-	if (!tpm_wait_cmd_ready(g_tpm->cur_loc))
-		out_info("Request TPM FIFO locality failed");
-	} else {
-		if (!tpm_relinquish_locality_crb(0))
-			out_info("Release TPM CRB locality 0 failed");
-		if (!tpm_relinquish_locality_crb(1))	              
-			out_info("Release TPM CRB locality 1 failed");
-		if (!tpm_request_locality_crb(g_tpm->cur_loc))
-			out_info("Request TPM CRB locality failed");
-	}
+	
+	/* TODO: Replace these calls with SABLE TPM Driver */
+
+//	if (g_tpm_family != TPM_IF_20_CRB ) {
+//		if (!release_locality(0))
+//			out_info("Release TPM FIFO locality 0 failed");
+//		if (!release_locality(1))
+//		out_info("Release TPM FIFO locality 1 failed");
+//	if (!tpm_wait_cmd_ready(g_tpm->cur_loc))
+//		out_info("Request TPM FIFO locality failed");
+//	} else {
+//		if (!tpm_relinquish_locality_crb(0))
+//			out_info("Release TPM CRB locality 0 failed");
+//		if (!tpm_relinquish_locality_crb(1))	              
+//			out_info("Release TPM CRB locality 1 failed");
+//		if (!tpm_request_locality_crb(g_tpm->cur_loc))
+//			out_info("Request TPM CRB locality failed");
+//	}
 
 	if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 ) {
 		/* restore DMAR table if needed */
@@ -339,13 +342,13 @@ void shutdown(void)
 	if (is_launched()) {
 
 		/* cap PCRs to ensure no follow-on code can access sealed data */
-		g_tpm->cap_pcrs(g_tpm, g_tpm->cur_loc, -1);
+//		g_tpm->cap_pcrs(g_tpm, g_tpm->cur_loc, -1);
 
 		/* have TPM save static PCRs (in case VMM/kernel didn't) */
 		/* per TCG spec, TPM can invalidate saved state if any other TPM
 		   operation is performed afterwards--so do this last */
-		if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 )
-			g_tpm->save_state(g_tpm, g_tpm->cur_loc);
+//		if ( _tboot_shared.shutdown_type == TB_SHUTDOWN_S3 )
+//			g_tpm->save_state(g_tpm, g_tpm->cur_loc);
 
 		/* scrub any secrets by clearing their memory, then flush cache */
 		/* we don't have any secrets to scrub, however */

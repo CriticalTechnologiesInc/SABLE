@@ -233,13 +233,13 @@ int platform_pre_checks() {
 		return 0;
 	}
 
-	/* make TPM ready for measured launch */
-	if (!tpm_detect()) {
-		out_info("Failed to detect TPM");
-		return 0;
-	} else {
-		out_info("TPM is detected and initialized");
-	}
+//	/* make TPM ready for measured launch */
+//	if (!tpm_detect()) {
+//		out_info("Failed to detect TPM");
+//		return 0;
+//	} else {
+//		out_info("TPM is detected and initialized");
+//	}
 
 	/* verify SE enablement status */
 	verify_IA32_se_svn_status();
@@ -261,14 +261,14 @@ int platform_pre_checks() {
 		return 0;
 	}
 
-	if (!prepare_tpm_intel()) {
-		out_info("TPM is not ready for measured launch");
-		return 0;
-	} else {
-		#ifndef NDEBUG
-		out_info("TPM is ready for measured launch");
-		#endif
-	}
-
+//	if (!prepare_tpm_intel()) {
+//		out_info("TPM is not ready for measured launch");
+//		return 0;
+//	} else {
+//		#ifndef NDEBUG
+//		out_info("TPM is ready for measured launch");
+//		#endif
+//	}
+//
 	return 1;
 }
