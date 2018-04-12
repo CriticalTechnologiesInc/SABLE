@@ -28,20 +28,23 @@
  * Portions copyright (c) 2010, Intel Corporation
  */
 
+#define ENTRY(name)                             \
+  .globl name;                                  \
+  .align 16,0x90;                               \
+  name:
+
+#define __data     __attribute__ ((__section__ (".data")))
+#define __text     __attribute__ ((__section__ (".text")))
+#define __mlept    __attribute__ ((__section__ (".mlept")))
+
+#define __packed   __attribute__ ((packed))
 
 .code32
 
 /* stack offset of mutex pointer parameter */
 #define SOFF	8
 
-.macro  FUNCTION name
-	.section .text
-	.globl \name
-	\name:
-.endm
-
-
-FUNCTION mtx_init
+ENTRY(mtx_init)
 	pushl	%ebp
 	movl	%esp, %ebp
 	movl	SOFF(%ebp), %eax
@@ -50,7 +53,7 @@ FUNCTION mtx_init
 	leave
 	ret
 
-FUNCTION mtx_enter
+ENTRY(mtx_enter)
 	pushl	%ebp
 	movl	%esp, %ebp	
 1:	movl	SOFF(%ebp), %ecx
@@ -69,7 +72,7 @@ FUNCTION mtx_enter
 	jz	1b
 	jmp	2b
 
-FUNCTION mtx_leave
+ENTRY(mtx_leave)
 	pushl	%ebp
 	movl	%esp, %ebp
 	movl	SOFF(%ebp), %ecx
