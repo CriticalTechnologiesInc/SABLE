@@ -1101,8 +1101,17 @@ void txt_cpu_wakeup(void)
 	//	return;
 	//}
 
-	while(cpuid-1 != atomic_read(&ap_wfs_count))
-	   wait(500);
+	int timeout = 50;
+	while(cpuid-1 != atomic_read(&ap_wfs_count) && timeout > 0)
+	{
+		wait(100);
+		timeout--;
+	}
+	if(timeout == 0)
+	{
+		while(cpuid-2 != atomic_read(&ap_wfs_count) && timeout > 0)
+			wait(100);
+	}
 
 	//mtx_enter(&ap_lock);
 
