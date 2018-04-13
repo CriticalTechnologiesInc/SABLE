@@ -181,85 +181,85 @@ static void *remove_module(loader_ctx *lctx, void *mod_start)
     return NULL;
 }
 
-static bool 
-find_module(loader_ctx *lctx, void **base, size_t *size,
-            const void *data, size_t len)
-{
-    if ( lctx == NULL || lctx->addr == NULL) {
-        out_info("Error: context pointer is zero.\n");
-        return false;
-    }
-
-    if ( base == NULL ) {
-        out_info("Error: base is NULL.\n");
-        return false;
-    }
-
-    *base = NULL;
-    if ( size != NULL )
-        *size = 0;
-
-    if ( 0 == get_module_count(lctx)) {
-        out_info("Error: no module.\n");
-        return false;
-    }
-
-    for ( unsigned int i = get_module_count(lctx) - 1; i > 0; i-- ) {
-        module_t *m = get_module(lctx, i);
-        /* check size */
-        size_t mod_size = m->mod_end - m->mod_start;
-        if ( len > mod_size ) {
-            out_info("Error: image size is smaller than data size.\n");
-            return false;
-        }
-        if ( memcmp((void *)m->mod_start, data, len) == 0 ) {
-            *base = (void *)m->mod_start;
-            if ( size != NULL )
-                *size = mod_size;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool 
-find_lcp_module(loader_ctx *lctx, void **base, uint32_t *size)
-{
-    size_t size2 = 0;
-    void *base2 = NULL;
-
-    if ( base != NULL )
-        *base = NULL;
-    if ( size != NULL )
-        *size = 0;
-
-    /* try policy data file for old version (0x00 or 0x01) */
-    find_module_by_uuid(lctx, &base2, &size2, &((uuid_t)LCP_POLICY_DATA_UUID));
-
-    /* not found */
-    if ( base2 == NULL ) {
-        /* try policy data file for new version (0x0202) */
-        find_module_by_file_signature(lctx, &base2, &size2,
-                                      LCP_POLICY_DATA_FILE_SIGNATURE);
-
-        if ( base2 == NULL ) {
-            out_info(TBOOT_WARN"no LCP module found\n");
-            return false;
-        }
-        else
-            out_info(TBOOT_INFO"v2 LCP policy data found\n");
-    }
-    else
-        out_info(TBOOT_INFO"v1 LCP policy data found\n");
-
-
-    if ( base != NULL )
-        *base = base2;
-    if ( size != NULL )
-        *size = size2;
-    return true;
-}
+//static bool 
+//find_module(loader_ctx *lctx, void **base, size_t *size,
+//            const void *data, size_t len)
+//{
+//    if ( lctx == NULL || lctx->addr == NULL) {
+//        out_info("Error: context pointer is zero.\n");
+//        return false;
+//    }
+//
+//    if ( base == NULL ) {
+//        out_info("Error: base is NULL.\n");
+//        return false;
+//    }
+//
+//    *base = NULL;
+//    if ( size != NULL )
+//        *size = 0;
+//
+//    if ( 0 == get_module_count(lctx)) {
+//        out_info("Error: no module.\n");
+//        return false;
+//    }
+//
+//    for ( unsigned int i = get_module_count(lctx) - 1; i > 0; i-- ) {
+//        module_t *m = get_module(lctx, i);
+//        /* check size */
+//        size_t mod_size = m->mod_end - m->mod_start;
+//        if ( len > mod_size ) {
+//            out_info("Error: image size is smaller than data size.\n");
+//            return false;
+//        }
+//        if ( memcmp((void *)m->mod_start, data, len) == 0 ) {
+//            *base = (void *)m->mod_start;
+//            if ( size != NULL )
+//                *size = mod_size;
+//            return true;
+//        }
+//    }
+//
+//    return false;
+//}
+//
+//bool 
+//find_lcp_module(loader_ctx *lctx, void **base, uint32_t *size)
+//{
+//    size_t size2 = 0;
+//    void *base2 = NULL;
+//
+//    if ( base != NULL )
+//        *base = NULL;
+//    if ( size != NULL )
+//        *size = 0;
+//
+//    /* try policy data file for old version (0x00 or 0x01) */
+//    find_module_by_uuid(lctx, &base2, &size2, &((uuid_t)LCP_POLICY_DATA_UUID));
+//
+//    /* not found */
+//    if ( base2 == NULL ) {
+//        /* try policy data file for new version (0x0202) */
+//        find_module_by_file_signature(lctx, &base2, &size2,
+//                                      LCP_POLICY_DATA_FILE_SIGNATURE);
+//
+//        if ( base2 == NULL ) {
+//            out_info(TBOOT_WARN"no LCP module found\n");
+//            return false;
+//        }
+//        else
+//            out_info(TBOOT_INFO"v2 LCP policy data found\n");
+//    }
+//    else
+//        out_info(TBOOT_INFO"v1 LCP policy data found\n");
+//
+//
+//    if ( base != NULL )
+//        *base = base2;
+//    if ( size != NULL )
+//        *size = size2;
+//    return true;
+//}
 
 /*
  * remove (all) SINIT and LCP policy data modules (if present)
@@ -288,14 +288,14 @@ remove_txt_modules(loader_ctx *lctx)
         }
     }
 
-    void *base = NULL;
-    if ( find_lcp_module(lctx, &base, NULL) ) {
-        if ( remove_module(lctx, base) == NULL ) {
-            out_info("failed to remove LCP module from module list\n");
-            return 1;
-        }
-    }
-
+//    void *base = NULL;
+//    if ( find_lcp_module(lctx, &base, NULL) ) {
+//        if ( remove_module(lctx, base) == NULL ) {
+//            out_info("failed to remove LCP module from module list\n");
+//            return 1;
+//        }
+//    }
+//
     return 0;
 }
 
@@ -412,17 +412,17 @@ bool launch_kernel(bool is_measured_launch)
     return jump_linux_image(kernel_entry_point);
 }
 
-/*
- * find_module_by_uuid
- *
- * find a module by its uuid
- *
- */
-bool find_module_by_uuid(loader_ctx *lctx, void **base, size_t *size,
-                         const uuid_t *uuid)
-{
-    return find_module(lctx, base, size, uuid, sizeof(*uuid));
-}
+///*
+// * find_module_by_uuid
+// *
+// * find a module by its uuid
+// *
+// */
+//bool find_module_by_uuid(loader_ctx *lctx, void **base, size_t *size,
+//                         const uuid_t *uuid)
+//{
+//    return find_module(lctx, base, size, uuid, sizeof(*uuid));
+//}
 
 /*
  * find_module_by_file_signature
@@ -430,14 +430,14 @@ bool find_module_by_uuid(loader_ctx *lctx, void **base, size_t *size,
  * find a module by its file signature
  *
  */
-bool 
-find_module_by_file_signature(loader_ctx *lctx, void **base,
-                              size_t *size, const char* file_signature)
-{
-    return find_module(lctx, base, size, 
-                       file_signature, strlen(file_signature));
-}
-
+//bool 
+//find_module_by_file_signature(loader_ctx *lctx, void **base,
+//                              size_t *size, const char* file_signature)
+//{
+//    return find_module(lctx, base, size, 
+//                       file_signature, strlen(file_signature));
+//}
+//
 bool 
 verify_modules(loader_ctx *lctx)
 {
