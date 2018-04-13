@@ -14,10 +14,10 @@
 #include "tboot.h"
 #include "acpi.h"
 
-int tpm_detect(void);
+//int tpm_detect(void);
 extern void txt_display_errors(void);
 extern int txt_prepare_cpu(void);
-extern int prepare_tpm_intel(void);
+//extern int prepare_tpm_intel(void);
 
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
@@ -195,11 +195,11 @@ int txt_verify_platform(void)
 {
 	txt_heap_t *txt_heap;
 
-	/* check TXT supported */
-	if (!supports_txt()) {
-		out_info("txt_verify_platform : support_txt error");
-		return 0;
-	}
+//	/* check TXT supported */
+//	if (!supports_txt()) {
+//		out_info("txt_verify_platform : support_txt error");
+//		return 0;
+//	}
 
 	if (!vtd_bios_enabled() ) {
 		out_info("txt_verify_platform : vtd_bios_enabled error");
@@ -223,8 +223,8 @@ int txt_verify_platform(void)
 	return 1;
 } 
 
-int txt_is_launched(void);
-void intel_post_launch(void);
+//int txt_is_launched(void);
+//void intel_post_launch(void);
 
 int platform_pre_checks() {
 	/* need to verify that platform supports TXT before we can check error */	
@@ -249,8 +249,6 @@ int platform_pre_checks() {
 
 	/* need to verify that platform can perform measured launch */
 	if (txt_verify_platform()) {
-		out_info("Platform is ready for measured launch");
-	} else {
 		out_info("Platform is NOT ready for measured launch");
 		return 0;
 	}

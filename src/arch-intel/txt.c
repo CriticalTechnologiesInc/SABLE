@@ -803,14 +803,14 @@ int txt_prepare_cpu(void){
 	out_info("CR0 and EFLAGS OK");
 	#endif
 
-	/*
-	 * verify that we're not already in a protected environment
-	 */
+//	/*
+//	 * verify that we're not already in a protected environment
+//	 */
 
-	if (txt_is_launched()) {
-		out_info("already in protected environment");
-		return 0;
-	}
+//	if (txt_is_launched()) {
+//		out_info("already in protected environment");
+//		return 0;
+//	}
 
 	/*
 	 * verify all machine check status registers are clear (unless
@@ -842,24 +842,24 @@ int txt_prepare_cpu(void){
 		}
 	}
 
-	if (params.preserve_mce){
-		#ifndef NDEBUG
-		out_info("supports preserving machine check errors");
-		#endif
-	}else{
-		out_info("no machine check errors");
-	}
+//	if (params.preserve_mce){
+//		#ifndef NDEBUG
+//		out_info("supports preserving machine check errors");
+//		#endif
+//	}else{
+//		out_info("no machine check errors");
+//	}
 
-	if (params.proc_based_scrtm){
-		#ifndef NDEBUG
-		out_info("CPU support processor-based S-CRTM");
-		#endif
-	}
+//	if (params.proc_based_scrtm){
+//		#ifndef NDEBUG
+//		out_info("CPU support processor-based S-CRTM");
+//		#endif
+//	}
 
-	/* all is well with the processor state */
-	#ifndef NDEBUG
-	out_info("CPU is ready for SENTER");
-	#endif
+//	/* all is well with the processor state */
+//	#ifndef NDEBUG
+//	out_info("CPU is ready for SENTER");
+//	#endif
 
 	return 1;
 }
