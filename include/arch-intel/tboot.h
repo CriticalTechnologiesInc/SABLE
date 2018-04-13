@@ -128,17 +128,17 @@ typedef struct __packed {
 /*
  * used to log tboot printk output
  */
-#define ZIP_COUNT_MAX 10
-typedef struct {
-    uuid_t     uuid;
-    uint16_t   max_size;
-    uint16_t   curr_pos;
-    uint16_t   zip_pos[ZIP_COUNT_MAX];
-    uint16_t   zip_size[ZIP_COUNT_MAX];
-    uint8_t    zip_count;
-    char       buf[];
-} tboot_log_t;
-
+//#define ZIP_COUNT_MAX 10
+//typedef struct {
+//    uuid_t     uuid;
+//    uint16_t   max_size;
+//    uint16_t   curr_pos;
+//    uint16_t   zip_pos[ZIP_COUNT_MAX];
+//    uint16_t   zip_size[ZIP_COUNT_MAX];
+//    uint8_t    zip_count;
+//    char       buf[];
+//} tboot_log_t;
+//
 /* {C0192526-6B30-4db4-844C-A3E953B88174} */
 #define TBOOT_LOG_UUID   {0xc0192526, 0x6b30, 0x4db4, 0x844c, \
                              {0xa3, 0xe9, 0x53, 0xb8, 0x81, 0x74 }}

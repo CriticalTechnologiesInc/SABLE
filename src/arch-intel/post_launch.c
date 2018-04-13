@@ -123,7 +123,7 @@ extern void txt_post_launch(void);
 void intel_post_launch(void){
 	out_info("We are in post launch processing --  Measured launch succeeded");
 	uint64_t base, size;
-	tboot_log_t *g_log;
+//	tboot_log_t *g_log;
 	extern void shutdown_entry(void);
 
 	/* init MLE/kernel shared data page early, .num_in_wfs used in ap wakeup*/
@@ -176,22 +176,22 @@ void intel_post_launch(void){
 		out_info("e820_protect_region succeeded!\n");
 	}
 
-	/*
-	 * Bhushan: we can remove memory code
-	 * tboot uses it to keep logs in memory if corresponding command line option is enabled
-	 */
+//	/*
+//	 * Bhushan: we can remove memory code
+//	 * tboot uses it to keep logs in memory if corresponding command line option is enabled
+//	 */
 
-	/* if using memory logging, reserve log area */
-        base = TBOOT_SERIAL_LOG_ADDR;
-        size = TBOOT_SERIAL_LOG_SIZE;
-        out_info("reserving tboot memory log in e820 table\n");
-        if ( !e820_protect_region(base, size, E820_RESERVED) ){
-          out_info("Error: e820_protect_region2 failed!\n");
-        }else{
-	  #ifndef NDEBUG
-          out_info("e820_protect_region2 succeeded!\n");
-	  #endif
-	}
+//	/* if using memory logging, reserve log area */
+//        base = TBOOT_SERIAL_LOG_ADDR;
+//        size = TBOOT_SERIAL_LOG_SIZE;
+//        out_info("reserving tboot memory log in e820 table\n");
+//        if ( !e820_protect_region(base, size, E820_RESERVED) ){
+//          out_info("Error: e820_protect_region2 failed!\n");
+//        }else{
+//	  #ifndef NDEBUG
+//          out_info("e820_protect_region2 succeeded!\n");
+//	  #endif
+//	}
 
 	/* replace map in loader context with copy */
 	replace_e820_map(g_ldr_ctx);
@@ -204,32 +204,32 @@ void intel_post_launch(void){
 	/*
 	 * init MLE/kernel shared data page
 	 */
-	g_log = (tboot_log_t *)TBOOT_SERIAL_LOG_ADDR;
-	g_log->uuid = (uuid_t)TBOOT_LOG_UUID;
-	g_log->curr_pos = 0;
-	g_log->zip_count = 0;
-	for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_pos[i] = 0;
-	for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_size[i] = 0;
-
-	/* initialize these post-launch as well, since bad/malicious values */
-	/* could compromise environment */
-	g_log = (tboot_log_t *)TBOOT_SERIAL_LOG_ADDR;
-	g_log->max_size = TBOOT_SERIAL_LOG_SIZE - sizeof(*g_log);
-
-	/* if we're calling this post-launch, verify that curr_pos is valid */
-	if ( g_log->zip_pos[g_log->zip_count] > g_log->max_size ){
-		g_log->curr_pos = 0;
-		g_log->zip_count = 0;
-		for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_pos[i] = 0;
-		for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_size[i] = 0;
-	}
-	if ( g_log->curr_pos > g_log->max_size )
-		g_log->curr_pos = g_log->zip_pos[g_log->zip_count];
-
+//	g_log = (tboot_log_t *)TBOOT_SERIAL_LOG_ADDR;
+//	g_log->uuid = (uuid_t)TBOOT_LOG_UUID;
+//	g_log->curr_pos = 0;
+//	g_log->zip_count = 0;
+//	for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_pos[i] = 0;
+//	for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_size[i] = 0;
+//
+//	/* initialize these post-launch as well, since bad/malicious values */
+//	/* could compromise environment */
+//	g_log = (tboot_log_t *)TBOOT_SERIAL_LOG_ADDR;
+//	g_log->max_size = TBOOT_SERIAL_LOG_SIZE - sizeof(*g_log);
+//
+//	/* if we're calling this post-launch, verify that curr_pos is valid */
+//	if ( g_log->zip_pos[g_log->zip_count] > g_log->max_size ){
+//		g_log->curr_pos = 0;
+//		g_log->zip_count = 0;
+//		for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_pos[i] = 0;
+//		for ( uint8_t i = 0; i < ZIP_COUNT_MAX; i++ ) g_log->zip_size[i] = 0;
+//	}
+//	if ( g_log->curr_pos > g_log->max_size )
+//		g_log->curr_pos = g_log->zip_pos[g_log->zip_count];
+//
 	memset(&_tboot_shared, 0, PAGE_SIZE);
 	_tboot_shared.uuid = (uuid_t)TBOOT_SHARED_UUID;
     	_tboot_shared.version = 6;
-	_tboot_shared.log_addr = (uint32_t)g_log;
+//	_tboot_shared.log_addr = (uint32_t)g_log;
 	_tboot_shared.shutdown_entry = (uint32_t)shutdown_entry;
 	_tboot_shared.tboot_base = (uint32_t)&_start;
 	_tboot_shared.tboot_size = (uint32_t)&_end - (uint32_t)&_start;
