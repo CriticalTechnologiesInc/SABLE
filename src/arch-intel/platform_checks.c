@@ -248,7 +248,7 @@ int platform_pre_checks() {
 	txt_display_errors();
 
 	/* need to verify that platform can perform measured launch */
-	if (txt_verify_platform()) {
+	if (!txt_verify_platform()) {
 		out_info("Platform is NOT ready for measured launch");
 		return 0;
 	}
