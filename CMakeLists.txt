@@ -203,6 +203,7 @@ set_target_properties (sable-Intel
   PROPERTIES
   LINK_FLAGS
     "-Wl,-gc-sections \
+    -Wl,--strip-all \
     -m32 \
     -nostdlib \
     -Wl,--build-id=none \
@@ -212,6 +213,9 @@ set_target_properties (sable-Intel
   COMPILE_FLAGS
     "-D__ARCH_INTEL__ \
     -Wno-main \
+    -fsplit-wide-types \
+    -fcrossjumping \
+    -mtune=generic -fmerge-constants -ftree-ter \
     -fno-builtin \
     -nostdlib \
     -fno-stack-protector \
