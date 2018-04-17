@@ -478,7 +478,17 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
- 
+
+  out_string("Waiting 1 second");
+  wait(1000);
+  /*
+  Jeremy: SABLE keeps randomly rebooting. Sometimes it works, sometimes it doesnt
+  Although I'm not 100% certain, I believe these reboots don't happen if I throw a
+  "wait" or "WAIT_FOR_INPUT" in somewhere. I think we need to pause briefly, although
+  I'm not sure why. I know AMD has to at somepoint
+  */
+
+
 #ifdef __ARCH_INTEL__
   if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
      out_string("ERROR: Not a system bootstrap processor\n");

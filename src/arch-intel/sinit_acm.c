@@ -156,8 +156,7 @@ int is_acmod(const void *acmod_base, uint32_t acmod_size, uint8_t *type)
 	return 1;
 }
 
-int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
-{                   
+int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size){
 	uint8_t type;
 
 	if (!is_acmod(acmod_base, acmod_size, &type))
@@ -166,13 +165,11 @@ int is_sinit_acmod(const void *acmod_base, uint32_t acmod_size)
 	if (type != ACM_CHIPSET_TYPE_SINIT) {
 		out_description("ACM is not an SINIT ACM :", type);
 		return 0;
-	}         
+	}
 	return 1;
-} 
- 
-struct module *get_module_mb1(struct mbi *m, unsigned int i)
-{
-	
+}
+
+struct module *get_module_mb1(struct mbi *m, unsigned int i){
 	if (m == NULL) {
 		out_string("Error: mbi pointer is zero.\n");
 		return NULL;
@@ -487,141 +484,139 @@ acm_hdr_t *copy_sinit(const acm_hdr_t *sinit)
 }
 
 
-//int verify_acmod(const acm_hdr_t *acm_hdr)
-//{
-//	getsec_parameters_t params;
-//	uint32_t size;
-//
-//	/* assumes this already passed is_acmod() test */
-//
-//	size = acm_hdr->size * 4;        /* hdr size is in dwords, we want bytes */
-//
-//	/*
-//	* AC mod must start on 4k page boundary
-//	*/
-//
-//	if ((unsigned long)acm_hdr & 0xfff) {
-//		out_description("AC mod base not 4K aligned", (unsigned int) acm_hdr);
-//		return 0;
-//	}
-//	out_info("AC mod base alignment OK");
-//
-//	/* AC mod size must:
-//	 * - be multiple of 64
-//	 * - greater than ???
-//	 * - less than max supported size for this processor
-//	*/
-//
-//	if ((size == 0) || ((size % 64) != 0)) {
-//		out_description("AC MOD size is not multiple of 64", size);
-//		return 0;
-//	}
-//
-//	if (!get_parameters(&params)) {
-//		out_info("get_parameters() failed");
-//		return 0;
-//	}
-//
-//	if (size > params.acm_max_size) {
-//		out_description("AC mod size too large:", size);
-//		out_description("max size", params.acm_max_size);
-//		return 0;
-//	}
-//
-//	out_info("AC mod size OK");
-//
-//	/*
-//	 * perform checks on AC mod structure
-//	 */
-//
-//	/* entry point is offset from base addr so make sure it is within module */
-//	if (acm_hdr->entry_point >= size ) {
-//		out_description("AC mod entry ", acm_hdr->entry_point);
-//		out_description(" >= AC mod size", size);
-//		return 0;
-//	}
-//
-//	/* overflow? */
-//	if (plus_overflow_u32(acm_hdr->seg_sel, 8)) {
-//		out_info("seg_sel plus 8 overflows");
-//		return 0;
-//	}
-//
-//	if (!acm_hdr->seg_sel           ||       /* invalid selector */
-//	    (acm_hdr->seg_sel & 0x07)   ||       /* LDT, PL!=0 */
-//	    (acm_hdr->seg_sel + 8 > acm_hdr->gdt_limit) ) {
-//		out_description("AC mod selectorbogus", acm_hdr->seg_sel);
-//		return 0;
-//	}
-//
-//	/*
-//	 * check for compatibility with this MLE
-//	 */
-//
-//	acm_info_table_t *info_table = get_acmod_info_table(acm_hdr);
-//	if (info_table == NULL) {
-//		out_info("info table NULL");
-//		return 0;
-//	}
-//
-//	/* check MLE header versions */
-//
-//	/* I guess this check is tboot specific and we can remove it once we will have getsec[SENTER] code running */
-//	if (info_table->min_mle_hdr_ver > MLE_HDR_VER) {
-//		out_description("AC mod requires a newer MLE", info_table->min_mle_hdr_ver);
-//		return 0;
-//	}
-//
-//	/* check capabilities */
-//	/* we need to match one of rlp_wake_{getsec, monitor} */
-//	txt_caps_t caps_mask = { 0 };
-//	caps_mask.rlp_wake_getsec = caps_mask.rlp_wake_monitor = 1;
-//
-//	if (((MLE_HDR_CAPS & caps_mask._raw) & (info_table->capabilities._raw & caps_mask._raw)) == 0) {
-//		out_info("SINIT and MLE not support compatible RLP wake mechanisms");
-//		return 0;
-//	}
-//	/* we also expect ecx_pgtbl to be set */
-//	if (!info_table->capabilities.ecx_pgtbl) {
-//		out_info("SINIT does not support launch with MLE pagetable in ECX");
-//		/* TODO when SINIT ready
-//		 * return false;
-//		 */
-//	}
-//
-//	/* check for version of OS to SINIT data */
-//	/* we don't support old versions */
-//
-//	if ( info_table->os_sinit_data_ver < MIN_OS_SINIT_DATA_VER ) {
-//		out_description("SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
-//		return 0;
-//	}
-//	/* only warn if SINIT supports more recent version than us */
-//	else if ( info_table->os_sinit_data_ver > MAX_OS_SINIT_DATA_VER ) {
-//		out_description("WORNING: SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
-//	}
-//
-//	return 1;
-//}
-//
+int verify_acmod(const acm_hdr_t *acm_hdr)
+{
+	getsec_parameters_t params;
+	uint32_t size;
+
+	/* assumes this already passed is_acmod() test */
+
+	size = acm_hdr->size * 4;        /* hdr size is in dwords, we want bytes */
+	/*
+	* AC mod must start on 4k page boundary
+	*/
+
+	if ((unsigned long)acm_hdr & 0xfff) {
+		out_description("AC mod base not 4K aligned", (unsigned int) acm_hdr);
+		return 0;
+	}
+	out_info("AC mod base alignment OK");
+
+	/* AC mod size must:
+	 * - be multiple of 64
+	 * - greater than ???
+	 * - less than max supported size for this processor
+	*/
+	if ((size == 0) || ((size % 64) != 0)) {
+		out_description("AC MOD size is not multiple of 64", size);
+		return 0;
+	}
+
+	if (!get_parameters(&params)) {
+		out_info("get_parameters() failed");
+		return 0;
+	}
+
+	if (size > params.acm_max_size) {
+		out_description("AC mod size too large:", size);
+		out_description("max size", params.acm_max_size);
+		return 0;
+	}
+
+	out_info("AC mod size OK");
+
+	/*
+	 * perform checks on AC mod structure
+	 */
+
+	/* entry point is offset from base addr so make sure it is within module */
+	if (acm_hdr->entry_point >= size ) {
+		out_description("AC mod entry ", acm_hdr->entry_point);
+		out_description(" >= AC mod size", size);
+		return 0;
+	}
+
+	/* overflow? */
+	if (plus_overflow_u32(acm_hdr->seg_sel, 8)) {
+		out_info("seg_sel plus 8 overflows");
+		return 0;
+	}
+
+	if (!acm_hdr->seg_sel           ||       /* invalid selector */
+	    (acm_hdr->seg_sel & 0x07)   ||       /* LDT, PL!=0 */
+	    (acm_hdr->seg_sel + 8 > acm_hdr->gdt_limit) ) {
+		out_description("AC mod selectorbogus", acm_hdr->seg_sel);
+		return 0;
+	}
+
+	/*
+	 * check for compatibility with this MLE
+	 */
+
+	acm_info_table_t *info_table = get_acmod_info_table(acm_hdr);
+	if (info_table == NULL) {
+		out_info("info table NULL");
+		return 0;
+	}
+
+	/* check MLE header versions */
+
+	/* I guess this check is tboot specific and we can remove it once we will have getsec[SENTER] code running */
+	if (info_table->min_mle_hdr_ver > MLE_HDR_VER) {
+		out_description("AC mod requires a newer MLE", info_table->min_mle_hdr_ver);
+		return 0;
+	}
+
+	/* check capabilities */
+	/* we need to match one of rlp_wake_{getsec, monitor} */
+	txt_caps_t caps_mask = { 0 };
+	caps_mask.rlp_wake_getsec = caps_mask.rlp_wake_monitor = 1;
+
+	if (((MLE_HDR_CAPS & caps_mask._raw) & (info_table->capabilities._raw & caps_mask._raw)) == 0) {
+		out_info("SINIT and MLE not support compatible RLP wake mechanisms");
+		return 0;
+	}
+	/* we also expect ecx_pgtbl to be set */
+	if (!info_table->capabilities.ecx_pgtbl) {
+		out_info("SINIT does not support launch with MLE pagetable in ECX");
+		/* TODO when SINIT ready
+		 * return false;
+		 */
+	}
+
+	/* check for version of OS to SINIT data */
+	/* we don't support old versions */
+
+	if ( info_table->os_sinit_data_ver < MIN_OS_SINIT_DATA_VER ) {
+		out_description("SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
+		return 0;
+	}
+	/* only warn if SINIT supports more recent version than us */
+	else if ( info_table->os_sinit_data_ver > MAX_OS_SINIT_DATA_VER ) {
+		out_description("WORNING: SINIT's os_sinit_data version unsupported", info_table->os_sinit_data_ver);
+	}
+
+	return 1;
+}
+
 
 int prepare_sinit_acm(struct mbi *m) {
 	void *base2=NULL;
-//	/* TODO : Bhushan : we can remove s_sinit check */
-////	if (g_sinit != NULL) {
-////
-//		/*
-//		 * Just temporary workaround
-//		 * Bhushan : in post launch we dont need to check for SINIT ACM module
-//		 * we expect g_sinit to be initialized already in pre_launch and skip 
-//		 * current search. ATTENTION we are assuming this is expected and retuning true.
-//		 * this might hide potential bugs. Have a closer look.
-//		 */
-//
-//		out_info("ATTENTION : g_sinit is already intialized ..skipping SINIT operation");	
-//		return 1;
-//	}
-//
+
+	if (g_sinit != NULL) {
+
+		/*
+		 * Just temporary workaround
+		 * Bhushan : in post launch we dont need to check for SINIT ACM module
+		 * we expect g_sinit to be initialized already in pre_launch and skip 
+		 * current search. ATTENTION we are assuming this is expected and retuning true.
+		 * this might hide potential bugs. Have a closer look.
+		 */
+
+		out_info("ATTENTION : g_sinit is already intialized ..skipping SINIT operation");	
+		return 1;
+	}
+
 	/*
 	 * Step 1 : find SINIT ACM and match with platform in module list
 	 */
@@ -641,29 +636,21 @@ int prepare_sinit_acm(struct mbi *m) {
 	/*
 	 * Step 2 : check BIOS already has newer SINIT ACM
 	 */
-	
+
 	g_sinit = copy_sinit(base2);
 
 	if (g_sinit == NULL) {
 		out_info("ERROR : No SINIT ACM found");
 		return 0;
 	} 
-//	else {
-//		out_info("SINIT is copied at BIOS provided region");
-//	}
-
 
 	/*
 	 * Step 3 : check SINIT is according to the requirements of SENTER
 	 */
 
-	/*
-	 * TODO : Bhushan : we can remove verify acmod and corresponding code
-	 */
-//
-//	if (!verify_acmod(g_sinit)) {
-//		return 0;	
-//	}
+	if (!verify_acmod(g_sinit)) {
+		return 0;
+	}
 
 	out_info("Verification of SINIT ACM : done");
 	return 1;
