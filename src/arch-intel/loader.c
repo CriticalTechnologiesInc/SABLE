@@ -40,7 +40,6 @@
 #include "util.h"
 #include <uuid.h>
 #include "loader.h"
-#include <lcp3.h>
 #include <e820.h>
 #include <elf_defns.h>
 #include <linux_defns.h>
