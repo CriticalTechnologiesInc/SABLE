@@ -14,10 +14,9 @@
 #include "tboot.h"
 #include "acpi.h"
 
-//int tpm_detect(void);
+int tpm_detect(void);
 extern void txt_display_errors(void);
 extern int txt_prepare_cpu(void);
-//extern int prepare_tpm_intel(void);
 
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
@@ -196,10 +195,10 @@ int txt_verify_platform(void)
 	txt_heap_t *txt_heap;
 
 //	/* check TXT supported */
-//	if (!supports_txt()) {
-//		out_info("txt_verify_platform : support_txt error");
-//		return 0;
-//	}
+	if (!supports_txt()) {
+		out_info("txt_verify_platform : support_txt error");
+		return 0;
+	}
 
 	if (!vtd_bios_enabled() ) {
 		out_info("txt_verify_platform : vtd_bios_enabled error");
@@ -234,12 +233,12 @@ int platform_pre_checks() {
 	}
 
 //	/* make TPM ready for measured launch */
-//	if (!tpm_detect()) {
-//		out_info("Failed to detect TPM");
-//		return 0;
-//	} else {
-//		out_info("TPM is detected and initialized");
-//	}
+	if (!tpm_detect()) {
+		out_info("Failed to detect TPM");
+		return 0;
+	} else {
+		out_info("TPM is detected and initialized");
+	}
 
 	/* verify SE enablement status */
 	verify_IA32_se_svn_status();
@@ -259,14 +258,5 @@ int platform_pre_checks() {
 		return 0;
 	}
 
-//	if (!prepare_tpm_intel()) {
-//		out_info("TPM is not ready for measured launch");
-//		return 0;
-//	} else {
-//		#ifndef NDEBUG
-//		out_info("TPM is ready for measured launch");
-//		#endif
-//	}
-//
 	return 1;
 }

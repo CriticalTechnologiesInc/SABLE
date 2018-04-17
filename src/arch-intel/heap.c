@@ -160,6 +160,7 @@ void print_event(const tpm12_pcr_event_t *evt)
 
 static void print_evt_log(const event_log_container_t *elog)
 {
+	#ifdef NDEBUG
 	out_info("Event Log Container");
 	/* Bhushan: This can cause screen to go black as signature might not contain null char at end */
 	out_info("\t\t\t     Signature:");
@@ -183,6 +184,9 @@ static void print_evt_log(const event_log_container_t *elog)
 		print_event(curr);
 		curr = (void *)curr + sizeof(*curr) + curr->data_size;
 	}
+        wait(3000);
+        #endif
+
 }
 
 static int verify_evt_log(const event_log_container_t *elog)
@@ -244,13 +248,19 @@ static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 
 static void print_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 {
+	#ifdef NDEBUG
 	out_info("ERROR : printing not supported : heap_ext_data_element_t");
+        wait(3000);
+	#endif
 }
 
 
 static void print_evt_log_ptr_elt_2_1(const heap_ext_data_element_t *elt)
 {
-	out_info("ERROR: Printing not supported : heap_ext_data_element_t");
+	#ifdef NDEBUG
+	out_info("ERROR : printing not supported : heap_ext_data_element_t");
+        wait(3000);
+	#endif
 }
 
 
@@ -449,6 +459,9 @@ static bool verify_os_mle_data(const txt_heap_t *txt_heap)
 	/* field checks */
 	if (os_mle_data->lctx_addr == NULL ) {
 		out_info("REMOVE THIS CODE : OS to MLE data loader context addr field is NULL");
+		#ifdef NDEBUG
+		wait(3000);
+		#endif
 		// return 0;
 	}
 

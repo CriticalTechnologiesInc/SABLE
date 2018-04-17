@@ -157,6 +157,9 @@ struct acpi_rsdp *get_rsdp()
 	if (rsdp != NULL)
 		return rsdp;
 	out_info("EORROR : RSDP not found");
+        #ifdef NDEBUG
+        wait(4000);
+        #endif
 	return NULL;
 }
 

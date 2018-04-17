@@ -121,4 +121,7 @@ void txt_display_errors(void)
 		out_info("ERROR : need attention");
 	}
 	out_description64("TXT.E2STS", e2sts._raw);
+        #ifdef NDEBUG
+	wait(3000);
+	#endif
 }
