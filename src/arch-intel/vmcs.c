@@ -41,7 +41,6 @@
 #include <page.h>
 #include <platform.h>
 #include <processor.h>
-#include <printk.h>
 #include <uuid.h>
 #include <loader.h>
 #include <mutex.h>

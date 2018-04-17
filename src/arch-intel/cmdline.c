@@ -32,26 +32,19 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-//#ifndef IS_INCLUDED
-//#include <stdbool.h>
-//#include <compiler.h>
-//#include <string.h>
-//#include <mle.h>
-//#include <txt/mtrrs.h>
-//#include <multiboot.h>
-//#include <txt/config_regs.h>
-//#endif
 #include <types.h>
 #include "util.h"
 #include "uuid.h"
 #include <cmdline.h>
 #include <misc.h>
 #include <tboot.h>
-//#include <heap.h>
-#include <printk.h>
 #include <ctype.h>
 #include <intel_tpm.h>
 #include <config.h>
+
+#include <com.h>
+
+extern serial_port_t g_com_port;
 
 serial_port_t g_com_port = {115200, 0, 0x3, COM1_ADDR}; /* com1,115200,8n1 */
 
@@ -214,21 +207,6 @@ static const cmdline_option_t g_linux_cmdline_options[] = {
 };
 static char g_linux_param_values[ARRAY_SIZE(g_linux_cmdline_options)][MAX_VALUE_LEN];
 
-typedef struct {
-    const char *log_name;
-    uint8_t    log_val;
-} tb_loglvl_map_t;
-
-/* map */
-static const tb_loglvl_map_t g_loglvl_map[] = {
-    { "none",  TBOOT_LOG_LEVEL_NONE  },
-    { "err",   TBOOT_LOG_LEVEL_ERR   },
-    { "warn",  TBOOT_LOG_LEVEL_WARN  },
-    { "info",  TBOOT_LOG_LEVEL_INFO  },
-    { "detail",TBOOT_LOG_LEVEL_DETA  },
-    { "all",   TBOOT_LOG_LEVEL_ALL   },
-};
-
 static const char* get_option_val(const cmdline_option_t *options,  char vals[][MAX_VALUE_LEN],    const char *opt_name)
 {
     for ( int i = 0; options[i].name != NULL; i++ ) {
@@ -303,106 +281,6 @@ void linux_parse_cmdline(const char *cmdline)
 {
     cmdline_parse(cmdline, g_linux_cmdline_options, g_linux_param_values);
 }
-
-uint8_t get_loglvl_prefix(char **pbuf, int *len)
-{
-    uint8_t log_level = TBOOT_LOG_LEVEL_ALL;
-
-    if ( *len > 2 && **pbuf == '<' && *(*pbuf+2) == '>'
-                  && isdigit(*(*pbuf+1)) ) {
-        unsigned int i = *(*pbuf+1) - '0';
-        if ( i < ARRAY_SIZE(g_loglvl_map) )
-            log_level = g_loglvl_map[i].log_val;
-        *pbuf += 3;
-        *len = *len - 3;
-    }
-
-    return log_level;
-}
-
-//void get_tboot_loglvl(void)
-//{
-//    const char *loglvl = get_option_val(g_tboot_cmdline_options,
-//                                        g_tboot_param_values, "loglvl");
-//    if ( loglvl == NULL )
-//        return;
-//
-//    /* determine whether the target is set explicitly */
-//    while ( isspace(*loglvl) )
-//        loglvl++;
-//
-//    g_log_level = TBOOT_LOG_LEVEL_NONE;
-//
-//    while ( *loglvl != '\0' ) {
-//        unsigned int i;
-//
-//        for ( i = 0; i < ARRAY_SIZE(g_loglvl_map); i++ ) {
-//            if ( strncmp(loglvl, g_loglvl_map[i].log_name,
-//                     strlen(g_loglvl_map[i].log_name)) == 0 ) {
-//                loglvl += strlen(g_loglvl_map[i].log_name);
-//
-//                if ( g_loglvl_map[i].log_val == TBOOT_LOG_LEVEL_NONE ) {
-//                    g_log_level = TBOOT_LOG_LEVEL_NONE;
-//                    return;
-//                }
-//                else {
-//                    g_log_level |= g_loglvl_map[i].log_val;
-//                    break;
-//                }
-//            }
-//        }
-//
-//        if ( i == ARRAY_SIZE(g_loglvl_map) )
-//            break; /* unrecognized, end loop */
-//
-//        /* skip ',' */
-//        if ( *loglvl == ',' )
-//            loglvl++;
-//        else
-//            break; /* unrecognized, end loop */
-//    }
-//}
-//
-//void get_tboot_log_targets(void)
-//{
-//    const char *targets = get_option_val(g_tboot_cmdline_options,
-//                                         g_tboot_param_values, "logging");
-//
-//    /* nothing set, leave defaults */
-//    if ( targets == NULL || *targets == '\0' )
-//        return;
-//
-//    /* determine if no targets set explicitly */
-//    if ( strcmp(targets, "none") == 0 ) {
-//        g_log_targets = TBOOT_LOG_TARGET_NONE; /* print nothing */
-//        return;
-//    }
-//
-//    /* else init to nothing and parse the possible targets */
-//    g_log_targets = TBOOT_LOG_TARGET_NONE;
-//
-//    while ( *targets != '\0' ) {
-//        if ( strncmp(targets, "memory", 6) == 0 ) {
-//            g_log_targets |= TBOOT_LOG_TARGET_MEMORY;
-//            targets += 6;
-//        }
-//        else if ( strncmp(targets, "serial", 6) == 0 ) {
-//            g_log_targets |= TBOOT_LOG_TARGET_SERIAL;
-//            targets += 6;
-//        }
-//        else if ( strncmp(targets, "vga", 3) == 0 ) {
-//            g_log_targets |= TBOOT_LOG_TARGET_VGA;
-//            targets += 3;
-//        }
-//        else 
-//            break; /* unrecognized, end loop */
-//
-//        if ( *targets == ',' )
-//            targets++;
-//        else
-//            break; /* unrecognized, end loop */
-//    }
-//}
 
 static bool parse_pci_bdf(const char **bdf, uint32_t *bus, uint32_t *slot,
                           uint32_t *func)

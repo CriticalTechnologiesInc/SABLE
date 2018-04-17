@@ -59,7 +59,6 @@ typedef struct __packed {
     uint8_t   reserved[7];
 } sinit_mdr_t;
 #include <verify.h>
-#include <printk.h>
 
 extern loader_ctx *g_ldr_ctx;
 RESULT post_launch(struct mbi *m);
