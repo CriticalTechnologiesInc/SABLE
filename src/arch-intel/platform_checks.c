@@ -16,6 +16,7 @@
 
 extern void txt_display_errors(void);
 extern int txt_prepare_cpu(void);
+extern void dump_state(void);
 
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
@@ -219,6 +220,11 @@ int txt_verify_platform(void)
 //void intel_post_launch(void);
 
 int platform_pre_checks() {
+	#ifdef NDEBUG
+	print_cpu_state();
+	dump_state();
+	WAIT_FOR_INPUT();
+	#endif
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
 		out_info("ERROR: This platform does not support TXT");

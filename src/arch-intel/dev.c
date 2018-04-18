@@ -102,66 +102,6 @@ unsigned pci_find_device_per_class(unsigned short class) {
 }
 
 
-void myprintf(const char *fmt, char ch, unsigned high_base, unsigned base,
-              unsigned high_size, unsigned size) {
-  UNUSED(fmt); // to suppress a warning
-
-  out_char(ch);
-  out_hex(high_base, 31);
-  out_char('_');
-  out_hex(base, 31);
-  out_char(' ');
-  out_hex(high_size, 31);
-  out_char('_');
-  out_hex(size, 31);
-  out_char('\n');
-}
-
-/**
- * Print pci bars.
- */
-void pci_print_bars(unsigned addr, unsigned count) {
-  unsigned bars[6];
-  unsigned masks[6];
-
-  // disable device
-  short cmd = pci_read_word_aligned(addr + 0x4);
-  pci_write_word_aligned(addr + 0x4, 0);
-
-  // read bars and masks
-  for (unsigned i = 0; i < count; i++) {
-    unsigned a = addr + 0x10 + i * 4;
-    bars[i] = pci_read_long(a);
-    pci_write_long(a, ~0);
-    masks[i] = ~pci_read_long(a);
-    pci_write_long(a, bars[i]);
-  }
-  // reenable device
-  pci_write_word_aligned(addr + 0x4, cmd);
-
-  for (unsigned i = 0; i < count; i++) {
-    unsigned base, high_base = 0;
-    unsigned size, high_size = 0;
-    char ch;
-    if (bars[i] & 0x1) {
-      base = bars[i] & 0xfffe;
-      size = (masks[i] & 0xfffe) | 1 | base;
-      ch = 'i';
-    } else {
-      ch = 'm';
-      base = bars[i] & ~0xf;
-      size = masks[i] | 0xf | base;
-      if ((bars[i] & 0x6) == 4 && i < 5) {
-        high_base = bars[i + 1];
-        high_size = masks[i + 1] | high_base;
-        i++;
-      }
-    }
-    if (base)
-      myprintf("    %c: %#x%x/%#x%x", ch, high_base, base, high_size, size);
-  }
-}
-
 /**
  * Iterate over all devices in the pci config space.
  */

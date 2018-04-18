@@ -58,7 +58,7 @@ void determine_loader_type_context(void *addr, uint32_t magic);
 
 int platform_pre_checks();
 int txt_launch_environment();
-void print_mbi(struct mbi *mbi);
+//void print_mbi(struct mbi *mbi);
 
 // Result generators
 RESULT_GEN(TPM_NONCE);
