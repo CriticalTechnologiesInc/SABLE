@@ -751,6 +751,7 @@ int txt_launch_environment()
 	out_description("SINIT BASE BASE :", (unsigned int) g_sinit);
 	out_description("SINIT SIZE :", (unsigned int) (g_sinit->size)*4);
 	print_cpu_state();
+        WAIT_FOR_INPUT();
 	#endif
 
 	__getsec_senter((uint32_t)g_sinit, (g_sinit->size)*4);

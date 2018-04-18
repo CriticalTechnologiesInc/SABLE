@@ -53,21 +53,6 @@ void out_hex64(unsigned long long value) {
 }
 
 
-/**
- * Output a single hex value.
- */
-void str_hex(char *str, unsigned value, unsigned bitlen) {
-  int i;
-  for (i = bsr(value | 1 << bitlen) & 0xfc; i >= 0; i -= 4) {
-    unsigned a = (value >> i) & 0xf;
-    if (a >= 10)
-      a += 7;
-    a += 0x30;
-
-    *(str++) = a;
-  }
-}
-
 #ifndef NDEBUG
 void dump_exception(EXCEPTION e) {
   out_string(message_label);
