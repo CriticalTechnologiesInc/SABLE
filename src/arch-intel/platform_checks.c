@@ -14,7 +14,6 @@
 #include "tboot.h"
 #include "acpi.h"
 
-int tpm_detect(void);
 extern void txt_display_errors(void);
 extern int txt_prepare_cpu(void);
 
@@ -230,14 +229,6 @@ int platform_pre_checks() {
 	if (!supports_txt()) {
 		out_info("ERROR: This platform does not support TXT");
 		return 0;
-	}
-
-//	/* make TPM ready for measured launch */
-	if (!tpm_detect()) {
-		out_info("Failed to detect TPM");
-		return 0;
-	} else {
-		out_info("TPM is detected and initialized");
 	}
 
 	/* verify SE enablement status */
