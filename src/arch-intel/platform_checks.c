@@ -193,12 +193,6 @@ int txt_verify_platform(void)
 {
 	txt_heap_t *txt_heap;
 
-//	/* check TXT supported */
-	if (!supports_txt()) {
-		out_info("txt_verify_platform : support_txt error");
-		return 0;
-	}
-
 	if (!vtd_bios_enabled() ) {
 		out_info("txt_verify_platform : vtd_bios_enabled error");
 		return 0;
