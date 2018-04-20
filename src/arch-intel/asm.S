@@ -38,11 +38,6 @@
 #define TBOOT_START 0x0804000
 #define CR4_MCE 0x00000040
 
-/* OsSinitData field offsets */
-#define TXT_PRIV_CONFIG_REGS_BASE	0xfed20000
-#define TXTCR_HEAP_BASE			0x0300
-#define MLE_PGTBL_OFF			8
-
 /* From http://fxr.watson.org/fxr/source/i386/include/param.h */
 #define PAGE_SHIFT       12                 /* LOG2(PAGE_SIZE) */
 #define PAGE_SIZE        (1 << PAGE_SHIFT)  /* bytes/page */
