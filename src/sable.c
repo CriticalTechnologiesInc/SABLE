@@ -522,11 +522,6 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
     	while(1);
   }
 #endif
-
-
-//  RESULT tpm = prepare_tpm();
-//  THROW(tpm.exception);
-
 #ifdef __ARCH_AMD__
   RESULT_(UINT32) cpuid = check_cpuid();
   THROW(cpuid.exception);

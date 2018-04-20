@@ -138,7 +138,6 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/arch-intel/asm.S
   ${PROJECT_SOURCE_DIR}/src/arch-intel/amd.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/dev.c
-  ${PROJECT_SOURCE_DIR}/src/arch-intel/mp.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/sinit_acm.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/txt.c
   ${PROJECT_SOURCE_DIR}/src/alloc.c
@@ -154,7 +153,6 @@ add_executable (sable-Intel
   ${PROJECT_SOURCE_DIR}/src/tpm_struct.c
   ${PROJECT_SOURCE_DIR}/src/util.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/platform_checks.c
-  ${PROJECT_SOURCE_DIR}/src/arch-intel/intel_tpm.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/errors.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/acpi.c
   ${PROJECT_SOURCE_DIR}/src/arch-intel/heap.c

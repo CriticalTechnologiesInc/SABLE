@@ -165,7 +165,6 @@ static __inline char *strchr(const char *p, int ch)
  * copy of original command line
  * part of tboot measurement (hence in .text section)
  */
-//__text char g_cmdline[CMDLINE_SIZE] = { 0 };
 
 /* Used for kernel command line parameter setup */
 typedef struct {
@@ -429,16 +428,6 @@ bool get_tboot_serial(void)
     return parse_serial_param(serial);
 }
 
-//void get_tboot_vga_delay(void)
-//{
-//    const char *vga_delay = get_option_val(g_tboot_cmdline_options,
-//                                           g_tboot_param_values, "vga_delay");
-//    if ( vga_delay == NULL )
-//        return;
-//
-//    g_vga_delay = strtoul(vga_delay, NULL, 0);
-//}
-
 bool get_tboot_prefer_da(void)
 {
     const char *value = get_option_val(g_tboot_cmdline_options,
@@ -495,34 +484,6 @@ bool get_tboot_measure_nv(void)
         return false;
     return true;
 }
-
-//void get_tboot_extpol(void)
-//{
-//    const char *extpol = get_option_val(g_tboot_cmdline_options, g_tboot_param_values, "extpol");
-//
-//    if ( extpol == NULL ) {
-//        g_tpm->extpol = TB_EXTPOL_FIXED;
-//        g_tpm->cur_alg = TB_HALG_SHA256;
-//        return;
-//    }
-//
-//    if ( strcmp(extpol, "agile") == 0 ) {
-//        g_tpm->extpol = TB_EXTPOL_AGILE;
-//        g_tpm->cur_alg = TB_HALG_SHA256;
-//    } else if ( strcmp(extpol, "embedded") == 0 ) {
-//        g_tpm->extpol = TB_EXTPOL_EMBEDDED;
-//        g_tpm->cur_alg = TB_HALG_SHA256;
-//    } else if ( strcmp(extpol, "sha256") == 0 ) {
-//        g_tpm->extpol = TB_EXTPOL_FIXED;
-//        g_tpm->cur_alg = TB_HALG_SHA256;
-//    } else if ( strcmp(extpol, "sha1") == 0 ) {
-//        g_tpm->extpol = TB_EXTPOL_FIXED;
-//        g_tpm->cur_alg = TB_HALG_SHA1;
-//    } else if ( strcmp(extpol, "sm3") == 0 ) {
-//        g_tpm->extpol = TB_EXTPOL_FIXED;
-//        g_tpm->cur_alg = TB_HALG_SM3;
-//    }
-//}
 
 bool get_tboot_ignore_prev_err(void)
 {
