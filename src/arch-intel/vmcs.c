@@ -48,7 +48,7 @@
 #include <tboot.h>
 #include <txt.h>
 #include <vmcs.h>
-
+#include "keyboard.h"
 
 /* no vmexit on external intr as mini guest only handle INIT & SIPI */
 #define MONITOR_PIN_BASED_EXEC_CONTROLS                 \
@@ -557,9 +557,11 @@ void handle_init_sipi_sipi(unsigned int cpuid)
 
     /* 2: setup VMCS */
     out_info("Create vmx\n");
+    out_string("about to leave mutex\n");
+   WAIT_FOR_INPUT();
     if ( vmx_create_vmcs(cpuid) ) {
         mtx_leave(&ap_lock);
-
+	out_string("just left mutex\n");
         /* 3: launch VM */
         out_info("Launch\n");
         launch_mini_guest(cpuid);

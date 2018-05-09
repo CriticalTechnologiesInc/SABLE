@@ -643,6 +643,7 @@ static void txt_wakeup_cpus(void)
 		#ifndef NDEBUG
 		out_info("joining RLPs to MLE with MONITOR wakeup");
 		out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
+		WAIT_FOR_INPUT();
 		#endif
 
 		*((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
@@ -654,6 +655,7 @@ static void txt_wakeup_cpus(void)
 		__getsec_wakeup();
 		#ifndef NDEBUG
 		out_info("GETSEC[WAKEUP] completed");
+                WAIT_FOR_INPUT();
 		#endif
 	}
 
@@ -674,23 +676,28 @@ static void txt_wakeup_cpus(void)
 	uint32_t timeout = AP_WFS_TIMEOUT;
 	out_description("Timeout = ", timeout);
 	do {
-		if (timeout % 0x8000 == 0)
+		if (timeout % 0x8000 == 0){
 			out_info(".");
-		else
+		}else{
 			cpu_relax();
+		}
 		if (timeout % 0x200000 == 0)
 		{
 			out_description("ap_wfs_count = ",atomic_read(&ap_wfs_count));
 			out_description("timeout = ",timeout);
+//			WAIT_FOR_INPUT();
+//			wait(500);
 			out_info("\n");
 		}
 		timeout--;
 	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
 	out_info("\n");
-	if (timeout == 0)
+	if (timeout == 0){
 		out_info("wait-for-sipi loop timed-out");
-	else
+	}else{
 		out_info("all APs in wait-for-sipi");
+		WAIT_FOR_INPUT();
+	}
 }
 
 int txt_is_launched(void)
@@ -1088,13 +1095,14 @@ void txt_cpu_wakeup(void)
 	uint64_t madt_apicbase, msr_apicbase;
 	unsigned int cpuid = get_apicid();
 
-	//  TODO we can get rid of this commented code right? We already check
-	//  for NR_CPUS somewhere else. Someone double check please and remove if true
 
-	//if (cpuid >= NR_CPUS) {
-	//	out_description("cpuid exceeds # supported CPUs. id", cpuid);
-	//	return;
-	//}
+	if (cpuid >= NR_CPUS) {
+		out_description("cpuid exceeds # supported CPUs. id", cpuid);
+		return;
+	}
+
+	mtx_enter(&ap_lock);
+
 
 	int timeout = 50;
 	while(cpuid-1 != atomic_read(&ap_wfs_count) && timeout > 0)
@@ -1108,7 +1116,6 @@ void txt_cpu_wakeup(void)
 			wait(100);
 	}
 
-	//mtx_enter(&ap_lock);
 
 	#ifndef NDEBUG
 	out_description("cpu waking up from TXT sleep :", cpuid);
