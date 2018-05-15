@@ -643,7 +643,6 @@ static void txt_wakeup_cpus(void)
 		#ifndef NDEBUG
 		out_info("joining RLPs to MLE with MONITOR wakeup");
 		out_description("rlp_wakeup_addr ", sinit_mle_data->rlp_wakeup_addr);
-		WAIT_FOR_INPUT();
 		#endif
 
 		*((uint32_t *)(unsigned long)(sinit_mle_data->rlp_wakeup_addr)) = 0x01;
@@ -655,7 +654,6 @@ static void txt_wakeup_cpus(void)
 		__getsec_wakeup();
 		#ifndef NDEBUG
 		out_info("GETSEC[WAKEUP] completed");
-                WAIT_FOR_INPUT();
 		#endif
 	}
 
@@ -685,8 +683,6 @@ static void txt_wakeup_cpus(void)
 		{
 			out_description("ap_wfs_count = ",atomic_read(&ap_wfs_count));
 			out_description("timeout = ",timeout);
-//			WAIT_FOR_INPUT();
-//			wait(500);
 			out_info("\n");
 		}
 		timeout--;
@@ -696,7 +692,6 @@ static void txt_wakeup_cpus(void)
 		out_info("wait-for-sipi loop timed-out");
 	}else{
 		out_info("all APs in wait-for-sipi");
-		WAIT_FOR_INPUT();
 	}
 }
 
@@ -1101,21 +1096,8 @@ void txt_cpu_wakeup(void)
 		return;
 	}
 
-	mtx_enter(&ap_lock);
-
-
-	int timeout = 50;
-	while(cpuid-1 != atomic_read(&ap_wfs_count) && timeout > 0)
-	{
-		wait(100);
-		timeout--;
-	}
-	if(timeout == 0)
-	{
-		while(cpuid-2 != atomic_read(&ap_wfs_count) && timeout > 0)
-			wait(100);
-	}
-
+//	mtx_enter(&ap_lock);
+	for(int i=0;i<cpuid*250000;i++){}
 
 	#ifndef NDEBUG
 	out_description("cpu waking up from TXT sleep :", cpuid);
