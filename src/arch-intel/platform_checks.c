@@ -13,10 +13,12 @@
 #include "arch-intel/heap.h"
 #include "tboot.h"
 #include "acpi.h"
+#include "keyboard.h"
 
 extern void txt_display_errors(void);
 extern int txt_prepare_cpu(void);
 extern void dump_state(void);
+extern void print_cpu_state(void);
 
 static unsigned long g_feat_ctrl_msr;
 static unsigned int g_cpuid_ext_feat_info;
@@ -61,7 +63,9 @@ static int read_processor_info(void)
 	if ((g_cpuid_ext_feat_info & CPUID_X86_FEATURE_VMX) ||
 	    (g_cpuid_ext_feat_info & CPUID_X86_FEATURE_SMX)) {
 		g_feat_ctrl_msr = rdmsr(MSR_IA32_FEATURE_CONTROL);
+		#ifndef NDEBUG
 		out_description("IA32_FEATURE_CONTROL_MSR:", g_feat_ctrl_msr);
+		#endif
 	}
 	return 1;
 }
@@ -157,7 +161,9 @@ int supports_txt(void)
 	cap = __getsec_capabilities(0);
 	if (cap.chipset_present) {
 		if (cap.senter && cap.sexit && cap.parameters && cap.smctrl && cap.wakeup) {
+			#ifndef NDEBUG
 			out_info("TXT chipset and all needed capabilities present");
+			#endif
 			return 1;
 		}
 		else
@@ -179,7 +185,9 @@ void verify_IA32_se_svn_status(){
 
 	//check if SGX is enabled by cpuid with ax=7, cx=0 
 	if ((cpuid_ebx1(7,0) & 0x00000004) == 0){
+		#ifndef NDEBUG
 		out_description("SGX is not enabled, cpuid.ebx", cpuid_ebx1(7,0));
+		#endif
 		return;
 	}
 	out_info("SGX is enabled : We dont support that right now");
@@ -220,11 +228,13 @@ int txt_verify_platform(void)
 //void intel_post_launch(void);
 
 int platform_pre_checks() {
-	#ifdef NDEBUG
+
+	#ifndef NDEBUG
 	print_cpu_state();
 	dump_state();
 	WAIT_FOR_INPUT();
 	#endif
+
 	/* need to verify that platform supports TXT before we can check error */	
 	if (!supports_txt()) {
 		out_info("ERROR: This platform does not support TXT");

@@ -120,7 +120,8 @@ static void copy_s3_wakeup_entry(void)
 extern void txt_post_launch(void);
 
 void intel_post_launch(void){
-	out_info("We are in post launch processing --  Measured launch succeeded");
+
+	out_info("Measured launch succeeded");
 	uint64_t base, size;
 	extern void shutdown_entry(void);
 
@@ -143,35 +144,47 @@ void intel_post_launch(void){
 	if(err)	{
 		out_info("Error: txt_protect_mem_regions failed!\n");
 	} else {
+		#ifndef NDEBUG
 		out_info("txt_protect_mem_regions succeeded!\n");
+		#endif
 	}
 
 	/* ensure all modules are in RAM */
 	if (!verify_modules(g_ldr_ctx) )	{
 		out_info("Error: verify_modules failed!\n");
 	} else {
+		#ifndef NDEBUG
 		out_info("verify_modules succeeded!\n");
+		#endif
 	}
 
 	/* verify that tboot is in valid RAM (i.e. E820_RAM) */
 	base = (uint64_t)TBOOT_BASE_ADDR;
 	size = (uint64_t)((unsigned long)&_end - base);
+	#ifndef NDEBUG
 	out_info("verifying tboot and its page table in e820 table\n\t");
+	#endif
 	if ( e820_check_region(base, size) != E820_RAM ) {
 		out_info(": failed.\n");
 	} else {
+		#ifndef NDEBUG
 		out_info(": succeeded.\n");
+		#endif
 	}
 
 	/* protect ourselves, MLE page table, and MLE/kernel shared page */
 	base = (uint64_t)TBOOT_BASE_ADDR;
 	size = (uint64_t)get_tboot_mem_end() - base;
 	uint32_t mem_type = E820_RESERVED;
+	#ifndef NDEBUG
 	out_info("protecting tboot in e820 table\n");
+	#endif
 	if ( !e820_protect_region(base, size, mem_type) ){
 		out_info("Error: e820_protect_region failed!\n");
 	}else{
+		#ifndef NDEBUG
 		out_info("e820_protect_region succeeded!\n");
+		#endif
 	}
 
 	/* replace map in loader context with copy */
@@ -179,6 +192,7 @@ void intel_post_launch(void){
 
 	#ifndef NDEBUG
 	out_info("adjusted e820 map:");
+	wait(3000);
 	print_e820_map();
 	#endif
 

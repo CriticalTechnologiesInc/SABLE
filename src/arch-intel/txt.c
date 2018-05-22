@@ -134,7 +134,9 @@ int get_parameters(getsec_parameters_t *params)
 
 	/* testing for chipset support requires enabling SMX on the processor */
 	write_cr4(read_cr4() | CR4_SMXE);
+	#ifndef NDEBUG
 	out_info("Remove this code : SMX is enabled"); // TODO ??
+	#endif
 
 	// END
 
@@ -260,6 +262,7 @@ static __text const mle_hdr_t g_mle_hdr = {
 atomic_t ap_wfs_count;
 static void print_file_info(void)
 {
+	#ifndef NDEBUG
 	out_info("file addresses:");
 	out_description("&_start=", (unsigned int)&__start);
 	out_description("&_end=", (unsigned int)&_end);
@@ -268,10 +271,12 @@ static void print_file_info(void)
 	out_description("&_post_launch_entry=", (unsigned int)&_skinit);
 	out_description("&_txt_wakeup=", (unsigned int)&_txt_wakeup);
 	out_description("&g_mle_hdr=", (unsigned int)&g_mle_hdr);
+	#endif
 }
 
 static void print_mle_hdr(const mle_hdr_t *mle_hdr)
 {
+	#ifndef NDEBUG
 	out_info("MLE header:");
 	out_info("uuid=");
 	print_uuid(&mle_hdr->uuid); 
@@ -282,6 +287,7 @@ static void print_mle_hdr(const mle_hdr_t *mle_hdr)
 	out_description("mle_start_off :", mle_hdr->mle_start_off);
 	out_description("mle_end_off :", mle_hdr->mle_end_off);
 	print_txt_caps(mle_hdr->capabilities);
+	#endif
 }
 
 /*
@@ -669,30 +675,41 @@ static void txt_wakeup_cpus(void)
 		ap_wakeup_count = NR_CPUS - 1;
 	}
 
+	#ifndef NDEBUG
 	out_description("waiting for all APs to enter wait-for-sipi... count : ", ap_wakeup_count);
+	#endif
 	/* wait for all APs that woke up to have entered wait-for-sipi */
 	uint32_t timeout = AP_WFS_TIMEOUT;
+	#ifndef NDEBUG
 	out_description("Timeout = ", timeout);
+	#endif
 	do {
 		if (timeout % 0x8000 == 0){
+	#ifndef NDEBUG
 			out_info(".");
+	#endif
 		}else{
 			cpu_relax();
 		}
 		if (timeout % 0x200000 == 0)
 		{
+	#ifndef NDEBUG
 			out_description("ap_wfs_count = ",atomic_read(&ap_wfs_count));
 			out_description("timeout = ",timeout);
 			out_info("\n");
+	#endif
 		}
 		timeout--;
 	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
+
+	#ifndef NDEBUG
 	out_info("\n");
 	if (timeout == 0){
 		out_info("wait-for-sipi loop timed-out");
 	}else{
 		out_info("all APs in wait-for-sipi");
 	}
+	#endif
 }
 
 int txt_is_launched(void)
@@ -982,7 +999,7 @@ int txt_post_launch_verify_platform(void)
 		return 1;
 
 	return 0;
-}                        
+}
 
 void txt_post_launch(void)
 {
@@ -1005,6 +1022,7 @@ void txt_post_launch(void)
 	txt_heap = get_txt_heap();
 	os_mle_data = get_os_mle_data_start(txt_heap);
 
+
 	/* clear error registers so that we start fresh */
 	write_priv_config_reg(TXTCR_ERRORCODE, 0x00000000);
 	write_priv_config_reg(TXTCR_ESTS, 0xffffffff);  /* write 1's to clear */
@@ -1016,7 +1034,9 @@ void txt_post_launch(void)
 	out_info("About to wakeup CPUs\n");
 	#endif
 
+
 	txt_wakeup_cpus();
+
 
 	/* restore pre-SENTER IA32_MISC_ENABLE_MSR (no verification needed)
 	   (do after AP wakeup so that if restored MSR has MWAIT clear it won't
@@ -1205,7 +1225,9 @@ int txt_protect_mem_regions(void){
         out_info("verification failed.\n");
         return -2;
     }
+    #ifndef NDEBUG
     out_info("verification succeeded.\n");
+    #endif
 
     return 0;
 }

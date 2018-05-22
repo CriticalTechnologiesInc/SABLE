@@ -199,7 +199,9 @@ remove_txt_modules(loader_ctx *lctx)
         void *base = (void *)m->mod_start;
 
         if ( is_sinit_acmod(base, m->mod_end - (unsigned long)base, true) ) {
+	    #ifndef NDEBUG
             out_description("got sinit match on module #", i);
+	    #endif
             if ( remove_module(lctx, base) == NULL ) {
                 out_info(
                        "failed to remove SINIT module from module list\n");
@@ -341,13 +343,17 @@ verify_modules(loader_ctx *lctx)
         m = get_module(lctx,i);
         base = m->mod_start;
         size = m->mod_end - m->mod_start;
+	#ifndef NDEBUG
         out_info("verifying module of mbi (in e820 table\n\t");
+	#endif
         if ( e820_check_region(base, size) != E820_RAM ) {
             out_info(": failed.\n");
             return false;
-        }
-        else
+        }else{
+	    #ifndef NDEBUG
             out_info(": succeeded.\n");
+	    #endif
+	}
     }
     return true;
 }
@@ -521,7 +527,9 @@ void replace_e820_map(loader_ctx *lctx)
 		mbi->mmap_addr = (uint32_t)get_e820_copy();
 		mbi->mmap_length = (get_nr_map()) * sizeof(memory_map_t);
 		mbi->flags |= MBI_MEMMAP;   /* in case only MBI_MEMLIMITS was set */
+		#ifndef NDEBUG
 		out_info("UPDATED E820 MAP with copy");
+		#endif
 		return;
 	} else {
 		out_info("We are not suppose to be here");

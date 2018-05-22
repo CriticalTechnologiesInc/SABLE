@@ -100,10 +100,12 @@ static int find_rsdp_in_range(void *start, void *end)
 
 			if (memcmp(rsdp->rsdp1.signature, RSDP_SIG, sizeof(rsdp->rsdp1.signature)) == 0) {
 				if (verify_acpi_checksum((uint8_t *)rsdp, RSDP_CHKSUM_LEN) ) {
+				#ifndef NDEBUG
 				out_info("RSDP :");
 				out_description("rsdp->rsdp1.revision", rsdp->rsdp1.revision);
 				out_description("rsdp->rsdp1.oemid", (unsigned int)rsdp->rsdp1.oemid);
 				out_description("rsdp", (unsigned int)rsdp);
+				#endif
 				return 1;
 			} else {
 				out_info("checksum failed.");
@@ -131,19 +133,25 @@ static int  find_rsdp(void)
 
 	if (ldr_rsdp != NULL){
 		rsdp = (struct acpi_rsdp *) ldr_rsdp;
+		#ifndef NDEBUG
 		out_info("rsdp found in loader contex");
+		#endif
 		return 1;
 	}
 
 	/*  0x00 - 0x400 */
 	if (find_rsdp_in_range(RSDP_SCOPE1_LOW, RSDP_SCOPE1_HIGH)) {
+		#ifndef NDEBUG
 		out_info("rsdp found in SCOPE 1");
+		#endif
 		return 1;
 	}
 
 	/* 0xE0000 - 0x100000 */
 	if (find_rsdp_in_range(RSDP_SCOPE2_LOW, RSDP_SCOPE2_HIGH)) {
+		#ifndef NDEBUG
 		out_info("rsdp found in SCOPE 2");
+		#endif
 		return 1;
 	}
 
