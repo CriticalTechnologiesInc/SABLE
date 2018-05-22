@@ -179,28 +179,66 @@ static bool start_vmx(unsigned int cpuid)
 
     /* enable paging using 1:1 page table [0, _end] */
     /* addrs outside of tboot (e.g. MMIO) are not mapped) */
+
+    #ifndef NDEBUG
     out_info("write 1\n");
+    #endif
+
     write_cr3((unsigned long)idle_pg_table);
+
+    #ifndef NDEBUG
     out_info("write 2\n");
+    #endif
+
     write_cr4(read_cr4() | CR4_PSE);
+
+    #ifndef NDEBUG
     out_info("read 3\n");
+    #endif
+
     read_cr0();
+
+    #ifndef NDEBUG
     out_info("write 3\n");
+    #endif
+
     write_cr0(read_cr0() | CR0_PG);
 
+    #ifndef NDEBUG
     out_info("__vmxon\n");
+    #endif
+
     if ( __vmxon((unsigned long)vmcs) ) {
+
+    #ifndef NDEBUG
         out_info("write 1\n");
+    #endif
+
         write_cr4(read_cr4() & ~CR4_VMXE);
+
+    #ifndef NDEBUG
         out_info("write 2\n");
+    #endif
+
         write_cr4(read_cr4() & ~CR4_PSE);
+
+    #ifndef NDEBUG
         out_info("write 3\n");
+    #endif
+
         write_cr0(read_cr0() & ~CR0_PG);
+
+    #ifndef NDEBUG
         out_description("VMXON failed for cpu ", cpuid);
+    #endif
+
         return false;
     }
 
+    #ifndef NDEBUG
     out_description("VMXON done for cpu ", cpuid);
+    #endif
+
     return true;
 }
 
@@ -443,7 +481,9 @@ static void launch_mini_guest(unsigned int cpuid)
 {
     unsigned long error;
 
+    #ifndef NDEBUG
     out_description("launching mini-guest for cpu ", cpuid);
+    #endif
 
     /* this is close enough to entering wait-for-sipi, so inc counter */
     atomic_inc((atomic_t *)&_tboot_shared.num_in_wfs);
@@ -539,28 +579,38 @@ void handle_init_sipi_sipi(unsigned int cpuid)
         return;
     }
 
+    #ifndef NDEBUG
     out_info("Dummy tss\n");
+    #endif
     /* setup a dummy tss as vmentry require a non-zero host TR */
     load_TR(3);
 
+    #ifndef NDEBUG
     out_info("Clear busy flag\n");
+    #endif
     /* clear the tss busy flag to avoid blocking other APs */
     RESET_TSS_DESC(3);
 
     /* prepare a guest for INIT-SIPI-SIPI handling */
     /* 1: setup VMX environment and VMXON */
+    #ifndef NDEBUG
     out_info("Start vmx\n");
+    #endif
     if ( !start_vmx(cpuid) ) {
         mtx_leave(&ap_lock);
         return;
     }
 
     /* 2: setup VMCS */
+    #ifndef NDEBUG
     out_info("Create vmx\n");
+    #endif
     if ( vmx_create_vmcs(cpuid) ) {
         mtx_leave(&ap_lock);
         /* 3: launch VM */
+    #ifndef NDEBUG
         out_info("Launch\n");
+    #endif
         launch_mini_guest(cpuid);
     }
 

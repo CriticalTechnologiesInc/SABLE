@@ -211,6 +211,7 @@ set_target_properties (sable-Intel
   COMPILE_FLAGS
     "-D__ARCH_INTEL__ \
     -Wno-main \
+    -DNDEBUG \
     -fsplit-wide-types \
     -fcrossjumping \
     -mtune=generic -fmerge-constants -ftree-ter \

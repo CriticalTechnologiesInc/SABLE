@@ -102,31 +102,39 @@ int is_acmod(const void *acmod_base, uint32_t acmod_size, uint8_t *type)
 
 	/* first check size */
 	if (acmod_size < sizeof(acm_hdr_t)) {
+		#ifndef NDEBUG
 		out_string("ACM size is too small\n");
 		out_description("acmod_size=",acmod_size);
 		out_description("sizeof(acm_hdr)=", (uint32_t)sizeof(acm_hdr));
+		#endif
 		return 0;
 	}
  
 	/* then check overflow */
 	if (multiply_overflow_u32(acm_hdr->size, 4)) {
+		#ifndef NDEBUG
 		out_string("ACM header size in bytes overflows\n");
+		#endif
 		return 0;
 	}
 
 	/* then check size equivalency */
 	if (acmod_size != acm_hdr->size * 4) {
+		#ifndef NDEBUG
 		out_string("\t ACM size is too smal");
 		out_description("acmod_size=", acmod_size);
 		out_description("acm_hdr->size*4=", acm_hdr->size*4);
+		#endif
 		return 0;
 	}
  
 	/* then check type and vendor */
-	if ((acm_hdr->module_type != ACM_TYPE_CHIPSET) || (acm_hdr->module_vendor != ACM_VENDOR_INTEL)) {\
+	if ((acm_hdr->module_type != ACM_TYPE_CHIPSET) || (acm_hdr->module_vendor != ACM_VENDOR_INTEL)) {
+		#ifndef NDEBUG
 		out_string("\t ACM type/vendor mismatch");
 		out_description("module_type=", acm_hdr->module_type);
 		out_description("module_vendor=", acm_hdr->module_vendor);
+		#endif
 		return 0;
 	}
 

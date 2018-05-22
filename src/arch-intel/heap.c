@@ -160,7 +160,7 @@ void print_event(const tpm12_pcr_event_t *evt)
 
 static void print_evt_log(const event_log_container_t *elog)
 {
-	#ifdef NDEBUG
+	#ifndef NDEBUG
 	out_info("Event Log Container");
 	/* Bhushan: This can cause screen to go black as signature might not contain null char at end */
 	out_info("\t\t\t     Signature:");
@@ -225,9 +225,11 @@ static void print_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 {
 	const heap_event_log_ptr_elt_t *elog_elt = (const heap_event_log_ptr_elt_t *)elt->data;
 
+	#ifndef NDEBUG
 	out_info("EVENT_LOG_POINTER");
 	out_description("size ", elt->size);
 	out_description64("elog_addr ", elog_elt->event_log_phys_addr);
+	#endif
 
 	if (elog_elt->event_log_phys_addr) {
 		print_evt_log((event_log_container_t *)(unsigned long) elog_elt->event_log_phys_addr);
@@ -248,7 +250,7 @@ static bool verify_evt_log_ptr_elt(const heap_ext_data_element_t *elt)
 
 static void print_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 {
-	#ifdef NDEBUG
+	#ifndef NDEBUG
 	out_info("ERROR : printing not supported : heap_ext_data_element_t");
         wait(3000);
 	#endif
@@ -257,7 +259,7 @@ static void print_evt_log_ptr_elt_2(const heap_ext_data_element_t *elt)
 
 static void print_evt_log_ptr_elt_2_1(const heap_ext_data_element_t *elt)
 {
-	#ifdef NDEBUG
+	#ifndef NDEBUG
 	out_info("ERROR : printing not supported : heap_ext_data_element_t");
         wait(3000);
 	#endif
@@ -275,7 +277,10 @@ static void print_ext_data_elts(const heap_ext_data_element_t elts[])
 {
 	const heap_ext_data_element_t *elt = elts;
 
+	#ifndef NDEBUG
 	out_info("ext_data_elts[]");
+	#endif
+
 	while (elt->type != HEAP_EXTDATA_TYPE_END) {
 		switch (elt->type) {
 			case HEAP_EXTDATA_TYPE_BIOS_SPEC_VER:
@@ -458,8 +463,8 @@ static bool verify_os_mle_data(const txt_heap_t *txt_heap)
 
 	/* field checks */
 	if (os_mle_data->lctx_addr == NULL ) {
+		#ifndef NDEBUG
 		out_info("REMOVE THIS CODE : OS to MLE data loader context addr field is NULL");
-		#ifdef NDEBUG
 		wait(3000);
 		#endif
 		// return 0;
@@ -493,6 +498,7 @@ uint64_t calc_os_sinit_data_size(uint32_t version)
 
 void print_os_sinit_data(const os_sinit_data_t *os_sinit_data)
 {
+	#ifndef NDEBUG
 	out_info("os_sinit_data");
 	out_description("os_sinit_data", (unsigned int)os_sinit_data);
 	out_description64("os_sinit_data - 1", *((uint64_t *)os_sinit_data - 1));
@@ -511,6 +517,8 @@ void print_os_sinit_data(const os_sinit_data_t *os_sinit_data)
 	if (os_sinit_data->version >= 5) {
 		out_description64("efi_rsdt_ptr", os_sinit_data->efi_rsdt_ptr);
 	}
+	#endif
+
 	if (os_sinit_data->version >= 6) {
 		print_ext_data_elts(os_sinit_data->ext_data_elts);
 	}
@@ -562,6 +570,7 @@ static bool verify_os_sinit_data(const txt_heap_t *txt_heap)
 
 static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
 {
+	#ifndef NDEBUG
 	out_info("sinit_mle_data");
 	out_description("sinit_mle_data", (int unsigned)sinit_mle_data);
 	out_description("version:", sinit_mle_data->version);
@@ -587,6 +596,7 @@ static void print_sinit_mle_data(const sinit_mle_data_t *sinit_mle_data)
 		out_description("proc_scrtm_status ", sinit_mle_data->proc_scrtm_status);
 	if (sinit_mle_data->version >= 9)
 		print_ext_data_elts(sinit_mle_data->ext_data_elts);
+	#endif
 }
 
 static bool verify_sinit_mle_data(const txt_heap_t *txt_heap)

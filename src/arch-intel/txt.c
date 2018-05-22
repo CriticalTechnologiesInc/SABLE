@@ -669,30 +669,40 @@ static void txt_wakeup_cpus(void)
 		ap_wakeup_count = NR_CPUS - 1;
 	}
 
+	#ifndef NDEBUG
 	out_description("waiting for all APs to enter wait-for-sipi... count : ", ap_wakeup_count);
+	#endif
 	/* wait for all APs that woke up to have entered wait-for-sipi */
 	uint32_t timeout = AP_WFS_TIMEOUT;
+	#ifndef NDEBUG
 	out_description("Timeout = ", timeout);
+	#endif
 	do {
 		if (timeout % 0x8000 == 0){
+	#ifndef NDEBUG
 			out_info(".");
+	#endif
 		}else{
 			cpu_relax();
 		}
 		if (timeout % 0x200000 == 0)
 		{
+	#ifndef NDEBUG
 			out_description("ap_wfs_count = ",atomic_read(&ap_wfs_count));
 			out_description("timeout = ",timeout);
 			out_info("\n");
+	#endif
 		}
 		timeout--;
 	} while ((atomic_read(&ap_wfs_count) < ap_wakeup_count) && timeout > 0);
 	out_info("\n");
+	#ifndef NDEBUG
 	if (timeout == 0){
 		out_info("wait-for-sipi loop timed-out");
 	}else{
 		out_info("all APs in wait-for-sipi");
 	}
+	#endif
 }
 
 int txt_is_launched(void)
@@ -1205,7 +1215,9 @@ int txt_protect_mem_regions(void){
         out_info("verification failed.\n");
         return -2;
     }
+    #ifndef NDEBUG
     out_info("verification succeeded.\n");
+    #endif
 
     return 0;
 }

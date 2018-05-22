@@ -277,9 +277,12 @@ bool copy_e820_map(loader_ctx *lctx)
 		out_info("BHUSHAN: VERIFY: attention copping e820");
 		uint32_t memmap_length = get_loader_memmap_length(lctx);
 		memory_map_t *memmap = get_loader_memmap(lctx);
+
+		#ifndef NDEBUG
+                wait(4000);
 		out_info("original e820 map:");
 		print_map(memmap, memmap_length/sizeof(memory_map_t));
-
+		#endif
 		uint32_t entry_offset = 0;
 
 		while (entry_offset < memmap_length && g_nr_map < MAX_E820_ENTRIES ) {
@@ -404,6 +407,7 @@ uint32_t e820_check_region(uint64_t base, uint64_t length)
     if ( is_overlapped(base, end, e820_base + e820_length, (uint64_t)-1) )
         ret = E820_GAP;
 
+    #ifndef NDEBUG
     /* print the result */
     switch (ret) {
         case E820_RAM:
@@ -423,6 +427,7 @@ uint32_t e820_check_region(uint64_t base, uint64_t length)
         default:
             out_info("UNKNOWN)\n");
     }
+     #endif
 
     return ret;
 }
@@ -577,9 +582,11 @@ bool get_ram_ranges(uint64_t *min_lo_ram, uint64_t *max_lo_ram, uint64_t *min_hi
 			}
 			else {     /* need to reserve low RAM above reserved regions */
 				if (base < 0x100000000ULL) {
+					#ifndef NDEBUG
 					out_info("discarding RAM above reserved regions");
 					out_description("base", base);
 					out_description("limit", limit);
+					#endif
 					if (!e820_reserve_ram(base, limit - base))
 						return false;
 				}

@@ -119,7 +119,9 @@ static int  find_rsdp(void)
 	uint8_t *ldr_rsdp = NULL;
 
 	if (rsdp != NULL) {
+		#ifndef NDEBUG
 		out_info("rsdp already initialized");
+		#endif
 		return 1;
 	}
 
@@ -156,8 +158,8 @@ struct acpi_rsdp *get_rsdp()
 {
 	if (rsdp != NULL)
 		return rsdp;
-	out_info("EORROR : RSDP not found");
-        #ifdef NDEBUG
+        #ifndef NDEBUG
+	out_info("ERROR : RSDP not found");
         wait(4000);
         #endif
 	return NULL;
@@ -170,10 +172,13 @@ static struct acpi_table_header *find_table(const char *table_name)
 	if (!find_rsdp()) {
 		out_info("no rsdp to use");
 		return NULL;
-	} else {
+	} 
+	#ifndef NDEBUG
+	else {
 		/* Bhushan : debug : remove once done */
 		out_info("RSDP found :) ");
 	}
+	#endif
 
 	struct acpi_table_header *table = NULL;
 	struct acpi_xsdt *xsdt = get_xsdt();	/* it is ok even on 1.0 tables */
@@ -183,7 +188,9 @@ static struct acpi_table_header *find_table(const char *table_name)
 		for (uint64_t *curr_table = xsdt->table_offsets; curr_table < (uint64_t *)((void *)xsdt + xsdt->hdr.length); curr_table++) {
 			table = (struct acpi_table_header *)(uintptr_t)*curr_table;
 			if (memcmp(table->signature, table_name, sizeof(table->signature)) == 0) {
+				#ifndef NDEBUG
 				out_info("Bhushan: Here 1 : ACPI 2.0+");
+				#endif
 				return table;
 			}
 		}
@@ -228,8 +235,9 @@ int save_vtd_dmar_table(void)
 	   while removing this funtion */
 
 	g_dmar_table = (struct acpi_table_header *)get_vtd_dmar_table();
-
+	#ifndef NDEBUG
 	out_description("DMAR table saved @ : ", (unsigned int)g_dmar_table);
+	#endif
 	return 1;
 }
 
