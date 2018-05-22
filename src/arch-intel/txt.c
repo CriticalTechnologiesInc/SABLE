@@ -704,7 +704,6 @@ static void txt_wakeup_cpus(void)
 
 	#ifndef NDEBUG
 	out_info("\n");
-	#ifndef NDEBUG
 	if (timeout == 0){
 		out_info("wait-for-sipi loop timed-out");
 	}else{

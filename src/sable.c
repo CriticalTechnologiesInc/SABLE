@@ -462,16 +462,6 @@ RESULT post_launch(struct mbi *m);
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
 
-<<<<<<< HEAD
-  #ifndef NDEBUG
-  out_string("debug mode");
-  #else
-  out_string("not debug mode");
-  #endif
-  wait(3000);
-
-=======
->>>>>>> tmpjdf
   out_string(version_string);
 #ifdef __ARCH_INTEL__
   // We can remove all of determine_loader_type_context code by storing mbi pointer in stack instead of variable
