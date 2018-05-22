@@ -120,7 +120,8 @@ static void copy_s3_wakeup_entry(void)
 extern void txt_post_launch(void);
 
 void intel_post_launch(void){
-	out_info("We are in post launch processing --  Measured launch succeeded");
+
+	out_info("Measured launch succeeded");
 	uint64_t base, size;
 	extern void shutdown_entry(void);
 

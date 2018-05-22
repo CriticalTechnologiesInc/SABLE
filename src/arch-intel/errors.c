@@ -67,7 +67,9 @@ void txt_display_errors(void)
 	if (txt_has_error() != 0) {
 		out_info("ERROR : Need attention");
 	}
+        #ifndef NDEBUG
 	out_description64("TXT.ERRORCODE ", err._raw);
+	#endif
 
 	/* AC module error (don't know how to parse other errors) */
 	if (err.valid) {
@@ -110,7 +112,9 @@ void txt_display_errors(void)
 	if (!(ests._raw == 0)) {
 		out_info("ERROR : need attention");
 	}
+	#ifndef NDEBUG
 	out_description64("TXT.ESTS:", ests._raw);
+	#endif
 
 	/*
 	 * display TXT.E2STS error
@@ -120,8 +124,8 @@ void txt_display_errors(void)
 	if (!(e2sts._raw == 0 || e2sts._raw == 0x200000000)) {
 		out_info("ERROR : need attention");
 	}
+	#ifndef NDEBUG
 	out_description64("TXT.E2STS", e2sts._raw);
-        #ifdef NDEBUG
 	wait(3000);
 	#endif
 }

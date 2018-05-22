@@ -462,6 +462,7 @@ RESULT post_launch(struct mbi *m);
 RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT ret = {.exception.error = NONE};
 
+<<<<<<< HEAD
   #ifndef NDEBUG
   out_string("debug mode");
   #else
@@ -469,6 +470,8 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   #endif
   wait(3000);
 
+=======
+>>>>>>> tmpjdf
   out_string(version_string);
 #ifdef __ARCH_INTEL__
   // We can remove all of determine_loader_type_context code by storing mbi pointer in stack instead of variable
@@ -556,8 +559,6 @@ RESULT post_launch(struct mbi *m) {
 #ifdef __ARCH_INTEL__
   copy_e820_map(g_ldr_ctx);
   intel_post_launch();
-#ifndef NDEBUG
-#endif
 #endif
 
 #ifdef __ARCH_AMD__

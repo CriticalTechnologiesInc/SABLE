@@ -216,6 +216,7 @@ set_target_properties (sable-Intel
     -fcrossjumping \
     -mtune=generic -fmerge-constants -ftree-ter \
     -fno-builtin \
+    -DNDEBUG \
     -nostdlib \
     -fno-stack-protector \
     -fno-asynchronous-unwind-tables \

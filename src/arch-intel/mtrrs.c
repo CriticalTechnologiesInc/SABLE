@@ -511,10 +511,12 @@ int set_mem_type(const void *base, uint32_t size, uint32_t mem_type)
 	num_pages = PAGE_UP(size) >> PAGE_SHIFT;
 	ndx = 0;
 
+	#ifndef NDEBUG
 	out_info("setting MTRRs for acmod");
 	out_description("base", (unsigned int)base);
 	out_description("size", size);
 	out_description("num_pages", num_pages);
+	#endif
 
 	/*
 	 * Each VAR MTRR base must be a multiple if that MTRR's Size
@@ -531,7 +533,9 @@ int set_mem_type(const void *base, uint32_t size, uint32_t mem_type)
 
 	}
 	for (int j=i-12; j>0; j--) mtrr_s =mtrr_s*2; //mtrr_s = mtrr_s << 1
+	#ifndef NDEBUG
 	out_description("The maximum allowed MTRR range size Pages", mtrr_s);
+	#endif
 
 	while (num_pages >= mtrr_s) {
 

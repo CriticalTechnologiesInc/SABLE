@@ -42,6 +42,7 @@ __data loader_ctx *g_ldr_ctx = &g_loader_ctx;
 
 void print_txt_caps(txt_caps_t caps)
 {
+	#ifndef NDEBUG
 	out_description("\tcapabilities: ", caps._raw);
 	out_description("\trlp_wake_getsec: ", caps.rlp_wake_getsec);
 	out_description("\trlp_wake_monitor: ", caps.rlp_wake_monitor);
@@ -52,6 +53,7 @@ void print_txt_caps(txt_caps_t caps)
 	out_description("\tplatform_type: ", caps.platform_type);
 	out_description("\tmax_phy_addr: ", caps.max_phy_addr);
 	out_description("\ttcg_event_log_format: ", caps.tcg_event_log_format);
+	#endif
 }
 
 static acm_info_table_t *get_acmod_info_table(const acm_hdr_t* hdr)
@@ -312,19 +314,23 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 	if ((ver._raw & 0xffffffff) == 0xffffffff || (ver._raw & 0xffffffff) == 0x00) {         /* need to use VER.QPIIF */
 		ver._raw = read_pub_config_reg(TXTCR_VER_QPIIF);
 	}
+	#ifndef NDEBUG
 	out_description("chipset production fused", ver.prod_fused );
 	out_info("chipset ids:");
 	out_description("vendor", didvid.vendor_id); 
 	out_description("device", didvid.device_id);
 	out_description("revision", didvid.revision_id);
+	#endif
 
 	/* get processor family/model/stepping and platform ID */
 
 	uint64_t platform_id;
 	uint32_t fms = cpuid_eax(1);
 	platform_id = rdmsr(MSR_IA32_PLATFORM_ID);
+	#ifndef NDEBUG
 	out_description("processor family/model/stepping", fms);
 	out_description("platform id", (unsigned long long)platform_id);
+	#endif
 
 	/*
 	 * check if chipset fusing is same
@@ -345,16 +351,21 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 		return 0;
 	}
 
+	#ifndef NDEBUG
 	out_description("ACM chipset id entries", chipset_id_list->count);
+	#endif
+
 	unsigned int i;
 	for ( i = 0; i < chipset_id_list->count; i++ ) {
 		acm_chipset_id_t *chipset_id = &(chipset_id_list->chipset_ids[i]);
-		
+
+		#ifndef NDEBUG
 		out_description("vendor", (uint32_t)chipset_id->vendor_id);
 		out_description("device", (uint32_t)chipset_id->device_id);
 		out_description("flags", chipset_id->flags);
 		out_description("revision", (uint32_t)chipset_id->revision_id);
 		out_description("extended", chipset_id->extended_id);
+		#endif
 
 		if ((didvid.vendor_id == chipset_id->vendor_id ) && 
 		    (didvid.device_id == chipset_id->device_id ) &&
@@ -384,14 +395,19 @@ int does_acmod_match_platform(const acm_hdr_t* hdr)
 		if (proc_id_list == NULL)
 			return 0;
 
+		#ifndef NDEBUG
 		out_description("ACM processor id entries count", proc_id_list->count);
+		#endif
+
 		for ( i = 0; i < proc_id_list->count; i++ ) {
 			acm_processor_id_t *proc_id = &(proc_id_list->processor_ids[i]);
 
+			#ifndef NDEBUG
 			out_description("fms", proc_id->fms);
 			out_description("fms_mask", proc_id->fms_mask);
 			out_description("platform_id", (unsigned long long)proc_id->platform_id);
 			out_description("platform_mask", (unsigned long long)proc_id->platform_mask);
+			#endif
 
 			if ((proc_id->fms == (fms & proc_id->fms_mask)) && (proc_id->platform_id == (platform_id & proc_id->platform_mask))) {
 				break;
@@ -434,8 +450,10 @@ acm_hdr_t *copy_sinit(const acm_hdr_t *sinit)
 	void *sinit_region_base = (void*)(unsigned long)read_pub_config_reg(TXTCR_SINIT_BASE);
 	uint32_t sinit_region_size = (uint32_t)read_pub_config_reg(TXTCR_SINIT_SIZE);
 
+	#ifndef NDEBUG
 	out_description("TXT.SINIT.BASE", (unsigned int) sinit_region_base);
 	out_description("TXT.SINIT.SIZE", (unsigned int) sinit_region_size);
+	#endif
 
 	/*
 	 * check if BIOS already loaded an SINIT module there
@@ -484,9 +502,11 @@ acm_hdr_t *copy_sinit(const acm_hdr_t *sinit)
 	/* copy it there */
 	memcpy(sinit_region_base, sinit, sinit->size * 4);
 
+	#ifndef NDEBUG
 	out_info("\tcopied SINIT :");
 	out_description("size", sinit->size*4);
 	out_description("to base", (unsigned int)sinit_region_base);
+	#endif
 
 	return (acm_hdr_t *)sinit_region_base;
 }
@@ -508,7 +528,9 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 		out_description("AC mod base not 4K aligned", (unsigned int) acm_hdr);
 		return 0;
 	}
+	#ifndef NDEBUG
 	out_info("AC mod base alignment OK");
+	#endif
 
 	/* AC mod size must:
 	 * - be multiple of 64
@@ -531,7 +553,9 @@ int verify_acmod(const acm_hdr_t *acm_hdr)
 		return 0;
 	}
 
+	#ifndef NDEBUG
 	out_info("AC mod size OK");
+	#endif
 
 	/*
 	 * perform checks on AC mod structure
@@ -635,7 +659,9 @@ int prepare_sinit_acm(struct mbi *m) {
 		uint32_t size2 = mod->mod_end - (unsigned long)(base2);
 		if (is_sinit_acmod(base2, size2)) {
 			if (does_acmod_match_platform((acm_hdr_t *)base2)) { 
+				#ifndef NDEBUG
 				out_string("SINIT matches platform\n");
+				#endif
 				break;
 			}
 		} 
@@ -660,7 +686,9 @@ int prepare_sinit_acm(struct mbi *m) {
 		return 0;
 	}
 
+	#ifndef NDEBUG
 	out_info("Verification of SINIT ACM : done");
+	#endif
 	return 1;
 }
 

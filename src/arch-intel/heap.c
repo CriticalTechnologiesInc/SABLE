@@ -365,8 +365,11 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 {
 	uint64_t heap_base = read_pub_config_reg(TXTCR_HEAP_BASE);
 	uint64_t heap_size = read_pub_config_reg(TXTCR_HEAP_SIZE);
+
+	#ifndef NDEBUG
 	out_description("TXT.HEAP.BASE: ", heap_base);
 	out_description("TXT.HEAP.SIZE: ", heap_size);
+	#endif
 
 	/* verify that heap base/size are valid */
 	if (txt_heap == NULL || heap_base == 0 || heap_size == 0) {
@@ -418,12 +421,14 @@ int verify_bios_data(const txt_heap_t *txt_heap)
 
 static void print_os_mle_data(const os_mle_data_t *os_mle_data)
 {
+	#ifndef NDEBUG
 	out_info("os_mle_data");
 	out_description("os_mle_data address", (unsigned int)os_mle_data);
 	out_description("  o size", *((uint64_t *)os_mle_data - 1));
 	out_description("  o version", os_mle_data->version);
 	/* TBD: perhaps eventually print saved_mtrr_state field */
 	out_description("      o loader context addr", (unsigned int)os_mle_data->lctx_addr);
+	#endif
 }
 
 static bool verify_os_mle_data(const txt_heap_t *txt_heap)
