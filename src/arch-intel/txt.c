@@ -1117,7 +1117,7 @@ void txt_cpu_wakeup(void)
 	}
 
 //	mtx_enter(&ap_lock);
-	for(int i=0;i<cpuid*250000;i++){}
+	for(int i=0;i<cpuid*350000;i++){}
 
 	#ifndef NDEBUG
 	out_description("cpu waking up from TXT sleep :", cpuid);
