@@ -71,8 +71,6 @@ void out_description(const char *prefix, unsigned int value);
 void out_description64(const char *prefix, unsigned long long value);
 void out_info(const char *msg);
 
-
-
 /**
  * Helper functions.
  */

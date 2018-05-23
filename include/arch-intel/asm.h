@@ -17,7 +17,7 @@
 
 #include "processor.h"
 #include "types.h"
-#include "msr.h"		// Bhushan : msr will contain most of intel specific funtions. keeping asm.h just not to break build
+#include "msr.h" // Bhushan : msr will contain most of intel specific funtions. keeping asm.h just not to break build
 
 void reboot(void) __attribute__((noreturn));
 void do_skinit(void) __attribute__((noreturn));

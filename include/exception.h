@@ -54,9 +54,7 @@ typedef struct tdEXCEPTION {
 #endif
 } EXCEPTION;
 
-typedef struct tdRESULT {
-  EXCEPTION exception;
-} RESULT;
+typedef struct tdRESULT { EXCEPTION exception; } RESULT;
 
 #define RESULT_GEN(Type)                                                       \
   struct Type##_exception {                                                    \
@@ -189,9 +187,7 @@ typedef struct tdRESULT {
 #define CATCH_ANY(e, handler)                                                  \
   {                                                                            \
     if (e.error) {                                                             \
-      {                                                                        \
-        handler;                                                               \
-      };                                                                       \
+      { handler; };                                                            \
       e.error = NONE;                                                          \
     }                                                                          \
   }
@@ -202,9 +198,7 @@ typedef struct tdRESULT {
 #define CATCH(e, ex, handler)                                                  \
   {                                                                            \
     if (e.error == (ex)) {                                                     \
-      {                                                                        \
-        handler;                                                               \
-      };                                                                       \
+      { handler; };                                                            \
       e.error = NONE;                                                          \
     }                                                                          \
   }

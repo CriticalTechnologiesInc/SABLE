@@ -58,7 +58,7 @@ void determine_loader_type_context(void *addr, uint32_t magic);
 
 int platform_pre_checks();
 int txt_launch_environment();
-//void print_mbi(struct mbi *mbi);
+// void print_mbi(struct mbi *mbi);
 
 // Result generators
 RESULT_GEN(TPM_NONCE);
@@ -393,7 +393,6 @@ static RESULT mbi_calc_hash(struct mbi *mbi) {
   for (unsigned i = 0; i < mbi->mods_count; i++, m++) {
     sha1_init(&sctx);
 
-
     ERROR(m->mod_end < m->mod_start, ERROR_BAD_MODULE,
           "mod_end less than start");
 #ifndef NDEBUG
@@ -464,9 +463,10 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
 
   out_string(version_string);
 #ifdef __ARCH_INTEL__
-  // We can remove all of determine_loader_type_context code by storing mbi pointer in stack instead of variable
+  // We can remove all of determine_loader_type_context code by storing mbi
+  // pointer in stack instead of variable
   if (g_ldr_ctx->type == 0) {
-  	determine_loader_type_context(m, flags);
+    determine_loader_type_context(m, flags);
   }
 #endif
 
@@ -480,38 +480,42 @@ RESULT pre_launch(struct mbi *m, unsigned flags) {
   RESULT tpm = prepare_tpm();
   THROW(tpm.exception);
 
-
 #ifdef __ARCH_INTEL__
-  if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP) ) {
-     out_string("ERROR: Not a system bootstrap processor\n");
-     while(1);
+  if (!(rdmsr(MSR_APICBASE) & APICBASE_BSP)) {
+    out_string("ERROR: Not a system bootstrap processor\n");
+    while (1)
+      ;
   }
 
-  //Making copy e820 map to restore after post launch
+  // Making copy e820 map to restore after post launch
   if (!copy_e820_map(g_ldr_ctx)) {
-	out_info("ERROR: Copying of e820 map failed");
-	while(1);
+    out_info("ERROR: Copying of e820 map failed");
+    while (1)
+      ;
   }
 
-    //verify SINIT AC module : step 3
-    if(!prepare_sinit_acm(m)) {
-          out_string("EORROR: Problem with SINIT AC module");
-	  while(1);
-    }
+  // verify SINIT AC module : step 3
+  if (!prepare_sinit_acm(m)) {
+    out_string("EORROR: Problem with SINIT AC module");
+    while (1)
+      ;
+  }
 
   /*
    * verify platform : step 1 and 2
    */
 
-  if(!platform_pre_checks()) {
-     out_info("ERROR: Problem with platform configuration detected");
-     while(1);
+  if (!platform_pre_checks()) {
+    out_info("ERROR: Problem with platform configuration detected");
+    while (1)
+      ;
   }
 
   // call getsec senter
-  if(!txt_launch_environment()) {
-	out_info("ERROR: Measured launch failed");
-    	while(1);
+  if (!txt_launch_environment()) {
+    out_info("ERROR: Measured launch failed");
+    while (1)
+      ;
   }
 #endif
 #ifdef __ARCH_AMD__
@@ -569,40 +573,42 @@ RESULT post_launch(struct mbi *m) {
   val = cmdlineArgVal((char *)m->cmdline, "--nv-size=");
   nvSize = aToI(val);
 
-  /* 
-   * Bhushan : I guess this asset is not effective. as we should check variouse flags to decide
-   * if we have valide mbi as m can be !null but there will not be any mbi present
+  /*
+   * Bhushan : I guess this asset is not effective. as we should check variouse
+   * flags to decide
+   * if we have valide mbi as m can be !null but there will not be any mbi
+   * present
    */
 
   ERROR(!m, ERROR_NO_MBI, "no mbi in sable()");
 
   if (tis_init()) {
 
-    #ifndef NDEBUG
+#ifndef NDEBUG
     out_info("Accessing TIS");
-    #endif
+#endif
 
     RESULT tis_access_ret = tis_access(TIS_LOCALITY_2, 0);
     THROW(tis_access_ret.exception);
 
-    #ifndef NDEBUG
+#ifndef NDEBUG
     out_info("Calculating hash");
-    #endif
+#endif
 
     RESULT mbi_calc_hash_ret = mbi_calc_hash(m);
     THROW(mbi_calc_hash_ret.exception);
 
-    #ifdef __ARCH_AMD__
+#ifdef __ARCH_AMD__
     RESULT_(TPM_PCRVALUE) pcr17 = TPM_PCRRead(17);
     THROW(pcr17.exception);
     show_hash("PCR[17]: ", pcr17.value);
-    #endif
+#endif
 
-    #ifdef __ARCH_INTEL__
+#ifdef __ARCH_INTEL__
     RESULT_(TPM_PCRVALUE) pcr18 = TPM_PCRRead(18);
     THROW(pcr18.exception);
     show_hash("PCR[18]: ", pcr18.value);
-    #endif
+#endif
 
     RESULT_(TPM_PCRVALUE) pcr19 = TPM_PCRRead(19);
     THROW(pcr19.exception);
@@ -622,9 +628,10 @@ RESULT post_launch(struct mbi *m) {
       wait(5000);
       reboot();
 #ifndef NDEBUG
-    /* Remove this while merge with master. just a hack to avoid password while testing */
+      /* Remove this while merge with master. just a hack to avoid password
+       * while testing */
     } else if (config_str[0] == 's') {
-#endif  
+#endif
     } else {
       RESULT trusted_boot_ret = trusted_boot(nvIndex, nvSize);
       THROW(trusted_boot_ret.exception);
@@ -635,8 +642,8 @@ RESULT post_launch(struct mbi *m) {
   }
 
 #ifdef __ARCH_INTEL__
-    out_string("Launching Linux Kernel now..");
-    launch_kernel(true);
+  out_string("Launching Linux Kernel now..");
+  launch_kernel(true);
 #endif
 
   RESULT start_module_ret = start_module(m);

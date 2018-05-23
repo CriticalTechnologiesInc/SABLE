@@ -165,5 +165,4 @@ RESULT start_module(struct mbi *mbi) {
   return ret;
 }
 
-
 #endif

@@ -17,11 +17,10 @@
 #include "alloc.h"
 #include "util.h"
 
-typedef	int	word;		/* "word" used for optimal copy speed */
+typedef int word; /* "word" used for optimal copy speed */
 
-#define	wsize	sizeof(word)
-#define wmask	(wsize - 1)
-
+#define wsize sizeof(word)
+#define wmask (wsize - 1)
 
 static const char *const message_label = "SABLE:   ";
 
@@ -51,7 +50,6 @@ void out_hex64(unsigned long long value) {
     out_char(a);
   }
 }
-
 
 #ifndef NDEBUG
 void dump_exception(EXCEPTION e) {
@@ -84,81 +82,83 @@ void *memcpy(void *dest, const void *src, UINT32 len) {
 }
 #endif
 #ifdef __ARCH_INTEL__
-void *memcpy(void *dst0, const void *src0, size_t length)
-{
-	char		*dst;
-	const char	*src;
-	size_t		t;
+void *memcpy(void *dst0, const void *src0, size_t length) {
+  char *dst;
+  const char *src;
+  size_t t;
 
-	dst = dst0;
-	src = src0;
+  dst = dst0;
+  src = src0;
 
-	if (length == 0 || dst == src) {	/* nothing to do */
-		goto done;
-	}
+  if (length == 0 || dst == src) { /* nothing to do */
+    goto done;
+  }
 
-	/*
-	 * Macros: loop-t-times; and loop-t-times, t>0
-	 */
-#define	TLOOP(s) if (t) TLOOP1(s)
-#define	TLOOP1(s) do { s; } while (--t)
+/*
+ * Macros: loop-t-times; and loop-t-times, t>0
+ */
+#define TLOOP(s)                                                               \
+  if (t)                                                                       \
+  TLOOP1(s)
+#define TLOOP1(s)                                                              \
+  do {                                                                         \
+    s;                                                                         \
+  } while (--t)
 
-	if ((unsigned long)dst < (unsigned long)src) {
-		/*
-		 * Copy forward.
-		 */
-		t = (int)src;	/* only need low bits */
+  if ((unsigned long)dst < (unsigned long)src) {
+    /*
+     * Copy forward.
+     */
+    t = (int)src; /* only need low bits */
 
-		if ((t | (int)dst) & wmask) {
-			/*
-			 * Try to align operands.  This cannot be done
-			 * unless the low bits match.
-			 */
-			if ((t ^ (int)dst) & wmask || length < wsize) {
-				t = length;
-			} else {
-				t = wsize - (t & wmask);
-			}
+    if ((t | (int)dst) & wmask) {
+      /*
+       * Try to align operands.  This cannot be done
+       * unless the low bits match.
+       */
+      if ((t ^ (int)dst) & wmask || length < wsize) {
+        t = length;
+      } else {
+        t = wsize - (t & wmask);
+      }
 
-			length -= t;
-			TLOOP1(*dst++ = *src++);
-		}
-		/*
-		 * Copy whole words, then mop up any trailing bytes.
-		 */
-		t = length / wsize;
-		TLOOP(*(word *)dst = *(const word *)src; src += wsize;
-		    dst += wsize);
-		t = length & wmask;
-		TLOOP(*dst++ = *src++);
-	} else {
-		/*
-		 * Copy backwards.  Otherwise essentially the same.
-		 * Alignment works as before, except that it takes
-		 * (t&wmask) bytes to align, not wsize-(t&wmask).
-		 */
-		src += length;
-		dst += length;
-		t = (int)src;
+      length -= t;
+      TLOOP1(*dst++ = *src++);
+    }
+    /*
+     * Copy whole words, then mop up any trailing bytes.
+     */
+    t = length / wsize;
+    TLOOP(*(word *)dst = *(const word *)src; src += wsize; dst += wsize);
+    t = length & wmask;
+    TLOOP(*dst++ = *src++);
+  } else {
+    /*
+     * Copy backwards.  Otherwise essentially the same.
+     * Alignment works as before, except that it takes
+     * (t&wmask) bytes to align, not wsize-(t&wmask).
+     */
+    src += length;
+    dst += length;
+    t = (int)src;
 
-		if ((t | (int)dst) & wmask) {
-			if ((t ^ (int)dst) & wmask || length <= wsize) {
-				t = length;
-			} else {
-				t &= wmask;
-			}
+    if ((t | (int)dst) & wmask) {
+      if ((t ^ (int)dst) & wmask || length <= wsize) {
+        t = length;
+      } else {
+        t &= wmask;
+      }
 
-			length -= t;
-			TLOOP1(*--dst = *--src);
-		}
-		t = length / wsize;
-		TLOOP(src -= wsize; dst -= wsize;
-		    *(word *)dst = *(const word *)src);
-		t = length & wmask;
-		TLOOP(*--dst = *--src);
-	}
+      length -= t;
+      TLOOP1(*--dst = *--src);
+    }
+    t = length / wsize;
+    TLOOP(src -= wsize; dst -= wsize; *(word *)dst = *(const word *)src);
+    t = length & wmask;
+    TLOOP(*--dst = *--src);
+  }
 done:
-	return (dst0);
+  return (dst0);
 }
 #endif
 
@@ -399,7 +399,7 @@ char *cmdlineArgVal(char *cmdline, char *cmdlineArg) {
 int aToI(char *str) {
   int ret = 0;
   while (str[0] != '\0' && str[0] != ' ') {
-//    out_char(str[0]);
+    //    out_char(str[0]);
     ret *= 10;
     ret += (str[0] - '0');
     str++;
