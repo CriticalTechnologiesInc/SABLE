@@ -1116,7 +1116,11 @@ void txt_cpu_wakeup(void)
 		return;
 	}
 
+	// mtx_enter() is a proper mutex from tboot, but doesn't
+	// work for unknown reasons.
 //	mtx_enter(&ap_lock);
+	// This is a hacky solution to avoid race conditions in
+	// place of mtx_enter()
 	for(int i=0;i<cpuid*350000;i++){}
 
 	#ifndef NDEBUG

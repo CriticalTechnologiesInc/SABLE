@@ -220,14 +220,23 @@ set_target_properties (sable-Intel
     -nostdlib \
     -fno-stack-protector \
     -fno-asynchronous-unwind-tables \
+    -fno-strict-aliasing \
+    -fno-stack-check \
+    -U_FORTIFY_SOURCE \
+    -D_FORTIFY_SOURCE=2 \
+    -nostdinc \
+    -fno-common \
     -fpack-struct \
     -m32 \
+    -march=i686 \
+    -pipe \
+    -iwithprefix \
+    -msoft-float \
     -std=gnu99 \
     -mregparm=3 \
     -fomit-frame-pointer \
     -minline-all-stringops \
     --param max-inline-insns-single=50 \
-    -fstrict-aliasing \
     -Wstrict-aliasing=0"
   )
 
