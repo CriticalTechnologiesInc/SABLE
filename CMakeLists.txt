@@ -211,12 +211,10 @@ set_target_properties (sable-Intel
   COMPILE_FLAGS
     "-D__ARCH_INTEL__ \
     -Wno-main \
-    -DNDEBUG \
     -fsplit-wide-types \
     -fcrossjumping \
     -mtune=generic -fmerge-constants -ftree-ter \
     -fno-builtin \
-    -DNDEBUG \
     -nostdlib \
     -fno-stack-protector \
     -fno-asynchronous-unwind-tables \
@@ -233,6 +231,7 @@ set_target_properties (sable-Intel
     -iwithprefix \
     -msoft-float \
     -std=gnu99 \
+    -O0 \
     -mregparm=3 \
     -fomit-frame-pointer \
     -minline-all-stringops \
